@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Kampanya Takip Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Kampanya Takip">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+</head>
+<body>
+    <!-- Üst Menü -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <button class="navbar-toggler d-lg-none" type="button" onclick="toggleMobileMenu()" aria-label="Toggle navigation" style="border: none; background: none; color: white; font-size: 20px;">
+                ☰
+            </button>
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-store me-2"></i>
+                <span class="d-none d-sm-inline">Kampanya Takip Sistemi - Admin Panel</span>
+                <span class="d-inline d-sm-none">Admin Panel</span>
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="#" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i><span class="d-none d-sm-inline">Çıkış</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sol Menü -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse" id="sidebarMenu">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#dashboard" onclick="showSection('dashboard')">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tasks" onclick="showSection('tasks')">
+                                <i class="fas fa-tasks me-2"></i>Görevler
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#create-task" onclick="showSection('create-task')">
+                                <i class="fas fa-plus me-2"></i>Görev Oluştur
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#stores" onclick="showSection('stores')">
+                                <i class="fas fa-store me-2"></i>Mağazalar
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#users" onclick="showSection('users')">
+                                <i class="fas fa-users me-2"></i>Kullanıcılar
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#channels" onclick="showSection('channels')">
+                                <i class="fas fa-sitemap me-2"></i>Kanallar
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#regions" onclick="showSection('regions')">
+                                <i class="fas fa-map-marker-alt me-2"></i>Bölgeler
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#add-user" onclick="showSection('add-user')">
+                                <i class="fas fa-user-plus me-2"></i>Kullanıcı Ekle
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#add-store" onclick="showSection('add-store')">
+                                <i class="fas fa-store-plus me-2"></i>Mağaza Ekle
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#add-channel" onclick="showSection('add-channel')">
+                                <i class="fas fa-plus-circle me-2"></i>Kanal Ekle
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#add-region" onclick="showSection('add-region')">
+                                <i class="fas fa-map-marked-alt me-2"></i>Bölge Ekle
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Ana İçerik -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2" id="page-title">Dashboard</h1>
+                </div>
+
+                <!-- Dashboard İçeriği -->
+                <div id="dashboard-section" class="content-section">
+                    <div class="row">
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Toplam Görev</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-tasks">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-tasks fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Tamamlanan</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="completed-tasks">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                Devam Eden</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-tasks">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-danger shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                                Geciken</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="late-tasks">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Görev Detay İstatistikleri -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="mb-3">📊 Görev Detayları</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="task-stats-container">
+                        <!-- Görev istatistikleri buraya dinamik olarak yüklenecek -->
+                    </div>
+
+                    <!-- Son Görevler -->
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Son Görevler</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="recent-tasks-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Görev Adı</th>
+                                                    <th>Kanal</th>
+                                                    <th>Durum</th>
+                                                    <th>Başlangıç</th>
+                                                    <th>Bitiş</th>
+                                                    <th>İşlemler</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Görevler buraya eklenecek -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Görev Oluşturma İçeriği -->
+                <div id="create-task-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Yeni Görev Oluştur</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="create-task-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="task-title" class="form-label">Görev Adı *</label>
+                                            <input type="text" class="form-control" id="task-title" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="task-category" class="form-label">Kategori *</label>
+                                            <select class="form-select" id="task-category" required>
+                                                <option value="">Kategori Seçiniz</option>
+                                                <option value="reyon">Reyon</option>
+                                                <option value="sepet">Sepet</option>
+                                                <option value="kampanya">Kampanya</option>
+                                                <option value="diger">Diğer</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="task-description" class="form-label">Görev Açıklaması *</label>
+                                    <textarea class="form-control" id="task-description" rows="3" required></textarea>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="task-start-date" class="form-label">Başlangıç Tarihi *</label>
+                                            <input type="datetime-local" class="form-control" id="task-start-date" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="task-end-date" class="form-label">Bitiş Tarihi *</label>
+                                            <input type="datetime-local" class="form-control" id="task-end-date" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="task-channel" class="form-label">Kanal *</label>
+                                            <select class="form-select" id="task-channel" required>
+                                                <option value="">Kanal Seçiniz</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="task-stores" class="form-label">Mağazalar *</label>
+                                            <select class="form-select" id="task-stores" multiple required>
+                                                <option value="all">Tüm Mağazalar</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Yanıt Türü *</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="response-text" value="text">
+                                                <label class="form-check-label" for="response-text">
+                                                    <i class="fas fa-comment me-1"></i>Yazılı Yanıt
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="response-photo" value="photo">
+                                                <label class="form-check-label" for="response-photo">
+                                                    <i class="fas fa-camera me-1"></i>Fotoğraflı Yanıt
+                                                </label>
+                                            </div>
+                                            <small class="form-text text-muted">En az bir yanıt türü seçmelisiniz</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="photo-limit" class="form-label">Fotoğraf Limiti</label>
+                                            <select class="form-select" id="photo-limit">
+                                                <option value="1">1 Fotoğraf</option>
+                                                <option value="2">2 Fotoğraf</option>
+                                                <option value="3">3 Fotoğraf</option>
+                                                <option value="4">4 Fotoğraf</option>
+                                                <option value="5" selected>5 Fotoğraf</option>
+                                                <option value="6">6 Fotoğraf</option>
+                                                <option value="7">7 Fotoğraf</option>
+                                                <option value="8">8 Fotoğraf</option>
+                                                <option value="9">9 Fotoğraf</option>
+                                                <option value="10">10 Fotoğraf</option>
+                                            </select>
+                                            <small class="form-text text-muted">Sadece fotoğraflı yanıt seçildiğinde geçerli</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="task-example-photo" class="form-label">Örnek Fotoğraf (Opsiyonel)</label>
+                                    <input type="file" class="form-control" id="task-example-photo" accept="image/*">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Görev Oluştur
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Görevler Listesi İçeriği -->
+                <div id="tasks-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Görevler</h3>
+                        <div>
+                            <button class="btn btn-warning me-2" onclick="exportTaskToPresentation()" id="presentation-btn" style="display: none;">
+                                <i class="fas fa-file-powerpoint me-2"></i>Sunum İndir
+                            </button>
+                            <button class="btn btn-success me-2" onclick="exportTasksToExcel()">
+                                <i class="fas fa-file-excel me-2"></i>Excel İndir
+                            </button>
+                            <button class="btn btn-primary" onclick="showSection('create-task')">
+                                <i class="fas fa-plus me-2"></i>Yeni Görev
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Arama ve Filtreleme -->
+                    <div class="card shadow mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="task-search" class="form-label">Arama</label>
+                                        <input type="text" class="form-control" id="task-search" placeholder="Görev adı ara...">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="task-status-filter" class="form-label">Durum Filtresi</label>
+                                        <select class="form-select" id="task-status-filter">
+                                            <option value="">Tüm Durumlar</option>
+                                            <option value="active">Aktif</option>
+                                            <option value="in_progress">Devam Ediyor</option>
+                                            <option value="completed">Tamamlandı</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="task-category-filter" class="form-label">Kategori Filtresi</label>
+                                        <select class="form-select" id="task-category-filter">
+                                            <option value="">Tüm Kategoriler</option>
+                                            <option value="reyon">Reyon</option>
+                                            <option value="sepet">Sepet</option>
+                                            <option value="kampanya">Kampanya</option>
+                                            <option value="diger">Diğer</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button class="btn btn-outline-secondary w-100" onclick="clearTaskFilters()">
+                                            <i class="fas fa-times me-1"></i>Temizle
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Görev Adı</th>
+                                            <th>Kategori</th>
+                                            <th>Kanal</th>
+                                            <th>Durum</th>
+                                            <th>Başlangıç</th>
+                                            <th>Bitiş</th>
+                                            <th>Atanan Mağaza</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tasks-table-body">
+                                        <tr>
+                                            <td colspan="8" class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Yükleniyor...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mağaza Listesi İçeriği -->
+                <div id="stores-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Mağazalar</h3>
+                        <div>
+                            <button class="btn btn-success me-2" onclick="exportStoresToExcel()">
+                                <i class="fas fa-file-excel me-2"></i>Excel İndir
+                            </button>
+                            <button class="btn btn-primary" onclick="showSection('add-store')">
+                                <i class="fas fa-plus me-2"></i>Yeni Mağaza
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Arama ve Filtreleme -->
+                    <div class="card shadow mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="store-search" class="form-label">Arama</label>
+                                        <input type="text" class="form-control" id="store-search" placeholder="Mağaza adı ara...">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="store-channel-filter" class="form-label">Kanal Filtresi</label>
+                                        <select class="form-select" id="store-channel-filter">
+                                            <option value="">Tüm Kanallar</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="store-region-filter" class="form-label">Bölge Filtresi</label>
+                                        <select class="form-select" id="store-region-filter">
+                                            <option value="">Tüm Bölgeler</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button class="btn btn-outline-secondary w-100" onclick="clearStoreFilters()">
+                                            <i class="fas fa-times me-1"></i>Temizle
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Mağaza Adı</th>
+                                            <th>Kanal</th>
+                                            <th>Bölge</th>
+                                            <th>Durum</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="stores-table-body">
+                                        <tr>
+                                            <td colspan="5" class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Yükleniyor...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Kanal Listesi İçeriği -->
+                <div id="channels-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Kanallar</h3>
+                        <button class="btn btn-primary" onclick="showSection('add-channel')">
+                            <i class="fas fa-plus me-2"></i>Yeni Kanal
+                        </button>
+                    </div>
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Kanal Adı</th>
+                                            <th>Açıklama</th>
+                                            <th>Durum</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="channels-table-body">
+                                        <tr>
+                                            <td colspan="4" class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Yükleniyor...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölge Listesi İçeriği -->
+                <div id="regions-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Bölgeler</h3>
+                        <button class="btn btn-primary" onclick="showSection('add-region')">
+                            <i class="fas fa-plus me-2"></i>Yeni Bölge
+                        </button>
+                    </div>
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Bölge Adı</th>
+                                            <th>Açıklama</th>
+                                            <th>Yönetici</th>
+                                            <th>Durum</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="regions-table-body">
+                                        <tr>
+                                            <td colspan="5" class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Yükleniyor...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kullanıcı Listesi İçeriği -->
+                <div id="users-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Kullanıcılar</h3>
+                        <div>
+                            <button class="btn btn-warning me-2" onclick="generatePasswordsForExistingUsers()">
+                                <i class="fas fa-key me-2"></i>Şifre Oluştur
+                            </button>
+                            <button class="btn btn-success me-2" onclick="exportUsersToExcel()">
+                                <i class="fas fa-file-excel me-2"></i>Excel İndir
+                            </button>
+                            <button class="btn btn-primary" onclick="showSection('add-user')">
+                                <i class="fas fa-plus me-2"></i>Yeni Kullanıcı
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Arama ve Filtreleme -->
+                    <div class="card shadow mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="user-search" class="form-label">Arama</label>
+                                        <input type="text" class="form-control" id="user-search" placeholder="Ad, email veya rol ara...">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="user-role-filter" class="form-label">Rol Filtresi</label>
+                                        <select class="form-select" id="user-role-filter">
+                                            <option value="">Tüm Roller</option>
+                                            <option value="admin">Admin</option>
+                                            <option value="manager">Yönetici</option>
+                                            <option value="employee">Mağaza Çalışanı</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="user-region-filter" class="form-label">Bölge Filtresi</label>
+                                        <select class="form-select" id="user-region-filter">
+                                            <option value="">Tüm Bölgeler</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button class="btn btn-outline-secondary w-100" onclick="clearUserFilters()">
+                                            <i class="fas fa-times me-1"></i>Temizle
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Ad Soyad</th>
+                                            <th>E-posta</th>
+                                            <th>Şifre</th>
+                                            <th>Rol</th>
+                                            <th>Bölge</th>
+                                            <th>Durum</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table-body">
+                                        <tr>
+                                            <td colspan="6" class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Yükleniyor...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kullanıcı Ekleme İçeriği -->
+                <div id="add-user-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Yeni Kullanıcı Ekle</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-user-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-name" class="form-label">Ad Soyad *</label>
+                                            <input type="text" class="form-control" id="user-name" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-email" class="form-label">E-posta *</label>
+                                            <input type="email" class="form-control" id="user-email" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-password" class="form-label">Şifre *</label>
+                                            <div class="input-group">
+                                                <input type="password" class="form-control" id="user-password" required>
+                                                <button class="btn btn-outline-secondary" type="button" onclick="generateUserPassword()">
+                                                    <i class="fas fa-random me-1"></i>Otomatik Oluştur
+                                                </button>
+                                            </div>
+                                            <small class="form-text text-muted">Boş bırakırsanız otomatik şifre oluşturulur</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-role" class="form-label">Rol *</label>
+                                            <select class="form-select" id="user-role" required onchange="toggleRegionField()">
+                                                <option value="">Rol Seçiniz</option>
+                                                <option value="admin">Admin</option>
+                                                <option value="manager">Yönetici</option>
+                                                <option value="employee">Mağaza Çalışanı</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row" id="region-field" style="display: none;">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="user-region" class="form-label">Bölge *</label>
+                                            <select class="form-select" id="user-region">
+                                                <option value="">Bölge Seçiniz</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Kullanıcı Ekle
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mağaza Ekleme İçeriği -->
+                <div id="add-store-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Yeni Mağaza Ekle</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-store-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="store-name" class="form-label">Mağaza Adı *</label>
+                                            <input type="text" class="form-control" id="store-name" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="store-channel" class="form-label">Kanal *</label>
+                                            <select class="form-select" id="store-channel" required>
+                                                <option value="">Kanal Seçiniz</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="store-region" class="form-label">Bölge *</label>
+                                            <select class="form-select" id="store-region" required>
+                                                <option value="">Bölge Seçiniz</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="store-manager" class="form-label">Yönetici</label>
+                                            <select class="form-select" id="store-manager">
+                                                <option value="">Yönetici Seçiniz</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Mağaza Ekle
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kanal Ekleme İçeriği -->
+                <div id="add-channel-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Yeni Kanal Ekle</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-channel-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="channel-name" class="form-label">Kanal Adı *</label>
+                                            <input type="text" class="form-control" id="channel-name" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="channel-description" class="form-label">Açıklama</label>
+                                            <input type="text" class="form-control" id="channel-description">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Kanal Ekle
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölge Ekleme İçeriği -->
+                <div id="add-region-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Yeni Bölge Ekle</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-region-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="region-name" class="form-label">Bölge Adı *</label>
+                                            <input type="text" class="form-control" id="region-name" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="region-description" class="form-label">Açıklama</label>
+                                            <input type="text" class="form-control" id="region-description">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="region-manager-name" class="form-label">Yönetici Adı *</label>
+                                            <input type="text" class="form-control" id="region-manager-name" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Bölge Ekle
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

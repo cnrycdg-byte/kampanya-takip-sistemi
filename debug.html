@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Kampanya Takip Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Debug Sayfası</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Veritabanı Bağlantı Testi</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="testConnection()">Bağlantıyı Test Et</button>
+                        <div id="connection-result" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Tablo Kontrolü</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="checkTables()">Tabloları Kontrol Et</button>
+                        <div id="tables-result" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Kullanıcı Oturumu</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info" onclick="checkUserSession()">Kullanıcı Oturumunu Kontrol Et</button>
+                        <div id="user-result" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Görev Atamaları</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-warning" onclick="checkTaskAssignments()">Görev Atamalarını Kontrol Et</button>
+                        <div id="tasks-result" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Bağlantı testi
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.innerHTML = '<div class="spinner-border" role="status"></div> Bağlantı test ediliyor...';
+            
+            try {
+                const { data, error } = await supabase.from('users').select('count').limit(1);
+                
+                if (error) {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">Hata: ${error.message}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-success">Bağlantı başarılı!</div>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">Bağlantı hatası: ${err.message}</div>`;
+            }
+        }
+        
+        // Tablo kontrolü
+        async function checkTables() {
+            const resultDiv = document.getElementById('tables-result');
+            resultDiv.innerHTML = '<div class="spinner-border" role="status"></div> Tablolar kontrol ediliyor...';
+            
+            const tables = ['users', 'stores', 'channels', 'regions', 'tasks', 'task_assignments', 'task_categories'];
+            let results = '<h6>Tablo Durumları:</h6>';
+            
+            for (const table of tables) {
+                try {
+                    const { data, error } = await supabase.from(table).select('count').limit(1);
+                    if (error) {
+                        results += `<div class="text-danger">❌ ${table}: ${error.message}</div>`;
+                    } else {
+                        results += `<div class="text-success">✅ ${table}: Mevcut</div>`;
+                    }
+                } catch (err) {
+                    results += `<div class="text-danger">❌ ${table}: ${err.message}</div>`;
+                }
+            }
+            
+            resultDiv.innerHTML = results;
+        }
+        
+        // Kullanıcı oturumu kontrolü
+        function checkUserSession() {
+            const resultDiv = document.getElementById('user-result');
+            const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
+            if (!user) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">Kullanıcı oturumu bulunamadı!</div>';
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6>Kullanıcı Bilgileri:</h6>
+                        <pre>${JSON.stringify(user, null, 2)}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        // Görev atamaları kontrolü
+        async function checkTaskAssignments() {
+            const resultDiv = document.getElementById('tasks-result');
+            resultDiv.innerHTML = '<div class="spinner-border" role="status"></div> Görev atamaları kontrol ediliyor...';
+            
+            try {
+                const { data, error } = await supabase
+                    .from('task_assignments')
+                    .select(`
+                        *,
+                        tasks(
+                            id,
+                            title,
+                            description,
+                            category,
+                            start_date,
+                            end_date,
+                            status
+                        )
+                    `)
+                    .limit(10);
+                
+                if (error) {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">Hata: ${error.message}</div>`;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6>Görev Atamaları (${data.length} adet):</h6>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">Hata: ${err.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

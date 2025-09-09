@@ -1,0 +1,334 @@
+/* Genel Stiller */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Uyarı Mesajları */
+.alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    max-width: 500px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+/* Mobil Uyarı Mesajları */
+@media (max-width: 768px) {
+    .alert {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+        font-size: 14px;
+        padding: 12px 16px;
+    }
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    padding: 1.5rem;
+}
+
+/* Giriş Formu */
+#loginForm .form-control {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+#loginForm .form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+#loginForm .btn {
+    border-radius: 10px;
+    padding: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+#loginForm .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Mobil Optimizasyonu */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .card {
+        margin: 10px 0;
+        border-radius: 10px;
+    }
+    
+    .card-header {
+        padding: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn {
+        padding: 12px 16px;
+        font-size: 16px; /* Dokunmatik için büyük buton */
+    }
+    
+    .form-control {
+        padding: 14px 16px;
+        font-size: 16px; /* Zoom engellemek için */
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .sidebar {
+        position: fixed;
+        top: 56px;
+        left: -250px;
+        width: 250px;
+        height: calc(100vh - 56px);
+        background: white;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        overflow-y: auto;
+    }
+    
+    .sidebar.show {
+        left: 0px !important;
+    }
+    
+    .sidebar .nav-link {
+        padding: 12px 20px;
+        font-size: 16px;
+        border-bottom: 1px solid #f8f9fa;
+    }
+    
+    .sidebar .nav-link:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .sidebar .nav-link.active {
+        background-color: #e3f2fd;
+        color: #1976d2;
+    }
+    
+    .sidebar .nav-link i {
+        width: 20px;
+        text-align: center;
+    }
+    
+    .main-content {
+        margin-left: 0;
+        padding: 1rem;
+    }
+    
+    .task-card {
+        margin-bottom: 1rem;
+    }
+    
+    .photo-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .modal-dialog {
+        margin: 10px;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    .store-card {
+        min-height: 180px;
+    }
+    
+    .store-card .card-body {
+        padding: 10px;
+    }
+}
+
+/* Çok küçük ekranlar */
+@media (max-width: 480px) {
+    .container-fluid {
+        padding: 0 5px;
+    }
+    
+    .card {
+        margin: 5px 0;
+    }
+    
+    .btn {
+        padding: 14px 12px;
+        font-size: 14px;
+    }
+    
+    .photo-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .task-card .card-body {
+        padding: 0.75rem;
+    }
+    
+    .task-card .card-footer {
+        padding: 0.75rem;
+    }
+}
+
+/* Dokunmatik optimizasyonu */
+@media (hover: none) and (pointer: coarse) {
+    .btn:hover {
+        transform: none;
+    }
+    
+    .card:hover {
+        transform: none;
+    }
+    
+    .nav-link:hover {
+        background-color: transparent;
+    }
+}
+
+/* Özel Renkler */
+.bg-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.text-primary {
+    color: #667eea !important;
+}
+
+/* Animasyonlar */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* Hata Mesajları */
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.alert-success {
+    background-color: #d1edff;
+    color: #0c5460;
+}
+
+/* Yükleme Animasyonu */
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Buton Hover Efektleri */
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+/* Form Elemanları */
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.form-select {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Store card styles */
+.store-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border: 2px solid #e9ecef;
+}
+
+.store-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: #007bff;
+}
+
+.store-card .card-body {
+    padding: 15px;
+}
+
+.photo-count {
+    font-size: 14px;
+    color: #28a745;
+    font-weight: 500;
+}
