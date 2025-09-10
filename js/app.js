@@ -20,6 +20,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
+    
+    // Şifremi unuttum linkini dinle
+    const forgotPasswordLink = document.getElementById('forgotPassword');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', handleForgotPassword);
+    }
+    
+    // Sayfa yüklendiğinde kayıtlı bilgileri kontrol et
+    loadRememberedCredentials();
 });
 
 // Giriş işlemini yöneten fonksiyon
@@ -30,6 +39,7 @@ async function handleLogin(event) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const role = document.getElementById('role').value;
+    const rememberMe = document.getElementById('rememberMe').checked;
     
     // Basit doğrulama
     if (!email || !password || !role) {
@@ -74,6 +84,18 @@ async function handleLogin(event) {
         // Kullanıcı bilgilerini kaydet
         saveToStorage('currentUser', userData);
         
+        // Beni hatırla özelliği
+        if (rememberMe) {
+            saveToStorage('rememberedCredentials', {
+                email: email,
+                role: role,
+                rememberMe: true
+            });
+        } else {
+            // Eğer beni hatırla seçili değilse, kayıtlı bilgileri sil
+            localStorage.removeItem('rememberedCredentials');
+        }
+        
         // Başarılı giriş mesajı
         showAlert('Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
         
@@ -87,6 +109,13 @@ async function handleLogin(event) {
     } catch (error) {
         console.error('Giriş hatası:', error);
         showAlert('Giriş başarısız: ' + error.message, 'danger');
+        
+        // Hata durumunda loading'i kapat
+        const submitBtn = document.querySelector('#loginForm button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Giriş Yap';
+            submitBtn.disabled = false;
+        }
     }
 }
 
@@ -266,6 +295,51 @@ function checkUserSession() {
 function logout() {
     localStorage.removeItem('currentUser');
     window.location.href = 'index.html';
+}
+
+// Kayıtlı bilgileri yükleme fonksiyonu
+function loadRememberedCredentials() {
+    const remembered = getFromStorage('rememberedCredentials');
+    if (remembered && remembered.rememberMe) {
+        document.getElementById('email').value = remembered.email;
+        document.getElementById('role').value = remembered.role;
+        document.getElementById('rememberMe').checked = true;
+    }
+}
+
+// Şifremi unuttum fonksiyonu
+function handleForgotPassword(event) {
+    event.preventDefault();
+    
+    const email = prompt('Şifre sıfırlama e-postası gönderilecek e-posta adresinizi girin:');
+    if (email) {
+        // E-posta doğrulama
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showAlert('Geçerli bir e-posta adresi girin!', 'danger');
+            return;
+        }
+        
+        // Mock e-posta gönderme (gerçek uygulamada API çağrısı yapılır)
+        showAlert('Şifre sıfırlama e-postası gönderildi! E-posta kutunuzu kontrol edin.', 'success');
+        
+        // Gerçek uygulamada burada API çağrısı yapılır:
+        // sendPasswordResetEmail(email);
+    }
+}
+
+// Şifre sıfırlama e-postası gönderme fonksiyonu (mock)
+async function sendPasswordResetEmail(email) {
+    try {
+        // Bu fonksiyon gerçek uygulamada backend API'sine istek gönderir
+        console.log('Şifre sıfırlama e-postası gönderiliyor:', email);
+        
+        // Mock başarılı yanıt
+        return { success: true, message: 'E-posta gönderildi' };
+    } catch (error) {
+        console.error('E-posta gönderme hatası:', error);
+        throw error;
+    }
 }
 
 // API çağrısı yapan fonksiyon
