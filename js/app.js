@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
         navigator.serviceWorker.register('/sw.js')
             .then(function(registration) {
                 console.log('Service Worker kaydedildi:', registration);
+                // Bildirim izni iste
+                requestNotificationPermission();
             })
             .catch(function(error) {
                 console.log('Service Worker kaydı başarısız:', error);
@@ -54,7 +56,7 @@ async function handleLogin(event) {
         
         // Geçici mock veri ile test
         const validUsers = {
-            'cyucedag@bogazici.com': { password: 'admin123', role: 'admin', name: 'Caner Yücedağ', region: 'Tüm Bölgeler' },
+            'cyucedag@bogazici.com.tr': { password: 'admin123', role: 'admin', name: 'Caner Yücedağ', region: 'Tüm Bölgeler' },
             'cengizhan.tutucu@kayragrup.com.tr': { password: 'manager123', role: 'manager', name: 'CENGİZHAN TUTUCU', region: 'İÇ ANADOLU', region_id: 1 },
             'ozturkyusuff@gmail.com': { password: '122334', role: 'employee', name: 'YUSUF ÖZTÜRK', region: 'İÇ ANADOLU', region_id: 1 }
         };
@@ -368,5 +370,84 @@ async function apiCall(url, method = 'GET', data = null) {
         console.error('API hatası:', error);
         showAlert('Bir hata oluştu: ' + error.message, 'danger');
         throw error;
+    }
+}
+
+// Bildirim izni isteme fonksiyonu
+async function requestNotificationPermission() {
+    if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        console.log('Bildirim izni:', permission);
+        
+        if (permission === 'granted') {
+            console.log('Bildirim izni verildi!');
+            // Günlük hatırlatma zamanlayıcısını başlat
+            scheduleDailyReminder();
+        } else {
+            console.log('Bildirim izni reddedildi');
+        }
+    } else {
+        console.log('Bu tarayıcı bildirimleri desteklemiyor');
+    }
+}
+
+// Günlük hatırlatma zamanlayıcısı
+function scheduleDailyReminder() {
+    // Her gün saat 13:00'da bildirim gönder
+    const now = new Date();
+    const reminderTime = new Date();
+    reminderTime.setHours(13, 0, 0, 0);
+    
+    // Eğer bugünün 13:00'ı geçmişse, yarının 13:00'ını ayarla
+    if (now > reminderTime) {
+        reminderTime.setDate(reminderTime.getDate() + 1);
+    }
+    
+    const timeUntilReminder = reminderTime.getTime() - now.getTime();
+    
+    console.log('Günlük hatırlatma zamanlandı:', reminderTime);
+    
+    setTimeout(() => {
+        sendDailyReminderNotification();
+        // Her 24 saatte bir tekrarla
+        setInterval(sendDailyReminderNotification, 24 * 60 * 60 * 1000);
+    }, timeUntilReminder);
+}
+
+// Günlük hatırlatma bildirimi gönderme
+function sendDailyReminderNotification() {
+    if (Notification.permission === 'granted') {
+        const notification = new Notification('Günlük Görev Hatırlatması', {
+            body: 'Mağazanıza atanan günlük görevleri kontrol etmeyi unutmayınız!',
+            icon: '/icons/icon-192x192.png',
+            badge: '/icons/icon-72x72.png',
+            tag: 'daily-reminder',
+            requireInteraction: true,
+            actions: [
+                {
+                    action: 'open',
+                    title: 'Görevleri Görüntüle'
+                }
+            ]
+        });
+        
+        notification.onclick = function() {
+            window.focus();
+            // Eğer employee dashboard'daysa görevler bölümüne git
+            if (window.location.pathname.includes('employee-dashboard')) {
+                if (typeof showSection === 'function') {
+                    showSection('tasks');
+                }
+            } else {
+                // Ana sayfadaysa employee dashboard'a yönlendir
+                window.location.href = 'employee-dashboard.html';
+            }
+            notification.close();
+        };
+        
+        // 10 saniye sonra bildirimi kapat
+        setTimeout(() => {
+            notification.close();
+        }, 10000);
     }
 }

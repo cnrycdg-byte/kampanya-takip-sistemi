@@ -51,6 +51,11 @@
   ],
   "categories": ["business", "productivity"],
   "lang": "tr",
-  "dir": "ltr"
+  "dir": "ltr",
+  "permissions": ["notifications"],
+  "notification": {
+    "action": "open",
+    "title": "Görevleri Görüntüle"
+  }
 }
 

@@ -104,7 +104,8 @@ async function loadTasks() {
                     response_photo_enabled,
                     photo_limit,
                     channels(name)
-                )
+                ),
+                stores(name, manager)
             `)
             .eq('store_id', user.storeId);
 
@@ -142,6 +143,8 @@ async function loadTasks() {
                     responseTextEnabled: task.response_text_enabled,
                     responsePhotoEnabled: task.response_photo_enabled,
                     channelName: task.channels?.name || 'Bilinmiyor',
+                    storeName: assignment.stores?.name || 'Bilinmiyor',
+                    storeManager: assignment.stores?.manager || 'Yönetici bilgisi yok',
                     isLate: isLate,
                     daysLeft: daysLeft
                 };
@@ -260,6 +263,18 @@ function createTaskCard(task) {
                         ${task.channelName}
                     </small>
                 </div>
+                <div class="mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-store me-1"></i>
+                        ${task.storeName}
+                    </small>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>
+                        ${task.storeManager}
+                    </small>
+                </div>
                 <div class="mb-3">
                     <small class="text-muted">
                         <i class="fas fa-camera me-1"></i>
@@ -267,13 +282,15 @@ function createTaskCard(task) {
                         ${task.responseTextEnabled ? '<br><i class="fas fa-comment me-1"></i>Yazılı yanıt' : ''}
                     </small>
                 </div>
-                ${isLate ? `<div class="alert alert-danger alert-sm mb-3">
+                ${isLate ? `<div class="alert alert-danger alert-sm mb-3 alert-dismissible">
                     <i class="fas fa-exclamation-triangle me-1"></i>
                     ${Math.abs(daysLeft)} gün gecikti!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>` : ''}
-                ${!isLate && daysLeft <= 1 ? `<div class="alert alert-warning alert-sm mb-3">
+                ${!isLate && daysLeft <= 1 ? `<div class="alert alert-warning alert-sm mb-3 alert-dismissible">
                     <i class="fas fa-clock me-1"></i>
                     ${daysLeft === 0 ? 'Bugün bitiyor!' : '1 gün kaldı!'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>` : ''}
             </div>
             <div class="card-footer">
@@ -360,7 +377,9 @@ function findTaskById(taskId) {
                     photoCount: 0,
                     maxPhotos: 5,
                     responseTextEnabled: true,
-                    responsePhotoEnabled: true
+                    responsePhotoEnabled: true,
+                    storeName: 'Mevcut Mağaza',
+                    storeManager: 'Yönetici Bilgisi'
                 };
             }
         }
@@ -550,6 +569,12 @@ async function uploadPhotos(photos, taskId) {
                     cacheControl: '3600',
                     upsert: false
                 });
+            
+            // Storage limiti kontrolü
+            if (error && error.message && error.message.includes('quota')) {
+                showAlert('⚠️ Depolama alanı dolu! Lütfen admin ile iletişime geçin.', 'warning');
+                throw new Error('Depolama alanı dolu');
+            }
             
             if (error) throw error;
             
@@ -842,3 +867,44 @@ window.addEventListener('resize', function() {
         sidebar.classList.remove('show');
     }
 });
+
+// Bildirim test fonksiyonu
+function testNotification() {
+    if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+            // Test bildirimi gönder
+            const notification = new Notification('Test Bildirimi', {
+                body: 'Bildirim sistemi çalışıyor! Her gün saat 13:00\'da günlük hatırlatma alacaksınız.',
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-72x72.png',
+                tag: 'test-notification',
+                requireInteraction: true
+            });
+            
+            notification.onclick = function() {
+                window.focus();
+                notification.close();
+            };
+            
+            // 5 saniye sonra kapat
+            setTimeout(() => {
+                notification.close();
+            }, 5000);
+            
+            showAlert('Test bildirimi gönderildi!', 'success');
+        } else if (Notification.permission === 'denied') {
+            showAlert('Bildirim izni reddedilmiş. Lütfen tarayıcı ayarlarından izin verin.', 'warning');
+        } else {
+            // İzin iste
+            Notification.requestPermission().then(function(permission) {
+                if (permission === 'granted') {
+                    testNotification(); // Tekrar dene
+                } else {
+                    showAlert('Bildirim izni verilmedi.', 'danger');
+                }
+            });
+        }
+    } else {
+        showAlert('Bu tarayıcı bildirimleri desteklemiyor.', 'warning');
+    }
+}

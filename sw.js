@@ -44,3 +44,37 @@ self.addEventListener('fetch', function(event) {
   );
 });
 
+// Push event - Bildirim gönderme
+self.addEventListener('push', function(event) {
+  console.log('Push event alındı:', event);
+  
+  const options = {
+    body: event.data ? event.data.text() : 'Yeni bildirim!',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-72x72.png',
+    tag: 'push-notification',
+    requireInteraction: true,
+    actions: [
+      {
+        action: 'open',
+        title: 'Uygulamayı Aç'
+      }
+    ]
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification('Kampanya Takip Sistemi', options)
+  );
+});
+
+// Notification click event
+self.addEventListener('notificationclick', function(event) {
+  console.log('Bildirim tıklandı:', event);
+  
+  event.notification.close();
+  
+  event.waitUntil(
+    clients.openWindow('/')
+  );
+});
+
