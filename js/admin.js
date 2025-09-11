@@ -2512,7 +2512,7 @@ async function viewTask(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name, manager)
+                    stores(name)
                 )
             `)
             .eq('id', taskId)
