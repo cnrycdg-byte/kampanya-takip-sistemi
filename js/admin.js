@@ -145,7 +145,7 @@ async function loadTaskDetailStats(tasks) {
                     id,
                     status,
                     photo_urls,
-                    stores(name)
+                    stores(name, manager)
                 `)
                 .eq('task_id', task.id);
             
@@ -2349,7 +2349,7 @@ async function loadTasksList() {
                 task_assignments(
                     id,
                     status,
-                    stores(name)
+                    stores(name, manager)
                 )
             `)
             .order('created_at', { ascending: false });
@@ -2512,7 +2512,7 @@ async function viewTask(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name)
+                    stores(name, manager)
                 )
             `)
             .eq('id', taskId)
@@ -3122,7 +3122,7 @@ async function exportTaskToPresentation(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name)
+                    stores(name, manager)
                 )
             `)
             .eq('id', selectedTaskId)
@@ -3692,8 +3692,7 @@ async function exportTasksToExcel() {
                     category
                 ),
                 stores(
-                    name,
-                    manager
+                    name
                 ),
                 users(
                     name
