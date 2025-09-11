@@ -196,9 +196,17 @@
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                                     <h6 class="m-0 font-weight-bold text-primary">Son Görevler</h6>
-                                    <button class="btn btn-sm btn-success" onclick="exportTasksToExcel()">
-                                        <i class="fas fa-file-excel me-1"></i>Excel Export
-                                    </button>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-success" onclick="exportTasksToExcel()">
+                                            <i class="fas fa-file-excel me-1"></i>Excel Export
+                                        </button>
+                                        <button class="btn btn-sm btn-info" onclick="exportTaskToPresentation()">
+                                            <i class="fas fa-file-powerpoint me-1"></i>Sunum
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" onclick="exportTaskToHTML()">
+                                            <i class="fas fa-file-code me-1"></i>Görüntüle
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
