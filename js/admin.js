@@ -8,7 +8,7 @@ function toggleMobileMenu() {
             sidebar.style.left = '-250px';
             sidebar.classList.remove('show');
         } else {
-            sidebar.style.left = '0px'; 
+            sidebar.style.left = '0px';
             sidebar.classList.add('show');
         }
     }
@@ -145,7 +145,7 @@ async function loadTaskDetailStats(tasks) {
                     id,
                     status,
                     photo_urls,
-                    stores(name, manager_id, regions(name, manager_name))
+                    stores(name)
                 `)
                 .eq('task_id', task.id);
             
@@ -212,9 +212,6 @@ async function loadTaskDetailStats(tasks) {
                         <div class="btn-group w-100" role="group">
                             <button class="btn btn-sm btn-outline-primary" onclick="viewTask(${task.id})">
                                 <i class="fas fa-eye me-1"></i>Görüntüle
-                            </button>
-                            <button class="btn btn-sm btn-outline-success" onclick="exportTaskToExcel(${task.id})">
-                                <i class="fas fa-file-excel me-1"></i>Excel
                             </button>
                             <button class="btn btn-sm btn-outline-warning" onclick="exportTaskToPresentation(${task.id})">
                                 <i class="fas fa-file-powerpoint me-1"></i>Sunum
@@ -288,27 +285,12 @@ function loadRecentTasks(tasks = []) {
             <td>${formatDateTime(task.start_date)}</td>
             <td>${formatDateTime(task.end_date)}</td>
             <td>
-                <div class="btn-group" role="group" style="display: flex; gap: 2px;">
-                    <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})" title="Görüntüle" style="flex: 1;">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-success" onclick="exportTaskToExcel(${task.id})" title="Excel İndir" style="flex: 1; background-color: #28a745 !important; border-color: #28a745 !important;">
-                        <i class="fas fa-file-excel"></i>
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})" title="Sunum İndir" style="flex: 1;">
-                        <i class="fas fa-file-powerpoint"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})" title="Sil" style="flex: 1;">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-            <td>
-                ${task.status !== 'completed' ? `
-                    <button class="btn btn-sm btn-success" onclick="completeTask(${task.id}, ${task.id})" title="Görevi Sonlandır">
-                        <i class="fas fa-check"></i>
-                    </button>
-                ` : '<span class="badge bg-success">Tamamlandı</span>'}
+                <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})">
+                    <i class="fas fa-file-powerpoint"></i>
+                </button>
             </td>
         `;
         tbody.appendChild(row);
@@ -2360,7 +2342,7 @@ async function loadTasksList() {
                 task_assignments(
                     id,
                     status,
-                    stores(name, manager_id, regions(name, manager_name))
+                    stores(name)
                 )
             `)
             .order('created_at', { ascending: false });
@@ -2523,7 +2505,7 @@ async function viewTask(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name, manager_id, regions(name, manager_name))
+                    stores(name)
                 )
             `)
             .eq('id', taskId)
@@ -2610,10 +2592,6 @@ async function viewTask(taskId) {
                                                 ${!hasPhotos ? '<div class="badge bg-warning position-absolute" style="top: 10px; right: 10px;">Test</div>' : ''}
                                             </div>
                                             <h6 class="card-title mb-2">${assignment.stores?.name || 'Bilinmiyor'}</h6>
-                                            <p class="text-muted small mb-2">
-                                                <i class="fas fa-user me-1"></i>
-                                                ${assignment.stores?.regions?.manager_name || 'Yönetici bilgisi yok'}
-                                            </p>
                                             <div class="mb-2">
                                                 ${getTaskAssignmentStatusBadge(assignment.status)}
                                             </div>
@@ -2865,115 +2843,6 @@ function exportTasksToExcel() {
     } catch (error) {
         console.error('Excel export hatası:', error);
         showAlert('Excel dosyası oluşturulurken hata oluştu!', 'danger');
-    }
-}
-
-// Tek görev için Excel export fonksiyonu
-async function exportTaskToExcel(taskId) {
-    console.log('Excel export başlatıldı, taskId:', taskId);
-    try {
-        // Görev detaylarını al
-        const { data: task, error } = await supabase
-            .from('tasks')
-            .select(`
-                *,
-                channels(name),
-                task_assignments(
-                    id,
-                    status,
-                    comment,
-                    photo_urls,
-                    completed_at,
-                    stores(name, manager_id, regions(name, manager_name))
-                )
-            `)
-            .eq('id', taskId)
-            .single();
-
-        if (error) throw error;
-
-        // Excel verisi hazırla
-        const excelData = task.task_assignments?.map(assignment => ({
-            'Görev Adı': task.title,
-            'Başlangıç Tarihi': task.start_date ? formatDateForExcel(task.start_date) : '-',
-            'Bitiş Tarihi': task.end_date ? formatDateForExcel(task.end_date) : '-',
-            'Bölge Yöneticisi': assignment.stores?.regions?.manager_name || 'Bilinmiyor',
-            'Durum': getStatusText(assignment.status),
-            'Kategori': getCategoryText(task.category),
-            'Mağaza': assignment.stores?.name || 'Bilinmiyor',
-            'Atanan Kişi': 'Bilinmiyor',
-            'Oluşturulma Tarihi': formatDateForExcel(task.created_at)
-        })) || [];
-
-        // Excel dosyası oluştur
-        console.log('XLSX kütüphanesi yüklü mü?', typeof XLSX);
-        if (typeof XLSX === 'undefined') {
-            throw new Error('XLSX kütüphanesi yüklenmemiş!');
-        }
-        
-        const ws = XLSX.utils.json_to_sheet(excelData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Görev Detayları');
-        
-        // Dosyayı indir
-        const fileName = `gorev_${task.title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-        XLSX.writeFile(wb, fileName);
-        
-        showAlert('Görev detayları Excel olarak indirildi!', 'success');
-        
-    } catch (error) {
-        console.error('Excel export hatası:', error);
-        showAlert('Excel dosyası oluşturulurken hata oluştu!', 'danger');
-    }
-}
-
-// Durum metni döndüren fonksiyon
-function getStatusText(status) {
-    const statuses = {
-        'assigned': 'Atandı',
-        'in_progress': 'Devam Ediyor',
-        'completed': 'Tamamlandı',
-        'cancelled': 'İptal'
-    };
-    return statuses[status] || status;
-}
-
-// Kategori metni döndüren fonksiyon
-function getCategoryText(category) {
-    const categories = {
-        'reyon': 'Reyon',
-        'sepet': 'Sepet',
-        'kampanya': 'Kampanya',
-        'urun': 'Ürün'
-    };
-    return categories[category] || category;
-}
-
-// Excel için tarih formatı
-function formatDateForExcel(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR');
-}
-
-// Görev silme fonksiyonu
-async function deleteTask(taskId) {
-    if (confirm('Bu görevi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
-        try {
-            const { error } = await supabase
-                .from('tasks')
-                .update({ is_active: false })
-                .eq('id', taskId);
-            
-            if (error) throw error;
-            
-            showAlert('Görev başarıyla silindi!', 'success');
-            loadDashboardData(); // Dashboard'u yenile
-            
-        } catch (error) {
-            console.error('Görev silme hatası:', error);
-            showAlert('Görev silinirken hata oluştu!', 'danger');
-        }
     }
 }
 
@@ -3242,7 +3111,7 @@ async function exportTaskToPresentation(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name, manager_id, regions(name, manager_name))
+                    stores(name)
                 )
             `)
             .eq('id', selectedTaskId)
@@ -3338,27 +3207,27 @@ async function createPowerPointPresentation(task) {
         // Özet sayfası
         const summarySlide = pptx.addSlide();
         summarySlide.addText('Görev Özeti', {
-            x: 1, y: 0.3, w: 8, h: 0.8,
-            fontSize: 32,
+            x: 1, y: 0.5, w: 8, h: 1,
+            fontSize: 36,
             color: '333333',
             bold: true,
             align: 'center'
         });
         summarySlide.addText(`Toplam Mağaza: ${task.task_assignments?.length || 0}`, {
-            x: 1, y: 1.5, w: 8, h: 0.6,
-            fontSize: 20,
+            x: 1, y: 2, w: 8, h: 0.8,
+            fontSize: 24,
             color: '333333',
             align: 'center'
         });
         summarySlide.addText(`Tamamlayan: ${completedStores.length}`, {
-            x: 1, y: 2.2, w: 8, h: 0.6,
-            fontSize: 20,
+            x: 1, y: 3, w: 8, h: 0.8,
+            fontSize: 24,
             color: '28a745',
             align: 'center'
         });
         summarySlide.addText(`Tamamlamayan: ${incompleteStores.length}`, {
-            x: 1, y: 2.9, w: 8, h: 0.6,
-            fontSize: 20,
+            x: 1, y: 4, w: 8, h: 0.8,
+            fontSize: 24,
             color: 'dc3545',
             align: 'center'
         });
@@ -3367,45 +3236,34 @@ async function createPowerPointPresentation(task) {
         if (completedStores.length > 0) {
             const completedSlide = pptx.addSlide();
             completedSlide.addText('✅ Tamamlayan Mağazalar', {
-                x: 1, y: 0.3, w: 8, h: 0.8,
-                fontSize: 28,
+                x: 1, y: 0.5, w: 8, h: 1,
+                fontSize: 32,
                 color: '28a745',
                 bold: true,
                 align: 'center'
             });
             
-            // Mağaza listesi - satır satır
-            let yPosition = 1.5;
-            const maxStoresPerPage = 20; // Sayfa başına maksimum mağaza sayısı
-            const storesToShow = Math.min(completedStores.length, maxStoresPerPage);
-            
-            for (let i = 0; i < storesToShow; i++) {
+            // Mağaza listesi (maksimum 12 mağaza)
+            const maxStores = Math.min(completedStores.length, 12);
+            for (let i = 0; i < maxStores; i++) {
                 const store = completedStores[i];
-                const storeName = store.stores?.name || 'Bilinmiyor';
-                const photoCount = store.photo_urls?.length || 0;
+                const row = Math.floor(i / 3);
+                const col = i % 3;
+                const x = 1 + col * 2.5;
+                const y = 2 + row * 1.5;
                 
-                completedSlide.addText(`${i + 1}. ${storeName} (${photoCount} fotoğraf)`, {
-                    x: 1, y: yPosition, w: 8, h: 0.4,
-                    fontSize: 14,
+                completedSlide.addText(store.stores?.name || 'Bilinmiyor', {
+                    x: x, y: y, w: 2, h: 0.5,
+                    fontSize: 16,
                     color: '333333',
-                    align: 'left'
+                    align: 'center'
                 });
-                
-                yPosition += 0.4;
-                
-                // Sayfa sınırını kontrol et
-                if (yPosition > 6.5) {
-                    // Yeni sayfa oluştur
-                    const nextCompletedSlide = pptx.addSlide();
-                    nextCompletedSlide.addText('✅ Tamamlayan Mağazalar (Devam)', {
-                        x: 1, y: 0.3, w: 8, h: 0.8,
-                        fontSize: 28,
-                        color: '28a745',
-                        bold: true,
-                        align: 'center'
-                    });
-                    yPosition = 1.5;
-                }
+                completedSlide.addText(`${store.photo_urls?.length || 0} fotoğraf`, {
+                    x: x, y: y + 0.3, w: 2, h: 0.3,
+                    fontSize: 12,
+                    color: '666666',
+                    align: 'center'
+                });
             }
         }
 
@@ -3413,49 +3271,39 @@ async function createPowerPointPresentation(task) {
         if (incompleteStores.length > 0) {
             const incompleteSlide = pptx.addSlide();
             incompleteSlide.addText('❌ Tamamlamayan Mağazalar', {
-                x: 1, y: 0.3, w: 8, h: 0.8,
-                fontSize: 28,
+                x: 1, y: 0.5, w: 8, h: 1,
+                fontSize: 32,
                 color: 'dc3545',
                 bold: true,
                 align: 'center'
             });
             
-            // Mağaza listesi - satır satır
-            let yPosition = 1.5;
-            const maxStoresPerPage = 20; // Sayfa başına maksimum mağaza sayısı
-            const storesToShow = Math.min(incompleteStores.length, maxStoresPerPage);
-            
-            for (let i = 0; i < storesToShow; i++) {
+            // Mağaza listesi (maksimum 12 mağaza)
+            const maxStores = Math.min(incompleteStores.length, 12);
+            for (let i = 0; i < maxStores; i++) {
                 const store = incompleteStores[i];
-                const storeName = store.stores?.name || 'Bilinmiyor';
+                const row = Math.floor(i / 3);
+                const col = i % 3;
+                const x = 1 + col * 2.5;
+                const y = 2 + row * 1.5;
+                
+                incompleteSlide.addText(store.stores?.name || 'Bilinmiyor', {
+                    x: x, y: y, w: 2, h: 0.5,
+                    fontSize: 16,
+                    color: '333333',
+                    align: 'center'
+                });
                 const statusText = {
                     'assigned': 'Atandı',
                     'in_progress': 'Devam Ediyor',
                     'cancelled': 'İptal'
                 }[store.status] || 'Bilinmiyor';
-                
-                incompleteSlide.addText(`${i + 1}. ${storeName} - ${statusText}`, {
-                    x: 1, y: yPosition, w: 8, h: 0.4,
-                    fontSize: 14,
-                    color: '333333',
-                    align: 'left'
+                incompleteSlide.addText(statusText, {
+                    x: x, y: y + 0.3, w: 2, h: 0.3,
+                    fontSize: 12,
+                    color: 'dc3545',
+                    align: 'center'
                 });
-                
-                yPosition += 0.4;
-                
-                // Sayfa sınırını kontrol et
-                if (yPosition > 6.5) {
-                    // Yeni sayfa oluştur
-                    const nextIncompleteSlide = pptx.addSlide();
-                    nextIncompleteSlide.addText('❌ Tamamlamayan Mağazalar (Devam)', {
-                        x: 1, y: 0.3, w: 8, h: 0.8,
-                        fontSize: 28,
-                        color: 'dc3545',
-                        bold: true,
-                        align: 'center'
-                    });
-                    yPosition = 1.5;
-                }
             }
         }
 
@@ -3493,8 +3341,8 @@ async function createPowerPointPresentation(task) {
                 const photoPromises = pagePhotos.map(async (photo, index) => {
                     const row = Math.floor(index / 3);
                     const col = index % 3;
-                    const x = 0.8 + col * 2.8;
-                    const y = 1.8 + row * 2.2;
+                    const x = 0.5 + col * 3;
+                    const y = 2 + row * 2.5;
                     
                     console.log(`Fotoğraf ${index + 1} base64'e çevriliyor:`, photo.url);
                     
@@ -3503,15 +3351,15 @@ async function createPowerPointPresentation(task) {
                         const base64Data = await urlToBase64(photo.url);
                         
                         if (base64Data) {
-                            // Fotoğraf ekleme (base64 olarak) - daha küçük boyut
+                            // Fotoğraf ekleme (base64 olarak)
                             photoSlide.addImage({
                                 data: base64Data,
-                                x: x, y: y, w: 2.2, h: 1.5
+                                x: x, y: y, w: 2.5, h: 1.8
                             });
                             
                             photoSlide.addText(photo.storeName, {
-                                x: x, y: y + 1.6, w: 2.2, h: 0.3,
-                                fontSize: 10,
+                                x: x, y: y + 1.9, w: 2.5, h: 0.3,
+                                fontSize: 12,
                                 color: '333333',
                                 align: 'center'
                             });
@@ -3525,8 +3373,8 @@ async function createPowerPointPresentation(task) {
                         
                         // Hata durumunda placeholder ekle
                         photoSlide.addText('Fotoğraf Yüklenemedi', {
-                            x: x, y: y, w: 2.2, h: 1.5,
-                            fontSize: 12,
+                            x: x, y: y, w: 2.5, h: 1.8,
+                            fontSize: 14,
                             color: 'dc3545',
                             align: 'center',
                             valign: 'middle',
@@ -3534,8 +3382,8 @@ async function createPowerPointPresentation(task) {
                         });
                         
                         photoSlide.addText(photo.storeName, {
-                            x: x, y: y + 1.6, w: 2.2, h: 0.3,
-                            fontSize: 10,
+                            x: x, y: y + 1.9, w: 2.5, h: 0.3,
+                            fontSize: 12,
                             color: '333333',
                             align: 'center'
                         });
@@ -3625,15 +3473,15 @@ function createPresentationHTML(task) {
     let html = `
         <div class="presentation-container" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
             <!-- Başlık Sayfası -->
-            <div class="presentation-page" style="width: 1920px; height: 1080px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                <h1 style="font-size: 64px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">${task.title}</h1>
-                <h2 style="font-size: 40px; margin-bottom: 40px; opacity: 0.9;">Görev Raporu</h2>
-                <div style="font-size: 28px; margin-bottom: 30px;">
+            <div class="presentation-page" style="width: 1920px; height: 1080px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                <h1 style="font-size: 72px; margin-bottom: 40px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">${task.title}</h1>
+                <h2 style="font-size: 48px; margin-bottom: 60px; opacity: 0.9;">Görev Raporu</h2>
+                <div style="font-size: 32px; margin-bottom: 40px;">
                     <p><strong>Kanal:</strong> ${task.channels?.name || 'Bilinmiyor'}</p>
                     <p><strong>Kategori:</strong> ${getTaskCategoryDisplayName(task.category)}</p>
                     <p><strong>Tarih:</strong> ${formatDateTime(task.start_date)} - ${formatDateTime(task.end_date)}</p>
                 </div>
-                <div style="font-size: 24px; margin-top: 40px;">
+                <div style="font-size: 28px; margin-top: 60px;">
                     <p>Toplam Mağaza: ${task.task_assignments?.length || 0}</p>
                     <p>Tamamlayan: ${completedStores.length}</p>
                     <p>Tamamlamayan: ${incompleteStores.length}</p>
@@ -3645,15 +3493,22 @@ function createPresentationHTML(task) {
     if (completedStores.length > 0) {
         html += `
             <div class="presentation-page" style="width: 1920px; height: 1080px; background: #f8f9fa; padding: 60px; color: #333;">
-                <h1 style="font-size: 56px; color: #28a745; margin-bottom: 40px; text-align: center;">✅ Tamamlayan Mağazalar</h1>
-                <div style="margin-top: 30px; font-size: 24px; line-height: 1.8;">
+                <h1 style="font-size: 64px; color: #28a745; margin-bottom: 50px; text-align: center;">✅ Tamamlayan Mağazalar</h1>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; margin-top: 40px;">
         `;
         
-        completedStores.forEach((store, index) => {
+        completedStores.forEach(store => {
             const photoCount = store.photo_urls ? store.photo_urls.length : 0;
             html += `
-                <div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.1);">
-                    <strong>${index + 1}.</strong> ${store.stores?.name || 'Bilinmiyor'} <span style="color: #666;">(${photoCount} fotoğraf)</span>
+                <div style="background: white; border-radius: 20px; padding: 30px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); text-align: center;">
+                    <h3 style="font-size: 32px; color: #28a745; margin-bottom: 20px;">${store.stores?.name || 'Bilinmiyor'}</h3>
+                    <div style="font-size: 24px; color: #666; margin-bottom: 20px;">
+                        <i class="fas fa-camera" style="margin-right: 10px;"></i>
+                        ${photoCount} fotoğraf
+                    </div>
+                    <div style="font-size: 20px; color: #28a745; font-weight: bold;">
+                        ✅ Tamamlandı
+                    </div>
                 </div>
             `;
         });
@@ -3665,11 +3520,11 @@ function createPresentationHTML(task) {
     if (incompleteStores.length > 0) {
         html += `
             <div class="presentation-page" style="width: 1920px; height: 1080px; background: #f8f9fa; padding: 60px; color: #333;">
-                <h1 style="font-size: 56px; color: #dc3545; margin-bottom: 40px; text-align: center;">❌ Tamamlamayan Mağazalar</h1>
-                <div style="margin-top: 30px; font-size: 24px; line-height: 1.8;">
+                <h1 style="font-size: 64px; color: #dc3545; margin-bottom: 50px; text-align: center;">❌ Tamamlamayan Mağazalar</h1>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; margin-top: 40px;">
         `;
         
-        incompleteStores.forEach((store, index) => {
+        incompleteStores.forEach(store => {
             const statusText = {
                 'assigned': 'Atandı',
                 'in_progress': 'Devam Ediyor',
@@ -3677,8 +3532,14 @@ function createPresentationHTML(task) {
             }[store.status] || 'Bilinmiyor';
             
             html += `
-                <div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.1);">
-                    <strong>${index + 1}.</strong> ${store.stores?.name || 'Bilinmiyor'} <span style="color: #666;">- ${statusText}</span>
+                <div style="background: white; border-radius: 20px; padding: 30px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); text-align: center;">
+                    <h3 style="font-size: 32px; color: #dc3545; margin-bottom: 20px;">${store.stores?.name || 'Bilinmiyor'}</h3>
+                    <div style="font-size: 24px; color: #666; margin-bottom: 20px;">
+                        Durum: ${statusText}
+                    </div>
+                    <div style="font-size: 20px; color: #dc3545; font-weight: bold;">
+                        ❌ Tamamlanmadı
+                    </div>
                 </div>
             `;
         });
@@ -3791,120 +3652,5 @@ async function generatePasswordsForExistingUsers() {
     } catch (error) {
         console.error('Şifre oluşturma hatası:', error);
         showAlert('Şifreler oluşturulurken hata oluştu: ' + error.message, 'danger');
-    }
-}
-
-// Excel export fonksiyonu
-async function exportTasksToExcel() {
-    try {
-        showAlert('Excel dosyası hazırlanıyor...', 'info');
-        
-        // Tüm görev atamalarını getir
-        const { data: taskAssignments, error } = await supabase
-            .from('task_assignments')
-            .select(`
-                *,
-                tasks(
-                    id,
-                    title,
-                    start_date,
-                    end_date,
-                    category
-                ),
-                stores(
-                    name
-                ),
-                users(
-                    name
-                )
-            `);
-
-        if (error) throw error;
-
-        // Excel verisi hazırla
-        const excelData = taskAssignments.map(assignment => ({
-            'Görev Adı': assignment.tasks?.title || 'Bilinmiyor',
-            'Başlangıç Tarihi': assignment.tasks?.start_date ? formatDateForExcel(assignment.tasks.start_date) : '-',
-            'Bitiş Tarihi': assignment.tasks?.end_date ? formatDateForExcel(assignment.tasks.end_date) : '-',
-            'Bölge Yöneticisi': assignment.stores?.regions?.manager_name || 'Bilinmiyor',
-            'Durum': getStatusText(assignment.status),
-            'Kategori': getCategoryText(assignment.tasks?.category),
-            'Mağaza': assignment.stores?.name || 'Bilinmiyor',
-            'Atanan Kişi': assignment.users?.name || 'Bilinmiyor',
-            'Oluşturulma Tarihi': formatDateForExcel(assignment.created_at)
-        }));
-
-        // Excel dosyası oluştur
-        const ws = XLSX.utils.json_to_sheet(excelData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Görev Atamaları');
-        
-        // Dosyayı indir
-        const fileName = `gorev_atamalari_${new Date().toISOString().split('T')[0]}.xlsx`;
-        XLSX.writeFile(wb, fileName);
-        
-        showAlert('Excel dosyası başarıyla indirildi!', 'success');
-        
-    } catch (error) {
-        console.error('Excel export hatası:', error);
-        showAlert('Excel dosyası oluşturulurken hata oluştu!', 'danger');
-    }
-}
-
-// Tarih formatı (Excel için)
-function formatDateForExcel(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR');
-}
-
-// Durum metni
-function getStatusText(status) {
-    const statusMap = {
-        'assigned': 'Atandı',
-        'in_progress': 'Devam Ediyor',
-        'completed': 'Tamamlandı',
-        'cancelled': 'İptal'
-    };
-    return statusMap[status] || 'Bilinmiyor';
-}
-
-// Kategori metni
-function getCategoryText(category) {
-    const categoryMap = {
-        'reyon': 'Reyon',
-        'sepet': 'Sepet',
-        'kampanya': 'Kampanya',
-        'diger': 'Diğer'
-    };
-    return categoryMap[category] || 'Bilinmiyor';
-}
-
-// Görev sonlandırma fonksiyonu
-async function completeTask(taskId, assignmentId) {
-    try {
-        if (!confirm('Bu görevi sonlandırmak istediğinizden emin misiniz?')) {
-            return;
-        }
-
-        // Görev atamasını tamamlandı olarak güncelle
-        const { error } = await supabase
-            .from('task_assignments')
-            .update({ 
-                status: 'completed',
-                completed_at: new Date().toISOString()
-            })
-            .eq('id', assignmentId);
-
-        if (error) throw error;
-
-        showAlert('Görev başarıyla sonlandırıldı!', 'success');
-        
-        // Görev listesini yenile
-        loadRecentTasks();
-        
-    } catch (error) {
-        console.error('Görev sonlandırma hatası:', error);
-        showAlert('Görev sonlandırılırken hata oluştu!', 'danger');
     }
 }
