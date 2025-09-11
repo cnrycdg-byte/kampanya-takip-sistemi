@@ -213,6 +213,9 @@ async function loadTaskDetailStats(tasks) {
                             <button class="btn btn-sm btn-outline-primary" onclick="viewTask(${task.id})">
                                 <i class="fas fa-eye me-1"></i>Görüntüle
                             </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="exportTaskToExcel(${task.id})">
+                                <i class="fas fa-file-excel me-1"></i>Excel
+                            </button>
                             <button class="btn btn-sm btn-outline-warning" onclick="exportTaskToPresentation(${task.id})">
                                 <i class="fas fa-file-powerpoint me-1"></i>Sunum
                             </button>
@@ -285,12 +288,17 @@ function loadRecentTasks(tasks = []) {
             <td>${formatDateTime(task.start_date)}</td>
             <td>${formatDateTime(task.end_date)}</td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})">
-                    <i class="fas fa-file-powerpoint"></i>
-                </button>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})" title="Görüntüle">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="exportTaskToExcel(${task.id})" title="Excel İndir">
+                        <i class="fas fa-file-excel"></i>
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})" title="Sunum İndir">
+                        <i class="fas fa-file-powerpoint"></i>
+                    </button>
+                </div>
             </td>
             <td>
                 ${task.status !== 'completed' ? `
@@ -2855,6 +2863,88 @@ function exportTasksToExcel() {
         console.error('Excel export hatası:', error);
         showAlert('Excel dosyası oluşturulurken hata oluştu!', 'danger');
     }
+}
+
+// Tek görev için Excel export fonksiyonu
+async function exportTaskToExcel(taskId) {
+    try {
+        // Görev detaylarını al
+        const { data: task, error } = await supabase
+            .from('tasks')
+            .select(`
+                *,
+                channels(name),
+                task_assignments(
+                    id,
+                    status,
+                    comment,
+                    photo_urls,
+                    completed_at,
+                    stores(name, manager_id, regions(name))
+                )
+            `)
+            .eq('id', taskId)
+            .single();
+
+        if (error) throw error;
+
+        // Excel verisi hazırla
+        const excelData = task.task_assignments?.map(assignment => ({
+            'Görev Adı': task.title,
+            'Başlangıç Tarihi': task.start_date ? formatDateForExcel(task.start_date) : '-',
+            'Bitiş Tarihi': task.end_date ? formatDateForExcel(task.end_date) : '-',
+            'Bölge Yöneticisi': assignment.stores?.regions?.name || 'Bilinmiyor',
+            'Durum': getStatusText(assignment.status),
+            'Kategori': getCategoryText(task.category),
+            'Mağaza': assignment.stores?.name || 'Bilinmiyor',
+            'Atanan Kişi': 'Bilinmiyor',
+            'Oluşturulma Tarihi': formatDateForExcel(task.created_at)
+        })) || [];
+
+        // Excel dosyası oluştur
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Görev Detayları');
+        
+        // Dosyayı indir
+        const fileName = `gorev_${task.title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        showAlert('Görev detayları Excel olarak indirildi!', 'success');
+        
+    } catch (error) {
+        console.error('Excel export hatası:', error);
+        showAlert('Excel dosyası oluşturulurken hata oluştu!', 'danger');
+    }
+}
+
+// Durum metni döndüren fonksiyon
+function getStatusText(status) {
+    const statuses = {
+        'assigned': 'Atandı',
+        'in_progress': 'Devam Ediyor',
+        'completed': 'Tamamlandı',
+        'cancelled': 'İptal'
+    };
+    return statuses[status] || status;
+}
+
+// Kategori metni döndüren fonksiyon
+function getCategoryText(category) {
+    const categories = {
+        'reyon': 'Reyon',
+        'sepet': 'Sepet',
+        'kampanya': 'Kampanya',
+        'urun': 'Ürün'
+    };
+    return categories[category] || category;
+}
+
+// Excel için tarih formatı
+function formatDateForExcel(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR');
 }
 
 // Rol görüntüleme adını döndüren fonksiyon
