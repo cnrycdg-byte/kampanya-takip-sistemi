@@ -413,9 +413,6 @@ function handleGalleryUpload(event) {
             selectedPhotos.push(compressedFile);
             console.log('Toplam fotoğraf sayısı:', selectedPhotos.length);
             
-            // Önizleme oluştur
-            createPhotoPreview(compressedFile, selectedPhotos.length - 1);
-            
         } catch (error) {
             console.error('Fotoğraf sıkıştırma hatası:', error);
             console.log('Orijinal dosya kullanılıyor...');
@@ -423,11 +420,11 @@ function handleGalleryUpload(event) {
             // Sıkıştırma başarısız olursa orijinal dosyayı kullan
             selectedPhotos.push(file);
             console.log('Toplam fotoğraf sayısı (orijinal):', selectedPhotos.length);
-            
-            // Önizleme oluştur
-            createPhotoPreview(file, selectedPhotos.length - 1);
         }
     });
+    
+    // Tüm fotoğraflar işlendikten sonra önizlemeleri oluştur
+    updatePhotoPreviews();
     
     // Input'u temizle
     event.target.value = '';
@@ -443,7 +440,7 @@ function createPhotoPreview(file, index) {
         col.innerHTML = `
             <div class="position-relative">
                 <img src="${e.target.result}" class="img-thumbnail" style="width: 100%; height: 150px; object-fit: cover;">
-                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" onclick="removePhoto(${index})">
+                <button type="button" class="btn btn-danger btn-sm position-absolute" style="top: 5px; right: 5px; z-index: 10;" onclick="removePhoto(${index})" title="Fotoğrafı Sil">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -453,17 +450,20 @@ function createPhotoPreview(file, index) {
     reader.readAsDataURL(file);
 }
 
-// Fotoğrafı kaldıran fonksiyon
-function removePhoto(index) {
-    selectedPhotos.splice(index, 1);
-    
-    // Önizlemeyi yenile
+// Fotoğraf önizlemelerini güncelleyen fonksiyon
+function updatePhotoPreviews() {
     const previewContainer = document.getElementById('photo-preview');
     previewContainer.innerHTML = '';
     
     selectedPhotos.forEach((file, i) => {
         createPhotoPreview(file, i);
     });
+}
+
+// Fotoğrafı kaldıran fonksiyon
+function removePhoto(index) {
+    selectedPhotos.splice(index, 1);
+    updatePhotoPreviews();
 }
 
 // Görevi başlatan fonksiyon (kaldırıldı)

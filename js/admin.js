@@ -145,7 +145,7 @@ async function loadTaskDetailStats(tasks) {
                     id,
                     status,
                     photo_urls,
-                    stores(name)
+                    stores(name, manager)
                 `)
                 .eq('task_id', task.id);
             
@@ -216,6 +216,12 @@ async function loadTaskDetailStats(tasks) {
                             <button class="btn btn-sm btn-outline-warning" onclick="exportTaskToPresentation(${task.id})">
                                 <i class="fas fa-file-powerpoint me-1"></i>Sunum
                             </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="exportTaskToExcel(${task.id})">
+                                <i class="fas fa-file-excel me-1"></i>Excel
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTask(${task.id})">
+                                <i class="fas fa-trash me-1"></i>Sil
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -285,12 +291,20 @@ function loadRecentTasks(tasks = []) {
             <td>${formatDateTime(task.start_date)}</td>
             <td>${formatDateTime(task.end_date)}</td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})">
-                    <i class="fas fa-file-powerpoint"></i>
-                </button>
+                <div style="display: flex; gap: 2px;">
+                    <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})" style="flex: 1;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})" style="flex: 1;">
+                        <i class="fas fa-file-powerpoint"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="exportTaskToExcel(${task.id})" style="flex: 1;">
+                        <i class="fas fa-file-excel"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})" style="flex: 1;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -494,40 +508,22 @@ function showSection(sectionName) {
             loadTasksList();
             break;
         case 'stores':
-            loadStores();
+            loadStoresList();
             break;
         case 'users':
-            loadUsers();
+            loadUsersList();
             break;
         case 'channels':
-            loadChannels();
+            loadChannelsList();
             break;
         case 'regions':
-            loadRegions();
+            loadRegionsList();
             break;
     }
 }
 
 // Diğer bölümler için veri yükleme fonksiyonları
-function loadTasks() {
-    console.log('Görevler yükleniyor...');
-}
-
-function loadStores() {
-    console.log('Mağazalar yükleniyor...');
-}
-
-function loadUsers() {
-    console.log('Kullanıcılar yükleniyor...');
-}
-
-function loadChannels() {
-    console.log('Kanallar yükleniyor...');
-}
-
-function loadRegions() {
-    console.log('Bölgeler yükleniyor...');
-}
+// Bu fonksiyonlar artık doğru fonksiyonları çağırıyor
 
 // Yönetici verilerini yükleyen fonksiyon
 async function loadManagerData(user) {
@@ -2342,7 +2338,7 @@ async function loadTasksList() {
                 task_assignments(
                     id,
                     status,
-                    stores(name)
+                    stores(name, manager)
                 )
             `)
             .order('created_at', { ascending: false });
@@ -2505,7 +2501,7 @@ async function viewTask(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name)
+                    stores(name, manager)
                 )
             `)
             .eq('id', taskId)
@@ -2592,6 +2588,12 @@ async function viewTask(taskId) {
                                                 ${!hasPhotos ? '<div class="badge bg-warning position-absolute" style="top: 10px; right: 10px;">Test</div>' : ''}
                                             </div>
                                             <h6 class="card-title mb-2">${assignment.stores?.name || 'Bilinmiyor'}</h6>
+                                            <div class="mb-1">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-user-tie me-1"></i>
+                                                    ${assignment.stores?.manager || 'Yönetici bilgisi yok'}
+                                                </small>
+                                            </div>
                                             <div class="mb-2">
                                                 ${getTaskAssignmentStatusBadge(assignment.status)}
                                             </div>
@@ -3111,7 +3113,7 @@ async function exportTaskToPresentation(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name)
+                    stores(name, manager)
                 )
             `)
             .eq('id', selectedTaskId)
@@ -3162,37 +3164,37 @@ async function createPowerPointPresentation(task) {
         // PowerPoint sunumu oluştur
         const pptx = new PptxGenJS();
         
-        // Başlık sayfası
+        // Başlık sayfası - Düzeltilmiş
         const titleSlide = pptx.addSlide();
         titleSlide.background = { fill: '667eea' };
         titleSlide.addText(task.title, {
-            x: 1, y: 2, w: 8, h: 1.5,
-            fontSize: 48,
+            x: 0.5, y: 1.5, w: 9, h: 1.2,
+            fontSize: 36,
             color: 'ffffff',
             bold: true,
             align: 'center'
         });
         titleSlide.addText('Görev Raporu', {
-            x: 1, y: 3.5, w: 8, h: 1,
-            fontSize: 32,
+            x: 0.5, y: 2.8, w: 9, h: 0.8,
+            fontSize: 24,
             color: 'ffffff',
             align: 'center'
         });
         titleSlide.addText(`Kanal: ${task.channels?.name || 'Bilinmiyor'}`, {
-            x: 1, y: 5, w: 8, h: 0.5,
-            fontSize: 20,
+            x: 0.5, y: 4, w: 9, h: 0.4,
+            fontSize: 16,
             color: 'ffffff',
             align: 'center'
         });
         titleSlide.addText(`Kategori: ${getTaskCategoryDisplayName(task.category)}`, {
-            x: 1, y: 5.5, w: 8, h: 0.5,
-            fontSize: 20,
+            x: 0.5, y: 4.5, w: 9, h: 0.4,
+            fontSize: 16,
             color: 'ffffff',
             align: 'center'
         });
         titleSlide.addText(`Tarih: ${formatDateTime(task.start_date)} - ${formatDateTime(task.end_date)}`, {
-            x: 1, y: 6, w: 8, h: 0.5,
-            fontSize: 20,
+            x: 0.5, y: 5, w: 9, h: 0.4,
+            fontSize: 16,
             color: 'ffffff',
             align: 'center'
         });
@@ -3232,78 +3234,95 @@ async function createPowerPointPresentation(task) {
             align: 'center'
         });
 
-        // Tamamlayan mağazalar sayfası
+        // Tamamlayan mağazalar sayfası - Düzeltilmiş (satır satır)
         if (completedStores.length > 0) {
-            const completedSlide = pptx.addSlide();
-            completedSlide.addText('✅ Tamamlayan Mağazalar', {
-                x: 1, y: 0.5, w: 8, h: 1,
-                fontSize: 32,
-                color: '28a745',
-                bold: true,
-                align: 'center'
-            });
+            // Her sayfada maksimum 20 mağaza göster
+            const storesPerPage = 20;
+            const totalPages = Math.ceil(completedStores.length / storesPerPage);
             
-            // Mağaza listesi (maksimum 12 mağaza)
-            const maxStores = Math.min(completedStores.length, 12);
-            for (let i = 0; i < maxStores; i++) {
-                const store = completedStores[i];
-                const row = Math.floor(i / 3);
-                const col = i % 3;
-                const x = 1 + col * 2.5;
-                const y = 2 + row * 1.5;
+            for (let page = 0; page < totalPages; page++) {
+                const completedSlide = pptx.addSlide();
+                completedSlide.addText('✅ Tamamlayan Mağazalar', {
+                    x: 0.5, y: 0.5, w: 9, h: 0.8,
+                    fontSize: 28,
+                    color: '28a745',
+                    bold: true,
+                    align: 'center'
+                });
                 
-                completedSlide.addText(store.stores?.name || 'Bilinmiyor', {
-                    x: x, y: y, w: 2, h: 0.5,
-                    fontSize: 16,
-                    color: '333333',
-                    align: 'center'
+                const startIndex = page * storesPerPage;
+                const endIndex = Math.min(startIndex + storesPerPage, completedStores.length);
+                const pageStores = completedStores.slice(startIndex, endIndex);
+                
+                // Mağaza listesi (satır satır)
+                pageStores.forEach((store, index) => {
+                    const y = 1.5 + (index * 0.3);
+                    completedSlide.addText(`${index + 1}. ${store.stores?.name || 'Bilinmiyor'}`, {
+                        x: 0.5, y: y, w: 8, h: 0.25,
+                        fontSize: 14,
+                        color: '333333',
+                        align: 'left'
+                    });
                 });
-                completedSlide.addText(`${store.photo_urls?.length || 0} fotoğraf`, {
-                    x: x, y: y + 0.3, w: 2, h: 0.3,
-                    fontSize: 12,
-                    color: '666666',
-                    align: 'center'
-                });
+                
+                // Sayfa numarası
+                if (totalPages > 1) {
+                    completedSlide.addText(`Sayfa ${page + 1} / ${totalPages}`, {
+                        x: 0.5, y: 7.5, w: 9, h: 0.3,
+                        fontSize: 12,
+                        color: '666666',
+                        align: 'center'
+                    });
+                }
             }
         }
 
-        // Tamamlamayan mağazalar sayfası
+        // Tamamlamayan mağazalar sayfası - Düzeltilmiş (satır satır)
         if (incompleteStores.length > 0) {
-            const incompleteSlide = pptx.addSlide();
-            incompleteSlide.addText('❌ Tamamlamayan Mağazalar', {
-                x: 1, y: 0.5, w: 8, h: 1,
-                fontSize: 32,
-                color: 'dc3545',
-                bold: true,
-                align: 'center'
-            });
+            // Her sayfada maksimum 20 mağaza göster
+            const storesPerPage = 20;
+            const totalPages = Math.ceil(incompleteStores.length / storesPerPage);
             
-            // Mağaza listesi (maksimum 12 mağaza)
-            const maxStores = Math.min(incompleteStores.length, 12);
-            for (let i = 0; i < maxStores; i++) {
-                const store = incompleteStores[i];
-                const row = Math.floor(i / 3);
-                const col = i % 3;
-                const x = 1 + col * 2.5;
-                const y = 2 + row * 1.5;
-                
-                incompleteSlide.addText(store.stores?.name || 'Bilinmiyor', {
-                    x: x, y: y, w: 2, h: 0.5,
-                    fontSize: 16,
-                    color: '333333',
-                    align: 'center'
-                });
-                const statusText = {
-                    'assigned': 'Atandı',
-                    'in_progress': 'Devam Ediyor',
-                    'cancelled': 'İptal'
-                }[store.status] || 'Bilinmiyor';
-                incompleteSlide.addText(statusText, {
-                    x: x, y: y + 0.3, w: 2, h: 0.3,
-                    fontSize: 12,
+            for (let page = 0; page < totalPages; page++) {
+                const incompleteSlide = pptx.addSlide();
+                incompleteSlide.addText('❌ Tamamlamayan Mağazalar', {
+                    x: 0.5, y: 0.5, w: 9, h: 0.8,
+                    fontSize: 28,
                     color: 'dc3545',
+                    bold: true,
                     align: 'center'
                 });
+                
+                const startIndex = page * storesPerPage;
+                const endIndex = Math.min(startIndex + storesPerPage, incompleteStores.length);
+                const pageStores = incompleteStores.slice(startIndex, endIndex);
+                
+                // Mağaza listesi (satır satır)
+                pageStores.forEach((store, index) => {
+                    const y = 1.5 + (index * 0.3);
+                    const statusText = {
+                        'assigned': 'Atandı',
+                        'in_progress': 'Devam Ediyor',
+                        'cancelled': 'İptal'
+                    }[store.status] || 'Bilinmiyor';
+                    
+                    incompleteSlide.addText(`${index + 1}. ${store.stores?.name || 'Bilinmiyor'} (${statusText})`, {
+                        x: 0.5, y: y, w: 8, h: 0.25,
+                        fontSize: 14,
+                        color: '333333',
+                        align: 'left'
+                    });
+                });
+                
+                // Sayfa numarası
+                if (totalPages > 1) {
+                    incompleteSlide.addText(`Sayfa ${page + 1} / ${totalPages}`, {
+                        x: 0.5, y: 7.5, w: 9, h: 0.3,
+                        fontSize: 12,
+                        color: '666666',
+                        align: 'center'
+                    });
+                }
             }
         }
 
@@ -3325,24 +3344,24 @@ async function createPowerPointPresentation(task) {
             
             console.log('Toplam fotoğraf sayısı:', allPhotos.length);
 
-            // Her sayfada 6 fotoğraf
+            // Her sayfada 6 fotoğraf - Düzeltilmiş
             for (let i = 0; i < allPhotos.length; i += 6) {
                 const pagePhotos = allPhotos.slice(i, i + 6);
                 const photoSlide = pptx.addSlide();
                 photoSlide.addText('📸 Fotoğraf Galerisi', {
-                    x: 1, y: 0.5, w: 8, h: 1,
-                    fontSize: 28,
+                    x: 0.5, y: 0.5, w: 9, h: 0.8,
+                    fontSize: 24,
                     color: '333333',
                     bold: true,
                     align: 'center'
                 });
                 
-                // Fotoğrafları paralel olarak base64'e çevir
+                // Fotoğrafları paralel olarak base64'e çevir - Düzeltilmiş
                 const photoPromises = pagePhotos.map(async (photo, index) => {
                     const row = Math.floor(index / 3);
                     const col = index % 3;
                     const x = 0.5 + col * 3;
-                    const y = 2 + row * 2.5;
+                    const y = 1.5 + row * 2.5;
                     
                     console.log(`Fotoğraf ${index + 1} base64'e çevriliyor:`, photo.url);
                     
@@ -3351,15 +3370,15 @@ async function createPowerPointPresentation(task) {
                         const base64Data = await urlToBase64(photo.url);
                         
                         if (base64Data) {
-                            // Fotoğraf ekleme (base64 olarak)
+                            // Fotoğraf ekleme (base64 olarak) - Düzeltilmiş boyutlar
                             photoSlide.addImage({
                                 data: base64Data,
-                                x: x, y: y, w: 2.5, h: 1.8
+                                x: x, y: y, w: 2.8, h: 2.0
                             });
                             
                             photoSlide.addText(photo.storeName, {
-                                x: x, y: y + 1.9, w: 2.5, h: 0.3,
-                                fontSize: 12,
+                                x: x, y: y + 2.1, w: 2.8, h: 0.3,
+                                fontSize: 11,
                                 color: '333333',
                                 align: 'center'
                             });
@@ -3653,4 +3672,102 @@ async function generatePasswordsForExistingUsers() {
         console.error('Şifre oluşturma hatası:', error);
         showAlert('Şifreler oluşturulurken hata oluştu: ' + error.message, 'danger');
     }
+}
+
+// Excel export fonksiyonları
+async function exportTaskToExcel(taskId) {
+    console.log('Excel export fonksiyonu çağrıldı, taskId:', taskId);
+    console.log('XLSX library yüklü mü?', typeof XLSX);
+    
+    try {
+        // Görev detaylarını al
+        const { data: task, error } = await supabase
+            .from('tasks')
+            .select(`
+                *,
+                channels(name),
+                task_assignments(
+                    id,
+                    status,
+                    stores(name, manager_id, regions(name, manager_name))
+                )
+            `)
+            .eq('id', taskId)
+            .single();
+
+        if (error) throw error;
+
+        // Excel verilerini hazırla
+        const excelData = task.task_assignments?.map(assignment => ({
+            'Görev Adı': task.title,
+            'Başlangıç Tarihi': formatDateForExcel(task.start_date),
+            'Bitiş Tarihi': formatDateForExcel(task.end_date),
+            'Bölge Yöneticisi': assignment.stores?.regions?.manager_name || 'Bilinmiyor',
+            'Mağaza': assignment.stores?.name || 'Bilinmiyor',
+            'Durum': getStatusText(assignment.status)
+        })) || [];
+
+        // Excel dosyasını oluştur
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Görev Detayları');
+        
+        // Dosyayı indir
+        const fileName = `Gorev_${task.title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        showAlert('Excel dosyası başarıyla indirildi!', 'success');
+
+    } catch (error) {
+        console.error('Excel export hatası:', error);
+        showAlert('Excel dosyası oluşturulurken hata oluştu!', 'danger');
+    }
+}
+
+// Görev silme fonksiyonu
+async function deleteTask(taskId) {
+    if (confirm('Bu görevi silmek istediğinizden emin misiniz?')) {
+        try {
+            const { error } = await supabase
+                .from('tasks')
+                .update({ is_active: false })
+                .eq('id', taskId);
+            
+            if (error) throw error;
+            
+            showAlert('Görev başarıyla silindi!', 'success');
+            loadDashboardData(); // Dashboard'ı yenile
+            
+        } catch (error) {
+            console.error('Görev silme hatası:', error);
+            showAlert('Görev silinirken hata oluştu!', 'danger');
+        }
+    }
+}
+
+// Helper fonksiyonlar
+function getStatusText(status) {
+    const statusMap = {
+        'assigned': 'Atandı',
+        'in_progress': 'Devam Ediyor',
+        'completed': 'Tamamlandı',
+        'cancelled': 'İptal'
+    };
+    return statusMap[status] || 'Bilinmiyor';
+}
+
+function getCategoryText(category) {
+    const categoryMap = {
+        'promotion': 'Promosyon',
+        'display': 'Vitrin',
+        'training': 'Eğitim',
+        'other': 'Diğer'
+    };
+    return categoryMap[category] || 'Bilinmiyor';
+}
+
+function formatDateForExcel(dateString) {
+    if (!dateString) return 'Belirtilmemiş';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR');
 }
