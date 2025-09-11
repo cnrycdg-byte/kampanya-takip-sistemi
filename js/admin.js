@@ -145,7 +145,7 @@ async function loadTaskDetailStats(tasks) {
                     id,
                     status,
                     photo_urls,
-                    stores(name, manager_id, regions(name))
+                    stores(name, manager_id, regions(name, manager_name))
                 `)
                 .eq('task_id', task.id);
             
@@ -2357,7 +2357,7 @@ async function loadTasksList() {
                 task_assignments(
                     id,
                     status,
-                    stores(name, manager_id, regions(name))
+                    stores(name, manager_id, regions(name, manager_name))
                 )
             `)
             .order('created_at', { ascending: false });
@@ -2520,7 +2520,7 @@ async function viewTask(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name, manager_id, regions(name))
+                    stores(name, manager_id, regions(name, manager_name))
                 )
             `)
             .eq('id', taskId)
@@ -2609,7 +2609,7 @@ async function viewTask(taskId) {
                                             <h6 class="card-title mb-2">${assignment.stores?.name || 'Bilinmiyor'}</h6>
                                             <p class="text-muted small mb-2">
                                                 <i class="fas fa-user me-1"></i>
-                                                ${assignment.stores?.regions?.name || 'Yönetici bilgisi yok'}
+                                                ${assignment.stores?.regions?.manager_name || 'Yönetici bilgisi yok'}
                                             </p>
                                             <div class="mb-2">
                                                 ${getTaskAssignmentStatusBadge(assignment.status)}
@@ -2880,7 +2880,7 @@ async function exportTaskToExcel(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name, manager_id, regions(name))
+                    stores(name, manager_id, regions(name, manager_name))
                 )
             `)
             .eq('id', taskId)
@@ -2893,7 +2893,7 @@ async function exportTaskToExcel(taskId) {
             'Görev Adı': task.title,
             'Başlangıç Tarihi': task.start_date ? formatDateForExcel(task.start_date) : '-',
             'Bitiş Tarihi': task.end_date ? formatDateForExcel(task.end_date) : '-',
-            'Bölge Yöneticisi': assignment.stores?.regions?.name || 'Bilinmiyor',
+            'Bölge Yöneticisi': assignment.stores?.regions?.manager_name || 'Bilinmiyor',
             'Durum': getStatusText(assignment.status),
             'Kategori': getCategoryText(task.category),
             'Mağaza': assignment.stores?.name || 'Bilinmiyor',
@@ -3212,7 +3212,7 @@ async function exportTaskToPresentation(taskId) {
                     comment,
                     photo_urls,
                     completed_at,
-                    stores(name, manager_id, regions(name))
+                    stores(name, manager_id, regions(name, manager_name))
                 )
             `)
             .eq('id', selectedTaskId)
@@ -3796,7 +3796,7 @@ async function exportTasksToExcel() {
             'Görev Adı': assignment.tasks?.title || 'Bilinmiyor',
             'Başlangıç Tarihi': assignment.tasks?.start_date ? formatDateForExcel(assignment.tasks.start_date) : '-',
             'Bitiş Tarihi': assignment.tasks?.end_date ? formatDateForExcel(assignment.tasks.end_date) : '-',
-            'Bölge Yöneticisi': assignment.stores?.regions?.name || 'Bilinmiyor',
+            'Bölge Yöneticisi': assignment.stores?.regions?.manager_name || 'Bilinmiyor',
             'Durum': getStatusText(assignment.status),
             'Kategori': getCategoryText(assignment.tasks?.category),
             'Mağaza': assignment.stores?.name || 'Bilinmiyor',

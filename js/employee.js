@@ -105,7 +105,7 @@ async function loadTasks() {
                     photo_limit,
                     channels(name)
                 ),
-                stores(name, manager_id, regions(name))
+                stores(name, manager_id, regions(name, manager_name))
             `)
             .eq('store_id', user.storeId);
 
@@ -144,7 +144,7 @@ async function loadTasks() {
                     responsePhotoEnabled: task.response_photo_enabled,
                     channelName: task.channels?.name || 'Bilinmiyor',
                     storeName: assignment.stores?.name || 'Bilinmiyor',
-                    storeManager: assignment.stores?.regions?.name || 'Yönetici bilgisi yok',
+                    storeManager: assignment.stores?.regions?.manager_name || 'Yönetici bilgisi yok',
                     isLate: isLate,
                     daysLeft: daysLeft
                 };
