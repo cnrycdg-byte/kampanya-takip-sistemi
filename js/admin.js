@@ -292,11 +292,14 @@ function loadRecentTasks(tasks = []) {
                     <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})" title="Görüntüle" style="flex: 1;">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn btn-sm btn-success" onclick="exportTaskToExcel(${task.id})" title="Excel İndir" style="flex: 1;">
+                    <button class="btn btn-sm btn-success" onclick="exportTaskToExcel(${task.id})" title="Excel İndir" style="flex: 1; background-color: #28a745 !important; border-color: #28a745 !important;">
                         <i class="fas fa-file-excel"></i>
                     </button>
                     <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})" title="Sunum İndir" style="flex: 1;">
                         <i class="fas fa-file-powerpoint"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})" title="Sil" style="flex: 1;">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </td>
@@ -2951,6 +2954,27 @@ function formatDateForExcel(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('tr-TR');
+}
+
+// Görev silme fonksiyonu
+async function deleteTask(taskId) {
+    if (confirm('Bu görevi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+        try {
+            const { error } = await supabase
+                .from('tasks')
+                .update({ is_active: false })
+                .eq('id', taskId);
+            
+            if (error) throw error;
+            
+            showAlert('Görev başarıyla silindi!', 'success');
+            loadDashboardData(); // Dashboard'u yenile
+            
+        } catch (error) {
+            console.error('Görev silme hatası:', error);
+            showAlert('Görev silinirken hata oluştu!', 'danger');
+        }
+    }
 }
 
 // Rol görüntüleme adını döndüren fonksiyon

@@ -54,31 +54,50 @@ async function handleLogin(event) {
         const submitBtn = document.querySelector('#loginForm button[type="submit"]');
         const hideLoading = showLoading(submitBtn);
         
-        // Geçici mock veri ile test
-        const validUsers = {
-            'cyucedag@bogazici.com.tr': { password: 'admin123', role: 'admin', name: 'Caner Yücedağ', region: 'Tüm Bölgeler' },
-            'cengizhan.tutucu@kayragrup.com.tr': { password: 'manager123', role: 'manager', name: 'CENGİZHAN TUTUCU', region: 'İÇ ANADOLU', region_id: 1 },
-            'ozturkyusuff@gmail.com': { password: '122334', role: 'employee', name: 'YUSUF ÖZTÜRK', region: 'İÇ ANADOLU', region_id: 1 }
-        };
+        // Supabase'den kullanıcı bilgilerini al
+        console.log('Giriş denemesi:', { email, role });
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select(`
+                id,
+                name,
+                email,
+                password,
+                role,
+                region_id,
+                regions(name)
+            `)
+            .eq('email', email)
+            .eq('is_active', true)
+            .single();
         
-        const user = validUsers[email];
-        if (!user || user.password !== password || user.role !== role) {
-            throw new Error('Kullanıcı bulunamadı veya yetkisiz');
+        console.log('Supabase sorgu sonucu:', { user, userError });
+        
+        if (userError || !user) {
+            throw new Error('Kullanıcı bulunamadı');
+        }
+        
+        if (user.password !== password) {
+            throw new Error('Şifre hatalı');
+        }
+        
+        if (user.role !== role) {
+            throw new Error('Rol uyumsuzluğu');
         }
         
         // Şifre kontrolü zaten yukarıda yapıldı
         
         // Kullanıcı bilgilerini düzenle
         const userData = {
-            id: 1,
+            id: user.id,
             name: user.name,
-            email: email,
+            email: user.email,
             role: user.role,
             store: null,
             store_id: null,
             manager: null,
             channel: null,
-            region: user.region,
+            region: user.regions?.name || 'Belirtilmemiş',
             region_id: user.region_id,
             created_at: new Date()
         };
