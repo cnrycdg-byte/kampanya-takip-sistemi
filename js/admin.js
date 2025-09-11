@@ -288,14 +288,14 @@ function loadRecentTasks(tasks = []) {
             <td>${formatDateTime(task.start_date)}</td>
             <td>${formatDateTime(task.end_date)}</td>
             <td>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})" title="Görüntüle">
+                <div class="btn-group" role="group" style="display: flex; gap: 2px;">
+                    <button class="btn btn-sm btn-primary" onclick="viewTask(${task.id})" title="Görüntüle" style="flex: 1;">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn btn-sm btn-success" onclick="exportTaskToExcel(${task.id})" title="Excel İndir">
+                    <button class="btn btn-sm btn-success" onclick="exportTaskToExcel(${task.id})" title="Excel İndir" style="flex: 1;">
                         <i class="fas fa-file-excel"></i>
                     </button>
-                    <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})" title="Sunum İndir">
+                    <button class="btn btn-sm btn-warning" onclick="exportTaskToPresentation(${task.id})" title="Sunum İndir" style="flex: 1;">
                         <i class="fas fa-file-powerpoint"></i>
                     </button>
                 </div>
@@ -2867,6 +2867,7 @@ function exportTasksToExcel() {
 
 // Tek görev için Excel export fonksiyonu
 async function exportTaskToExcel(taskId) {
+    console.log('Excel export başlatıldı, taskId:', taskId);
     try {
         // Görev detaylarını al
         const { data: task, error } = await supabase
@@ -2902,6 +2903,11 @@ async function exportTaskToExcel(taskId) {
         })) || [];
 
         // Excel dosyası oluştur
+        console.log('XLSX kütüphanesi yüklü mü?', typeof XLSX);
+        if (typeof XLSX === 'undefined') {
+            throw new Error('XLSX kütüphanesi yüklenmemiş!');
+        }
+        
         const ws = XLSX.utils.json_to_sheet(excelData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Görev Detayları');
