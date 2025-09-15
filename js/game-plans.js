@@ -243,18 +243,18 @@ function createGamePlanCard(plan) {
             </div>
             <div class="card-footer">
                 <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">${formatDate(plan.created_at)}</small>
                     <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="event.stopPropagation(); viewGamePlan('${plan.id}')" title="Detayları Görüntüle">
+                            <i class="fas fa-eye"></i>
+                        </button>
                         <button type="button" class="btn btn-sm btn-success" onclick="event.stopPropagation(); exportToExcel('${plan.id}')" title="Excel'e Aktar">
-                            <i class="fas fa-file-excel me-1"></i>Excel
+                            <i class="fas fa-file-excel"></i>
                         </button>
                         <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteGamePlan('${plan.id}')" title="Sil">
-                            <i class="fas fa-trash me-1"></i>Sil
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
-                    <small class="text-muted">${formatDate(plan.created_at)}</small>
-                    <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); viewGamePlan('${plan.id}')">
-                        <i class="fas fa-eye me-1"></i>Detay
-                    </button>
                 </div>
             </div>
         </div>
@@ -2734,17 +2734,36 @@ function formatDate(dateString) {
     return date.toLocaleDateString('tr-TR');
 }
 
+// Tarih ve saat formatlama fonksiyonu
+function formatDateTime(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 // Excel'e aktarma fonksiyonu
 function exportToExcel(planId) {
+    console.log('Excel export başlatıldı, planId:', planId);
+    
     const plan = allGamePlans.find(p => p.id === planId);
     if (!plan) {
+        console.error('Plan bulunamadı:', planId);
         showAlert('Oyun planı bulunamadı!', 'danger');
         return;
     }
     
+    console.log('Plan bulundu:', plan);
+    
     try {
         // Excel verilerini hazırla
         const excelData = prepareExcelData(plan);
+        console.log('Excel verileri hazırlandı:', excelData);
         
         // Excel dosyasını oluştur ve indir
         downloadExcelFile(excelData, plan.title);
@@ -2823,6 +2842,52 @@ function downloadExcelFile(data, filename) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// Oyun planı durumunu değiştiren fonksiyon (pasife al/aktif et)
+async function togglePlanStatus(planId) {
+    const plan = allGamePlans.find(p => p.id === planId);
+    if (!plan) {
+        showAlert('Oyun planı bulunamadı!', 'danger');
+        return;
+    }
+    
+    const isActive = plan.status === 'active';
+    const newStatus = isActive ? 'inactive' : 'active';
+    const actionText = isActive ? 'pasife almak' : 'aktif etmek';
+    
+    // Onay iste
+    if (!confirm(`"${plan.title}" oyun planını ${actionText} istediğinizden emin misiniz?`)) {
+        return;
+    }
+    
+    try {
+        // Supabase'de durumu güncelle
+        const { error } = await supabase
+            .from('game_plans')
+            .update({ 
+                status: newStatus,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', planId);
+        
+        if (error) throw error;
+        
+        // Yerel listede güncelle
+        plan.status = newStatus;
+        plan.updated_at = new Date().toISOString();
+        
+        // UI'yi güncelle
+        displayRecentPlans();
+        updateStatistics();
+        
+        const statusText = isActive ? 'pasife alındı' : 'aktif edildi';
+        showAlert(`Oyun planı başarıyla ${statusText}!`, 'success');
+        
+    } catch (error) {
+        console.error('Durum değiştirme hatası:', error);
+        showAlert('Durum değiştirme sırasında hata oluştu: ' + error.message, 'danger');
+    }
 }
 
 // Oyun planını silen fonksiyon

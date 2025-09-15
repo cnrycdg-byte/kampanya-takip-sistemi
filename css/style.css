@@ -58,6 +58,28 @@ body {
     border-top: 1px solid #e3e6f0;
 }
 
+/* İşlemler Butonları Stilleri */
+.game-plan-card .btn-group .btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    margin-left: 4px;
+    transition: all 0.2s ease;
+}
+
+.game-plan-card .btn-group .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.game-plan-card .btn-group .btn i {
+    font-size: 14px;
+}
+
 /* Status Badge Stilleri */
 .status-badge {
     font-size: 0.75rem;
