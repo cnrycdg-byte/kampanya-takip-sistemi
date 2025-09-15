@@ -242,7 +242,15 @@ function createGamePlanCard(plan) {
                 </div>
             </div>
             <div class="card-footer">
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-success" onclick="event.stopPropagation(); exportToExcel('${plan.id}')" title="Excel'e Aktar">
+                            <i class="fas fa-file-excel me-1"></i>Excel
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteGamePlan('${plan.id}')" title="Sil">
+                            <i class="fas fa-trash me-1"></i>Sil
+                        </button>
+                    </div>
                     <small class="text-muted">${formatDate(plan.created_at)}</small>
                     <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); viewGamePlan('${plan.id}')">
                         <i class="fas fa-eye me-1"></i>Detay
@@ -2664,6 +2672,194 @@ function getStatusName(status) {
         'rejected': 'Reddedildi'
     };
     return statusNames[status] || status;
+}
+
+// Durum rengini döndüren fonksiyon
+function getStatusColor(status) {
+    const statusColors = {
+        'draft': 'bg-secondary',
+        'pending_account_manager': 'bg-warning',
+        'pending_marketing_manager': 'bg-info',
+        'approved': 'bg-success',
+        'active': 'bg-primary',
+        'completed': 'bg-success',
+        'cancelled': 'bg-danger',
+        'rejected': 'bg-danger'
+    };
+    return statusColors[status] || 'bg-secondary';
+}
+
+// Durum metnini döndüren fonksiyon
+function getStatusText(status) {
+    const statusTexts = {
+        'draft': 'Taslak',
+        'pending_account_manager': 'Onay Bekliyor',
+        'pending_marketing_manager': 'Onay Bekliyor',
+        'approved': 'Onaylandı',
+        'active': 'Aktif',
+        'completed': 'Tamamlandı',
+        'cancelled': 'İptal',
+        'rejected': 'Reddedildi'
+    };
+    return statusTexts[status] || status;
+}
+
+// Tür metnini döndüren fonksiyon
+function getTypeText(type) {
+    const typeTexts = {
+        'individual': 'Bireysel',
+        'team': 'Takım',
+        'store': 'Mağaza',
+        'regional': 'Bölgesel'
+    };
+    return typeTexts[type] || type;
+}
+
+// Dönem metnini döndüren fonksiyon
+function getPeriodText(periodType) {
+    const periodTexts = {
+        'daily': 'Günlük',
+        'weekly': 'Haftalık',
+        'monthly': 'Aylık',
+        'quarterly': 'Çeyreklik',
+        'yearly': 'Yıllık'
+    };
+    return periodTexts[periodType] || periodType;
+}
+
+// Tarih formatlama fonksiyonu
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR');
+}
+
+// Excel'e aktarma fonksiyonu
+function exportToExcel(planId) {
+    const plan = allGamePlans.find(p => p.id === planId);
+    if (!plan) {
+        showAlert('Oyun planı bulunamadı!', 'danger');
+        return;
+    }
+    
+    try {
+        // Excel verilerini hazırla
+        const excelData = prepareExcelData(plan);
+        
+        // Excel dosyasını oluştur ve indir
+        downloadExcelFile(excelData, plan.title);
+        
+        showAlert('Excel dosyası başarıyla oluşturuldu!', 'success');
+        
+    } catch (error) {
+        console.error('Excel aktarım hatası:', error);
+        showAlert('Excel aktarımında hata oluştu: ' + error.message, 'danger');
+    }
+}
+
+// Excel verilerini hazırlayan fonksiyon
+function prepareExcelData(plan) {
+    const data = [
+        ['Oyun Planı Detayları'],
+        ['Başlık', plan.title],
+        ['Açıklama', plan.description || ''],
+        ['Tür', getTypeText(plan.type)],
+        ['Durum', getStatusText(plan.status)],
+        ['Başlangıç Tarihi', formatDate(plan.start_date)],
+        ['Bitiş Tarihi', formatDate(plan.end_date)],
+        ['Oluşturan', plan.creator_name || ''],
+        ['Oluşturulma Tarihi', formatDateTime(plan.created_at)],
+        [''],
+        ['Mağaza Bilgileri'],
+        ['Mağaza Adı', 'Hedef Değer', 'Hedef Miktar']
+    ];
+    
+    // Mağaza bilgilerini ekle
+    if (plan.game_plan_stores && plan.game_plan_stores.length > 0) {
+        plan.game_plan_stores.forEach(store => {
+            data.push([
+                store.stores?.name || 'Bilinmiyor',
+                store.target_value || 0,
+                store.target_quantity || 0
+            ]);
+        });
+    }
+    
+    data.push(['']);
+    data.push(['Ürün Bilgileri']);
+    data.push(['Ürün Kodu', 'Ürün Adı', 'Prim Tutarı']);
+    
+    // Ürün bilgilerini ekle
+    if (plan.game_plan_products && plan.game_plan_products.length > 0) {
+        plan.game_plan_products.forEach(product => {
+            data.push([
+                product.product_code || '',
+                product.product_name || '',
+                product.prim_amount || 0
+            ]);
+        });
+    }
+    
+    return data;
+}
+
+// Excel dosyasını indiren fonksiyon
+function downloadExcelFile(data, filename) {
+    // CSV formatında veri oluştur
+    const csvContent = data.map(row => 
+        row.map(cell => `"${cell}"`).join(',')
+    ).join('\n');
+    
+    // BOM ekle (Türkçe karakterler için)
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Dosyayı indir
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename.replace(/[^a-z0-9]/gi, '_')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Oyun planını silen fonksiyon
+function deleteGamePlan(planId) {
+    const plan = allGamePlans.find(p => p.id === planId);
+    if (!plan) {
+        showAlert('Oyun planı bulunamadı!', 'danger');
+        return;
+    }
+    
+    // Onay iste
+    if (!confirm(`"${plan.title}" oyun planını silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+        return;
+    }
+    
+    try {
+        // Supabase'den sil
+        const { error } = await supabase
+            .from('game_plans')
+            .delete()
+            .eq('id', planId);
+        
+        if (error) throw error;
+        
+        // Yerel listeden kaldır
+        allGamePlans = allGamePlans.filter(p => p.id !== planId);
+        
+        // UI'yi güncelle
+        displayRecentPlans();
+        updateStatistics();
+        
+        showAlert('Oyun planı başarıyla silindi!', 'success');
+        
+    } catch (error) {
+        console.error('Silme hatası:', error);
+        showAlert('Silme sırasında hata oluştu: ' + error.message, 'danger');
+    }
 }
 
 // Logout fonksiyonu

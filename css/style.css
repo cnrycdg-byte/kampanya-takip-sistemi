@@ -41,6 +41,29 @@ body {
     color: #0c5460;
 }
 
+/* Görev Kartı Stilleri */
+.game-plan-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e3e6f0;
+}
+
+.game-plan-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    border-color: #5a5c69;
+}
+
+.game-plan-card .card-footer {
+    background-color: #f8f9fc;
+    border-top: 1px solid #e3e6f0;
+}
+
+/* Status Badge Stilleri */
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
 /* Mobil Uyarı Mesajları */
 @media (max-width: 768px) {
     .alert {
