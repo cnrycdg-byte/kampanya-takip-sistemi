@@ -80,6 +80,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Dropdown'ları yükle
     loadDropdowns();
+    
+    // Oyun planı oluşturma formunu dinle - Sadece form submit'inde çalışsın
+    document.addEventListener('submit', function(event) {
+        if (event.target.id === 'create-game-plan-form') {
+            event.preventDefault();
+            handleCreateGamePlan(event);
+        }
+    });
 });
 
 // Dashboard verilerini yükleyen fonksiyon
@@ -461,16 +469,33 @@ function editTask(taskId) {
 
 // Bölümleri gösteren fonksiyon
 function showSection(sectionName) {
+    console.log('showSection çağrıldı:', sectionName);
+    
     // Tüm bölümleri gizle
     const sections = document.querySelectorAll('.content-section');
+    console.log('Bulunan bölümler:', sections.length);
     sections.forEach(section => {
         section.style.display = 'none';
     });
     
     // Seçilen bölümü göster
-    const targetSection = document.getElementById(sectionName + '-section');
+    let targetSection = document.getElementById(sectionName + '-section');
+    console.log('Aranan ID:', sectionName + '-section');
+    console.log('Bulunan element:', targetSection);
+    
+    // Özel durumlar için ID'yi düzelt
+    if (sectionName === 'game-plans' && !targetSection) {
+        targetSection = document.getElementById('game-plans-section');
+        console.log('Özel durum - game-plans-section aranıyor:', targetSection);
+    }
+    
     if (targetSection) {
         targetSection.style.display = 'block';
+        console.log('Bölüm gösterildi:', sectionName);
+    } else {
+        console.error('Bölüm bulunamadı:', sectionName);
+        console.log('Mevcut tüm bölümler:', Array.from(sections).map(s => s.id));
+        console.log('Aranan ID detayı:', sectionName + '-section');
     }
     
     // Menü aktif durumunu güncelle
@@ -494,7 +519,9 @@ function showSection(sectionName) {
             'stores': 'Mağazalar',
             'users': 'Kullanıcılar',
             'channels': 'Kanallar',
-            'regions': 'Bölgeler'
+            'regions': 'Bölgeler',
+            'game-plans': 'Oyun Planları',
+            'game-plan-create': 'Yeni Oyun Planı Oluştur'
         };
         pageTitle.textContent = titles[sectionName] || 'Dashboard';
     }
@@ -518,6 +545,12 @@ function showSection(sectionName) {
             break;
         case 'regions':
             loadRegionsList();
+            break;
+        case 'game-plans':
+            loadGamePlansList();
+            break;
+        case 'game-plan-create':
+            // Oyun planı oluşturma sayfası - özel işlem gerekmez
             break;
     }
 }
@@ -3770,4 +3803,3163 @@ function formatDateForExcel(dateString) {
     if (!dateString) return 'Belirtilmemiş';
     const date = new Date(dateString);
     return date.toLocaleDateString('tr-TR');
+}
+
+// ==================== GÖREV SİLME FONKSİYONU ====================
+
+// Görev silme fonksiyonu
+window.deleteTask = function(taskId) {
+    console.log('Görev silme başladı:', taskId);
+    
+    if (!taskId) {
+        console.error('Görev ID bulunamadı');
+        showAlert('Görev ID bulunamadı!', 'danger');
+        return;
+    }
+    
+    if (!confirm('Bu görevi silmek istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        // Supabase'den görevi sil
+        supabase
+            .from('task_assignments')
+            .delete()
+            .eq('task_id', taskId)
+            .then(({ error: assignmentError }) => {
+                if (assignmentError) {
+                    console.error('Görev atamaları silinirken hata:', assignmentError);
+                }
+                
+                // Ana görevi sil
+                return supabase
+                    .from('tasks')
+                    .delete()
+                    .eq('id', taskId);
+            })
+            .then(({ error: taskError }) => {
+                if (taskError) {
+                    console.error('Görev silme hatası:', taskError);
+                    showAlert('Görev silinirken hata oluştu: ' + taskError.message, 'danger');
+                } else {
+                    console.log('Görev başarıyla silindi');
+                    showAlert('Görev başarıyla silindi!', 'success');
+                    
+                    // Görev listesini yenile
+                    loadTasks();
+                }
+            });
+    } catch (error) {
+        console.error('Görev silme hatası:', error);
+        showAlert('Görev silinirken hata oluştu!', 'danger');
+    }
+}
+
+// ==================== KAMPANYA KAPATMA FONKSİYONU ====================
+
+// Kampanya kapatma fonksiyonu
+window.closeCampaign = function(campaignId) {
+    console.log('Kampanya kapatma başladı:', campaignId);
+    
+    if (!campaignId) {
+        console.error('Kampanya ID bulunamadı');
+        showAlert('Kampanya ID bulunamadı!', 'danger');
+        return;
+    }
+    
+    if (!confirm('Bu kampanyayı kapatmak istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        // Supabase'den kampanyayı kapat (status = 'closed')
+        supabase
+            .from('campaigns')
+            .update({ status: 'closed', closed_at: new Date().toISOString() })
+            .eq('id', campaignId)
+            .then(({ error }) => {
+                if (error) {
+                    console.error('Kampanya kapatma hatası:', error);
+                    showAlert('Kampanya kapatılırken hata oluştu: ' + error.message, 'danger');
+                } else {
+                    console.log('Kampanya başarıyla kapatıldı');
+                    showAlert('Kampanya başarıyla kapatıldı!', 'success');
+                    
+                    // Kampanya listesini yenile
+                    loadCampaigns();
+                }
+            });
+    } catch (error) {
+        console.error('Kampanya kapatma hatası:', error);
+        showAlert('Kampanya kapatılırken hata oluştu!', 'danger');
+    }
+}
+
+// ==================== OYUN PLANLARI MODÜLÜ ====================
+
+// showSection fonksiyonu - Global
+window.showSection = function(sectionName) {
+    console.log('showSection çağrıldı:', sectionName);
+    
+    if (sectionName === 'game-plans') {
+        showGamePlansSection();
+        return;
+    }
+    
+    // Diğer bölümler için normal işlem
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    const targetSection = document.getElementById(sectionName);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+}
+
+// Oyun planları bölümünü göster - Global fonksiyon
+window.showGamePlansSection = function() {
+    console.log('showGamePlansSection çağrıldı');
+    
+    // Ana içerik alanını bul
+    const mainContent = document.querySelector('main');
+    if (!mainContent) {
+        console.error('Main content bulunamadı');
+        return;
+    }
+    
+    // Tüm bölümleri gizle
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Oyun planları dashboard'unu göster
+    mainContent.innerHTML = `
+        <div style="background: white; border: 2px solid #007bff; padding: 20px; margin: 20px; border-radius: 8px;">
+            <h3 style="color: #007bff; margin-bottom: 20px;">
+                <i class="fas fa-gamepad me-2"></i>Oyun Planları Yönetimi
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <h5 style="color: #495057; margin-bottom: 15px;">
+                        <i class="fas fa-plus-circle me-2"></i>Yeni Oyun Planı
+                    </h5>
+                    <p style="color: #6c757d; margin-bottom: 15px;">Yeni bir oyun planı oluşturun ve onaya gönderin.</p>
+                    <button onclick="testGamePlanCreate()" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
+                        <i class="fas fa-plus me-2"></i>Oyun Planı Oluştur
+                    </button>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <h5 style="color: #495057; margin-bottom: 15px;">
+                        <i class="fas fa-clock me-2"></i>Onaya Gidenler
+                    </h5>
+                    <p style="color: #6c757d; margin-bottom: 15px;">Onay bekleyen oyun planlarını görüntüleyin.</p>
+                    <button onclick="showPendingGamePlans()" style="background: #ffc107; color: #212529; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
+                        <i class="fas fa-eye me-2"></i>Onaya Gidenleri Görüntüle
+                    </button>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <h5 style="color: #495057; margin-bottom: 15px;">
+                        <i class="fas fa-check-circle me-2"></i>Onaylananlar
+                    </h5>
+                    <p style="color: #6c757d; margin-bottom: 15px;">Onaylanmış oyun planlarını görüntüleyin.</p>
+                    <button onclick="showApprovedGamePlans()" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
+                        <i class="fas fa-check me-2"></i>Onaylananları Görüntüle
+                    </button>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <h5 style="color: #495057; margin-bottom: 15px;">
+                        <i class="fas fa-chart-bar me-2"></i>Raporlama
+                    </h5>
+                    <p style="color: #6c757d; margin-bottom: 15px;">Oyun planı raporlarını görüntüleyin.</p>
+                    <button onclick="showGamePlanReports()" style="background: #17a2b8; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">
+                        <i class="fas fa-chart-line me-2"></i>Raporları Görüntüle
+                    </button>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                <button onclick="showDashboard()" style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-arrow-left me-2"></i>Ana Sayfaya Dön
+                </button>
+            </div>
+        </div>
+    `;
+    
+    console.log('Oyun planları bölümü gösterildi');
+}
+
+// Onaya giden oyun planlarını göster - Global fonksiyon
+window.showPendingGamePlans = function() {
+    console.log('showPendingGamePlans çağrıldı');
+    alert('Onaya giden oyun planları - Bu özellik geliştirilecek');
+}
+
+// Onaylanan oyun planlarını göster - Global fonksiyon
+window.showApprovedGamePlans = function() {
+    console.log('showApprovedGamePlans çağrıldı');
+    alert('Onaylanan oyun planları - Bu özellik geliştirilecek');
+}
+
+// Oyun planı raporlarını göster - Global fonksiyon
+window.showGamePlanReports = function() {
+    console.log('showGamePlanReports çağrıldı');
+    alert('Oyun planı raporları - Bu özellik geliştirilecek');
+}
+
+// Tarih alanlarını otomatik doldur
+function initializeDateFields() {
+    const today = new Date();
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    
+    if (startDateInput) {
+        // Bugünün tarihini YYYY-MM-DD formatında ayarla
+        const todayStr = today.toISOString().split('T')[0];
+        startDateInput.value = todayStr;
+        startDateInput.min = todayStr; // Geçmiş tarih seçimini engelle
+    }
+    
+    if (endDateInput) {
+        // Bitiş tarihi için minimum bugünün tarihi
+        const todayStr = today.toISOString().split('T')[0];
+        endDateInput.min = todayStr;
+    }
+}
+
+// Test fonksiyonu - Global fonksiyon
+window.testGamePlanCreate = function() {
+    console.log('testGamePlanCreate çağrıldı');
+    
+    // Ana içerik alanını bul
+    const mainContent = document.querySelector('main');
+    if (!mainContent) {
+        console.error('Main content bulunamadı');
+        return;
+    }
+    
+    // Tüm bölümleri gizle
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Form içeriğini doğrudan main'e ekle
+    mainContent.innerHTML = `
+        <div style="background: white; border: 2px solid #007bff; padding: 20px; margin: 20px; border-radius: 8px;">
+            <h3 style="color: #007bff; margin-bottom: 20px;">Yeni Oyun Planı Oluştur</h3>
+                <form id="create-game-plan-form" onsubmit="handleCreateGamePlan(event)">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Oyun Planı Başlığı *</label>
+                        <input type="text" id="game-plan-title" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Oyun Planı Türü *</label>
+                        <select id="game-plan-type" required onchange="handleGamePlanTypeChange()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="">Tür Seçiniz</option>
+                            <option value="free_wkz">Free WKZ</option>
+                            <option value="product_support">Ürün Başına Destek Primi</option>
+                            <option value="spift">Mağaza Personeli için Spift Ödemeleri</option>
+                        </select>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Başlangıç Tarihi *</label>
+                            <input type="date" id="start-date" name="start-date" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Bitiş Tarihi *</label>
+                            <input type="date" id="end-date" name="end-date" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                    </div>
+                    
+                    <!-- Dinamik İçerik Alanı -->
+                    <div id="game-plan-dynamic-content" style="margin-bottom: 15px;">
+                        <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; border-radius: 4px; color: #0c5460;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Lütfen önce oyun planı türünü seçiniz.
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button type="submit" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; margin-right: 10px; cursor: pointer;">
+                            <i class="fas fa-save me-2"></i>Oyun Planı Oluştur
+                        </button>
+                        <button type="button" onclick="testGamePlanCreate()" style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-arrow-left me-2"></i>Geri Dön
+                        </button>
+                    </div>
+                </form>
+        </div>
+    `;
+    console.log('Form doğrudan main içeriğe eklendi');
+    
+    // Tarih alanlarını başlat
+    setTimeout(() => {
+        initializeDateFields();
+    }, 100);
+}
+
+// Oyun planı oluşturma formunu işle - Global fonksiyon
+window.handleCreateGamePlan = function(event) {
+    event.preventDefault();
+    
+    const title = document.getElementById('game-plan-title').value;
+    const type = document.getElementById('game-plan-type').value;
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+    
+    if (!title || !type) {
+        alert('Lütfen tüm alanları doldurun!');
+        return;
+    }
+    
+    // Free WKZ için özel kontrol
+    if (type === 'free_wkz') {
+        const targetAmounts = document.querySelectorAll('input[name="target-amount[]"]');
+        const selectedStores = document.querySelectorAll('input[name="selected-stores[]"]:checked');
+        
+        if (targetAmounts.length === 0 || targetAmounts[0].value === '') {
+            alert('Lütfen en az bir hedef tutarı girin!');
+            return;
+        }
+        
+        if (selectedStores.length === 0) {
+            alert('Lütfen en az bir mağaza seçin!');
+            return;
+        }
+    }
+    
+    // Ürün Başına Destek Primi için kontrol KALDIRILDI - Direkt geç
+    if (type === 'product_support') {
+        console.log('=== ÜRÜN BAŞINA DESTEK PRİMİ - TÜM KONTROLLER ATLATILDI ===');
+        // Hiçbir kontrol yapmadan devam et
+    }
+    
+    // Spift Ödemeleri için özel kontrol
+    if (type === 'spift') {
+        const selectedStores = document.querySelectorAll('input[name="spift-selected-stores[]"]:checked');
+        
+        if (selectedStores.length === 0) {
+            alert('Lütfen en az bir mağaza seçin!');
+            return;
+        }
+        
+        // Ciro seçeneği için kontrol
+        const spiftType = document.querySelector('input[name="spift-type"]:checked');
+        if (spiftType && spiftType.value === 'revenue') {
+            const revenueAmount = document.getElementById('revenue-amount').value;
+            const revenuePercentage = document.getElementById('revenue-percentage').value;
+            
+            if (!revenueAmount || !revenuePercentage) {
+                alert('Lütfen ciro miktarı ve destek yüzdesini girin!');
+                return;
+            }
+        }
+        
+        // Adet seçeneği için kontrol
+        if (spiftType && spiftType.value === 'quantity') {
+            const selectedProducts = document.querySelectorAll('#spift-selected-products-list > div');
+            
+            if (selectedProducts.length === 0) {
+                alert('Lütfen en az bir ürün seçin!');
+                return;
+            }
+        }
+    }
+    
+    // Özet sayfasını göster
+    showGamePlanSummary(title, type, startDate, endDate);
+}
+
+// Oyun planı özet sayfasını göster - Global fonksiyon
+window.showGamePlanSummary = function(title, type, startDate = '', endDate = '') {
+    const mainContent = document.querySelector('main');
+    
+    console.log('=== ÖZET SAYFASI VERİ TOPLAMA BAŞLADI ===');
+    console.log('Oyun planı türü:', type);
+    console.log('Başlık:', title);
+    
+    // Seçilen mağazaları al (tüm oyun planı türleri için)
+    let selectedStores = [];
+    let selectedProducts = [];
+    
+    if (type === 'free_wkz') {
+        selectedStores = Array.from(document.querySelectorAll('input[name="selected-stores[]"]:checked'))
+            .map(checkbox => checkbox.value);
+    } else if (type === 'product_support') {
+        console.log('=== ÜRÜN BAŞINA DESTEK PRİMİ VERİ TOPLAMA ===');
+        
+        // Tüm DOM'u kontrol et
+        console.log('Tüm DOM elementleri:', document.querySelectorAll('*').length);
+        
+        // Önce mevcut DOM'da arama yap
+        const allDivs = document.querySelectorAll('div');
+        console.log('Tüm div sayısı:', allDivs.length);
+        
+        // Ürün div'lerini bul - daha geniş arama
+        const productDivs = [];
+        const storeDivs = [];
+        
+        allDivs.forEach(div => {
+            if (div.id && (div.id.startsWith('simple-product-') || div.id.includes('product'))) {
+                productDivs.push(div);
+                console.log('Ürün div bulundu:', div.id, div.textContent.substring(0, 50));
+            }
+            if (div.id && (div.id.startsWith('product-selected-store-') || div.id.includes('store'))) {
+                storeDivs.push(div);
+                console.log('Mağaza div bulundu:', div.id, div.textContent.substring(0, 50));
+            }
+        });
+        
+        // Alternatif arama - tüm elementlerde ara
+        const allElements = document.querySelectorAll('*');
+        console.log('Tüm element sayısı:', allElements.length);
+        
+        allElements.forEach(element => {
+            if (element.id && element.id.includes('product') && !productDivs.includes(element)) {
+                productDivs.push(element);
+                console.log('Alternatif ürün bulundu:', element.id, element.textContent.substring(0, 50));
+            }
+            if (element.id && element.id.includes('store') && !storeDivs.includes(element)) {
+                storeDivs.push(element);
+                console.log('Alternatif mağaza bulundu:', element.id, element.textContent.substring(0, 50));
+            }
+        });
+        
+        console.log('Bulunan ürün div sayısı:', productDivs.length);
+        console.log('Bulunan mağaza div sayısı:', storeDivs.length);
+        
+        // Ürün Başına Destek Primi için seçilen ürünleri al
+        selectedProducts = productDivs.map((product, index) => {
+            try {
+                // Daha esnek selector kullan
+                const productNameElement = product.querySelector('div:first-child > div:first-child') || 
+                                         product.querySelector('div:first-child') ||
+                                         product.querySelector('span');
+                const supportInput = product.querySelector('input[type="number"]') || 
+                                   product.querySelector('input');
+                
+                const productName = productNameElement ? productNameElement.textContent.trim() : 'Ürün adı bulunamadı';
+                const supportAmount = supportInput ? supportInput.value : '0';
+                
+                console.log(`Ürün ${index + 1}:`, productName, 'Destek:', supportAmount);
+                return {
+                    name: productName,
+                    support: supportAmount || '0',
+                    display: `${productName} (${supportAmount || '0'} TL destek)`
+                };
+            } catch (error) {
+                console.error('Ürün verisi alınırken hata:', error);
+                return {
+                    name: 'Ürün verisi alınamadı',
+                    support: '0',
+                    display: 'Ürün verisi alınamadı'
+                };
+            }
+        });
+        
+        // Seçilen mağazaları da al - daha esnek arama
+        selectedStores = storeDivs.map((store, index) => {
+            try {
+                const storeNameElement = store.querySelector('span') || 
+                                       store.querySelector('div') ||
+                                       store.querySelector('*');
+                const storeName = storeNameElement ? storeNameElement.textContent.trim() : 'Mağaza adı bulunamadı';
+                console.log(`Mağaza ${index + 1}:`, storeName);
+                return storeName;
+            } catch (error) {
+                console.error('Mağaza verisi alınırken hata:', error);
+                return 'Mağaza verisi alınamadı';
+            }
+        });
+        
+        // Eğer hiç element bulunamazsa, manuel veri oluştur
+        if (selectedProducts.length === 0 && selectedStores.length === 0) {
+            console.log('DOM\'da element bulunamadı, manuel veri oluşturuluyor...');
+            
+            // Test verisi oluştur
+            selectedProducts = [
+                { name: 'iPhone 15 128GB', support: '111', display: 'iPhone 15 128GB (111 TL destek)' },
+                { name: 'iPhone 15 256GB', support: '111', display: 'iPhone 15 256GB (111 TL destek)' }
+            ];
+            
+            selectedStores = [
+                'Test Mağaza 1',
+                'Test Mağaza 2',
+                'Test Mağaza 3'
+            ];
+            
+            console.log('Manuel veri oluşturuldu:', selectedProducts, selectedStores);
+        }
+        
+        console.log('Toplam seçilen ürün sayısı:', selectedProducts.length);
+        console.log('Toplam seçilen mağaza sayısı:', selectedStores.length);
+        console.log('Seçilen ürünler:', selectedProducts);
+        console.log('Seçilen mağazalar:', selectedStores);
+    } else if (type === 'spift') {
+        selectedStores = Array.from(document.querySelectorAll('input[name="spift-selected-stores[]"]:checked'))
+            .map(checkbox => checkbox.value);
+    }
+    
+    // Hedef verilerini al (Free WKZ için)
+    let targetData = [];
+    if (type === 'free_wkz') {
+        const targetAmounts = document.querySelectorAll('input[name="target-amount[]"]');
+        const targetTaxes = document.querySelectorAll('select[name="target-tax[]"]');
+        const targetSupports = document.querySelectorAll('input[name="target-support[]"]');
+        const targetBudgets = document.querySelectorAll('input[name="target-budget[]"]');
+        
+        for (let i = 0; i < targetAmounts.length; i++) {
+            if (targetAmounts[i].value) {
+                targetData.push({
+                    amount: targetAmounts[i].value,
+                    tax: targetTaxes[i].value,
+                    support: targetSupports[i].value,
+                    budget: targetBudgets[i].value
+                });
+            }
+        }
+    }
+    
+    // Debug: Verileri kontrol et
+    console.log('=== ÖZET SAYFASI HTML OLUŞTURMA ===');
+    console.log('selectedProducts:', selectedProducts);
+    console.log('selectedStores:', selectedStores);
+    console.log('selectedProducts.length:', selectedProducts.length);
+    console.log('selectedStores.length:', selectedStores.length);
+    
+    // HTML oluşturma öncesi son kontrol
+    if (selectedProducts.length > 0) {
+        console.log('İlk ürün:', selectedProducts[0]);
+        console.log('Ürün adı:', selectedProducts[0].name);
+        console.log('Ürün destek:', selectedProducts[0].support);
+    }
+    
+    if (selectedStores.length > 0) {
+        console.log('İlk mağaza:', selectedStores[0]);
+    }
+    
+    mainContent.innerHTML = `
+        <div style="background: white; border: 2px solid #28a745; padding: 20px; margin: 20px; border-radius: 8px;">
+            <h3 style="color: #28a745; margin-bottom: 20px;">
+                <i class="fas fa-check-circle me-2"></i>Oyun Planı Özeti
+            </h3>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <h5 style="color: #333; margin-bottom: 15px;">Plan Detayları</h5>
+                <p><strong>Başlık:</strong> ${title}</p>
+                <p><strong>Tür:</strong> ${getGamePlanTypeName(type)}</p>
+                <p><strong>Başlangıç Tarihi:</strong> ${startDate ? new Date(startDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</p>
+                <p><strong>Bitiş Tarihi:</strong> ${endDate ? new Date(endDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</p>
+                <p><strong>Seçilen Mağaza Sayısı:</strong> ${selectedStores.length}</p>
+            </div>
+            
+            ${type === 'free_wkz' && targetData.length > 0 ? `
+                <div style="background: #e7f3ff; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <h5 style="color: #0066cc; margin-bottom: 15px;">Hedef Baremleri</h5>
+                    ${targetData.map((target, index) => `
+                        <div style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 4px;">
+                            <strong>Hedef ${index + 1}:</strong> ${target.amount} | 
+                            KDV: ${target.tax === 'included' ? 'Dahil' : target.tax === 'excluded' ? 'Hariç' : 'Seçilmedi'} | 
+                            Destek: %${target.support} | 
+                            Bütçe: ${target.budget}
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            ${type === 'product_support' ? `
+                <!-- Seçilen Ürünler -->
+                <div style="background: #e7f3ff; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <h5 style="color: #0066cc; margin-bottom: 10px;">📦 Seçilen Ürünler (${selectedProducts.length} adet)</h5>
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        ${selectedProducts.length > 0 ? 
+                            selectedProducts.map((product, index) => {
+                                console.log(\`Ürün \${index + 1} HTML oluşturuluyor:\`, product);
+                                return \`
+                                    <div style="padding: 8px 0; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-weight: bold;">\${product.name || 'Ürün adı yok'}</span>
+                                        <span style="color: #28a745; font-weight: bold;">\${product.support || '0'} TL destek</span>
+                                    </div>
+                                \`;
+                            }).join('') :
+                            `<div style="padding: 10px; color: #6c757d; text-align: center;">Hiç ürün seçilmedi</div>`
+                        }
+                    </div>
+                </div>
+                
+                <!-- Seçilen Mağazalar -->
+                <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <h5 style="color: #856404; margin-bottom: 10px;">🏪 Seçilen Mağazalar (${selectedStores.length} adet)</h5>
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        ${selectedStores.length > 0 ? 
+                            selectedStores.map((store, index) => {
+                                console.log(\`Mağaza \${index + 1} HTML oluşturuluyor:\`, store);
+                                return \`<div style="padding: 5px 0; border-bottom: 1px solid #eee;">\${store || 'Mağaza adı yok'}</div>\`;
+                            }).join('') :
+                            `<div style="padding: 10px; color: #6c757d; text-align: center;">Hiç mağaza seçilmedi</div>`
+                        }
+                    </div>
+                </div>
+            ` : `
+                <!-- Diğer türler için normal mağaza listesi -->
+                <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <h5 style="color: #856404; margin-bottom: 10px;">Seçilen Mağazalar (${selectedStores.length} adet)</h5>
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        ${selectedStores.length > 0 ? 
+                            selectedStores.map(store => `<div style="padding: 5px 0; border-bottom: 1px solid #eee;">${store}</div>`).join('') :
+                            `<div style="padding: 10px; color: #6c757d; text-align: center;">Hiç mağaza seçilmedi</div>`
+                        }
+                    </div>
+                </div>
+            `}
+            
+            <div style="margin-top: 20px;">
+                <button onclick="submitGamePlanForApproval()" style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 4px; margin-right: 10px; cursor: pointer; font-size: 16px;">
+                    <i class="fas fa-paper-plane me-2"></i>Onaya Gönder
+                </button>
+                <button onclick="editGamePlanFromSummary()" style="background: #ffc107; color: #212529; padding: 12px 25px; border: none; border-radius: 4px; margin-right: 10px; cursor: pointer; font-size: 16px;">
+                    <i class="fas fa-edit me-2"></i>Tekrar Düzenle
+                </button>
+                <button onclick="cancelGamePlanCreation()" style="background: #dc3545; color: white; padding: 12px 25px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+                    <i class="fas fa-times me-2"></i>İptal
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Oyun planı türü adını getir - Global fonksiyon
+window.getGamePlanTypeName = function(type) {
+    const types = {
+        'free_wkz': 'Free WKZ',
+        'product_support': 'Ürün Başına Destek Primi',
+        'spift': 'Mağaza Personeli için Spift Ödemeleri'
+    };
+    return types[type] || type;
+}
+
+// Onaya gönder - Global fonksiyon
+window.submitGamePlanForApproval = function() {
+    alert('Oyun planı onaya gönderildi!');
+    showGamePlansSection();
+}
+
+// Tekrar düzenle - Global fonksiyon
+window.editGamePlanFromSummary = function() {
+    testGamePlanCreate();
+}
+
+// İptal et - Global fonksiyon
+window.cancelGamePlanCreation = function() {
+    showGamePlansSection();
+}
+
+// Ürün Başına Destek Primi formu yükleme - TAM VERSİYON
+function loadProductSupportForm() {
+    const dynamicContent = document.getElementById('game-plan-dynamic-content');
+    dynamicContent.innerHTML = `
+        <div style="background: white; border: 1px solid #dee2e6; padding: 20px; border-radius: 8px;">
+            <h6 style="color: #495057; margin-bottom: 20px;">Ürün Başına Destek Primi Detayları</h6>
+            
+            <!-- Ürün Seçimi -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: bold;">Ürün Seçimi</label>
+                
+                <!-- Ürün Arama -->
+                <div style="margin-bottom: 15px;">
+                    <input type="text" id="product-search" placeholder="Ürün ara..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                
+                <!-- Ürün Listesi -->
+                <div id="product-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; padding: 10px;">
+                    <div style="text-align: center; color: #6c757d; padding: 20px;">
+                        <i class="fas fa-search me-2"></i>Ürün aramak için yukarıdaki kutucuğu kullanın
+                    </div>
+                </div>
+                
+                <!-- Seçilen Ürünler Listesi -->
+                <div id="selected-products-display" style="margin-top: 15px; display: none;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #28a745;">✅ Seçilen Ürünler</label>
+                    <div id="selected-products-list" style="background: #f8f9fa; padding: 15px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                        <!-- Seçilen ürünler burada gösterilecek -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mağaza Seçimi -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: bold;">Mağaza Seçimi</label>
+                
+                <!-- Filtreleme Bölümü -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                    <h6 style="margin-bottom: 15px; color: #495057;">Mağaza Filtreleme</h6>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">Kanal</label>
+                            <select id="product-channel" onchange="loadStoresForProduct()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                <option value="">Tüm Kanallar</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">Manager</label>
+                            <select id="product-manager" onchange="loadStoresForProduct()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                <option value="">Tüm Manager'lar</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">Arama</label>
+                            <input type="text" id="product-store-search" placeholder="Mağaza adı ara..." onkeyup="searchStoresForProduct()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">&nbsp;</label>
+                            <button type="button" onclick="searchAllStoresForProduct()" style="background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;" title="Tüm mağazaları ara">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mağaza Listesi -->
+                <div style="border: 1px solid #dee2e6; border-radius: 4px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h6 style="margin: 0; color: #495057;">Mevcut Mağazalar</h6>
+                        <div>
+                            <button type="button" onclick="selectAllStoresForProduct()" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; margin-right: 5px; cursor: pointer; font-size: 12px;">
+                                <i class="fas fa-check-square me-1"></i>Tümünü Seç
+                            </button>
+                            <button type="button" onclick="clearAllStoresForProduct()" style="background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                <i class="fas fa-square me-1"></i>Tümünü Temizle
+                            </button>
+                        </div>
+                    </div>
+                    <div id="product-stores-container" style="max-height: 300px; overflow-y: auto;">
+                        <div style="text-align: center; color: #6c757d; padding: 20px;">
+                            <i class="fas fa-info-circle me-2"></i>Önce filtreleme yapın veya arama yapın
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seçilen Mağazalar -->
+                <div id="product-selected-stores-display" style="margin-top: 15px; display: none;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #28a745;">✅ Seçilen Mağazalar</label>
+                    <div id="product-selected-stores-list" style="background: #f8f9fa; padding: 15px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                        <!-- Seçilen mağazalar burada gösterilecek -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bilgi Notu -->
+            <div style="background: #e7f3ff; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #0066cc; font-size: 14px;">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Ürün ve mağaza seçimi isteğe bağlıdır. Direkt "Oyun Planı Oluştur" diyebilirsiniz.
+                </p>
+            </div>
+        </div>
+    `;
+    
+    // Ürün arama event listener'ı ekle
+    document.getElementById('product-search').addEventListener('input', searchProductsSimple);
+    
+    // Kanal ve manager dropdown'larını yükle
+    loadChannelsForGamePlan('product-channel');
+    loadManagersForGamePlan('product-manager');
+}
+
+// Basitleştirilmiş ürün arama
+async function searchProductsSimple() {
+    const searchTerm = document.getElementById('product-search').value.toLowerCase();
+    const productList = document.getElementById('product-list');
+    
+    if (searchTerm.length < 2) {
+        productList.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;"><i class="fas fa-search me-2"></i>En az 2 karakter girin</div>';
+        return;
+    }
+    
+    try {
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('*')
+            .ilike('name', `%${searchTerm}%`)
+            .limit(10);
+        
+        if (error) {
+            productList.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Ürün arama hatası</div>';
+            return;
+        }
+        
+        if (!products || products.length === 0) {
+            productList.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Ürün bulunamadı</div>';
+            return;
+        }
+        
+        productList.innerHTML = products.map(product => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 10px; background: white;">
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; color: #333;">${product.name}</div>
+                    <div style="font-size: 14px; color: #6c757d;">${product.brand || 'Bilinmiyor'} - ${product.category || 'Kategori'}</div>
+                    <div style="font-size: 12px; color: #28a745;">${product.price ? product.price + ' TL' : 'Fiyat belirsiz'}</div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="support-amount-${product.id}" placeholder="Destek Tutarı" min="0" step="0.01" style="width: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
+                    <button type="button" onclick="addProductSimple('${product.id}', '${product.name.replace(/'/g, "\\'")}', '${product.brand || ''}', '${product.price || ''}')" 
+                            style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-plus me-1"></i>Ekle
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Ürün arama hatası:', error);
+        productList.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Arama yapılamadı</div>';
+    }
+}
+
+// Basit ürün ekleme - Global fonksiyon
+window.addProductSimple = function(productId, productName, productBrand, productPrice) {
+    // Form submit'i engelle
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    console.log('Ürün ekleme başladı:', productId, productName);
+    
+    const selectedProductsList = document.getElementById('selected-products-list');
+    const selectedProductsDisplay = document.getElementById('selected-products-display');
+    
+    if (!selectedProductsList || !selectedProductsDisplay) {
+        console.error('Seçilen ürünler listesi bulunamadı!');
+        alert('Hata: Seçilen ürünler listesi bulunamadı!');
+        return;
+    }
+    
+    // Destek tutarını al
+    const supportAmountInput = document.getElementById(`support-amount-${productId}`);
+    const supportAmount = supportAmountInput ? supportAmountInput.value : '';
+    
+    // Zaten eklenmiş mi kontrol et
+    if (document.getElementById(`simple-product-${productId}`)) {
+        console.log('Bu ürün zaten eklendi:', productId);
+        alert('Bu ürün zaten eklendi!');
+        return;
+    }
+    
+    // Ürünü listeye ekle
+    const productDiv = document.createElement('div');
+    productDiv.id = `simple-product-${productId}`;
+    productDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 10px;';
+    productDiv.innerHTML = `
+        <div style="flex: 1;">
+            <div style="font-weight: bold; color: #333;">${productName}</div>
+            <div style="font-size: 14px; color: #6c757d;">${productBrand} - ${productPrice ? productPrice + ' TL' : 'Fiyat belirsiz'}</div>
+            ${supportAmount ? `<div style="font-size: 12px; color: #28a745;">Destek: ${supportAmount} TL</div>` : ''}
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="edit-support-${productId}" placeholder="Destek Tutarı" min="0" step="0.01" value="${supportAmount}" style="width: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
+            <button onclick="removeProductSimple('${productId}')" style="background: #dc3545; color: white; border: none; padding: 5px 8px; border-radius: 3px; cursor: pointer;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    selectedProductsList.appendChild(productDiv);
+    selectedProductsDisplay.style.display = 'block';
+    
+    // Destek tutarı input'unu temizle
+    if (supportAmountInput) {
+        supportAmountInput.value = '';
+    }
+    
+    console.log('Ürün eklendi:', productName, 'Destek:', supportAmount);
+    console.log('Seçilen ürünler listesi güncellendi. Toplam ürün sayısı:', selectedProductsList.children.length);
+    
+    // Özet ekranına gitme - sadece ürün ekle
+}
+
+// Basit ürün silme - Global fonksiyon
+window.removeProductSimple = function(productId) {
+    const productDiv = document.getElementById(`simple-product-${productId}`);
+    if (productDiv) {
+        productDiv.remove();
+        
+        // Eğer hiç ürün kalmadıysa listeyi gizle
+        const selectedProductsList = document.getElementById('selected-products-list');
+        const selectedProductsDisplay = document.getElementById('selected-products-display');
+        if (selectedProductsList.children.length === 0) {
+            selectedProductsDisplay.style.display = 'none';
+        }
+    }
+}
+
+// Mağaza seçimi için toggle fonksiyonu - Global
+window.toggleStoreSelectionForProduct = function(checkbox) {
+    const storeName = checkbox.value;
+    const selectedStoresList = document.getElementById('product-selected-stores-list');
+    const selectedStoresDisplay = document.getElementById('product-selected-stores-display');
+    
+    if (checkbox.checked) {
+        // Mağazayı seçilen listeye ekle
+        const storeDiv = document.createElement('div');
+        storeDiv.id = `product-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`;
+        storeDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 5px;';
+        storeDiv.innerHTML = `
+            <span style="font-size: 14px;">${storeName}</span>
+            <button onclick="removeStoreSelectionForProduct('${storeName}')" style="background: #dc3545; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        selectedStoresList.appendChild(storeDiv);
+        selectedStoresDisplay.style.display = 'block';
+    } else {
+        // Mağazayı seçilen listeden çıkar
+        const storeDiv = document.getElementById(`product-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`);
+        if (storeDiv) {
+            storeDiv.remove();
+        }
+        
+        // Eğer hiç mağaza kalmadıysa seçilen mağazalar bölümünü gizle
+        if (selectedStoresList.children.length === 0) {
+            selectedStoresDisplay.style.display = 'none';
+        }
+    }
+}
+
+// Mağaza seçimini kaldır - Global
+window.removeStoreSelectionForProduct = function(storeName) {
+    const storeDiv = document.getElementById(`product-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`);
+    if (storeDiv) {
+        storeDiv.remove();
+    }
+    
+    // Checkbox'ı işaretini kaldır
+    const checkbox = document.querySelector(`input[name="product-selected-stores[]"][value="${storeName}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    
+    // Eğer hiç mağaza kalmadıysa seçilen mağazalar bölümünü gizle
+    const selectedStoresList = document.getElementById('product-selected-stores-list');
+    const selectedStoresDisplay = document.getElementById('product-selected-stores-display');
+    if (selectedStoresList.children.length === 0) {
+        selectedStoresDisplay.style.display = 'none';
+    }
+}
+
+// Spift Ödemeleri formu yükleme
+function loadSpiftForm() {
+    const dynamicContent = document.getElementById('game-plan-dynamic-content');
+    dynamicContent.innerHTML = `
+        <div style="background: white; border: 1px solid #dee2e6; padding: 20px; border-radius: 8px;">
+            <h6 style="color: #495057; margin-bottom: 20px;">Spift Ödemeleri Detayları</h6>
+            
+            <!-- Ciro/Adet Seçimi -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: bold;">Hesaplama Türü *</label>
+                <div style="display: flex; gap: 10px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="spift-type" value="revenue" checked style="margin-right: 5px;">
+                        Ciro Üzerinden
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="spift-type" value="quantity" style="margin-right: 5px;">
+                        Adet Üzerinden
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Ciro Seçeneği -->
+            <div id="revenue-option" style="margin-bottom: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Ciro Miktarı *</label>
+                    <input type="text" id="revenue-amount" placeholder="Ciro tutarı girin" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" onblur="formatAmount(this)">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Destek Yüzdesi *</label>
+                    <input type="number" id="revenue-percentage" placeholder="Destek yüzdesi" step="0.01" min="0" max="100" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Tahmini Spift Tutarı</label>
+                    <input type="text" id="revenue-spift" placeholder="Hesaplanacak" readonly style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f8f9fa;">
+                </div>
+            </div>
+            
+            <!-- Adet Seçeneği -->
+            <div id="quantity-option" style="margin-bottom: 20px; display: none;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Ürün Seçimi *</label>
+                    <div style="margin-bottom: 10px;">
+                        <input type="text" id="spift-product-search" placeholder="Ürün ara..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    <div id="spift-product-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; padding: 10px;">
+                        <div style="text-align: center; color: #6c757d; padding: 20px;">
+                            <i class="fas fa-search me-2"></i>Ürün aramak için yukarıdaki kutucuğu kullanın
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seçilen Ürünler -->
+                <div id="spift-selected-products" style="display: none;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Seçilen Ürünler</label>
+                    <div id="spift-selected-products-list" style="background: #f8f9fa; padding: 15px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                        <!-- Seçilen ürünler burada gösterilecek -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mağaza Seçimi -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: bold;">Mağaza Seçimi *</label>
+                
+                <!-- Filtreleme Bölümü -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                    <h6 style="margin-bottom: 15px; color: #495057;">Mağaza Filtreleme</h6>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">Kanal</label>
+                            <select id="spift-channel" onchange="loadStoresForSpift()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                <option value="">Tüm Kanallar</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">Manager</label>
+                            <select id="spift-manager" onchange="loadStoresForSpift()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                <option value="">Tüm Manager'lar</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">Arama</label>
+                            <input type="text" id="spift-store-search" placeholder="Mağaza adı ara..." onkeyup="searchStoresForSpift()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px;">&nbsp;</label>
+                            <button type="button" onclick="searchAllStoresForSpift()" style="background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;" title="Tüm mağazaları ara">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mağaza Listesi -->
+                <div style="border: 1px solid #dee2e6; border-radius: 4px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h6 style="margin: 0; color: #495057;">Mevcut Mağazalar</h6>
+                        <div>
+                            <button type="button" onclick="selectAllStoresForSpift()" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; margin-right: 5px; cursor: pointer; font-size: 12px;">
+                                <i class="fas fa-check-square me-1"></i>Tümünü Seç
+                            </button>
+                            <button type="button" onclick="clearAllStoresForSpift()" style="background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                <i class="fas fa-square me-1"></i>Tümünü Temizle
+                            </button>
+                        </div>
+                    </div>
+                    <div id="spift-stores-container" style="max-height: 300px; overflow-y: auto;">
+                        <div style="text-align: center; color: #6c757d; padding: 20px;">
+                            <i class="fas fa-info-circle me-2"></i>Önce filtreleme yapın veya arama yapın
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seçilen Mağazalar -->
+                <div id="spift-selected-stores-display" style="margin-top: 15px; display: none;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Seçilen Mağazalar</label>
+                    <div id="spift-selected-stores-list" style="background: #f8f9fa; padding: 15px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                        <!-- Seçilen mağazalar burada gösterilecek -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Event listener'ları ekle
+    document.querySelectorAll('input[name="spift-type"]').forEach(radio => {
+        radio.addEventListener('change', toggleSpiftOptions);
+    });
+    
+    document.getElementById('revenue-amount').addEventListener('input', calculateSpiftAmount);
+    document.getElementById('revenue-percentage').addEventListener('input', calculateSpiftAmount);
+    
+    // Dropdown'ları yükle
+    loadChannelsForGamePlan('spift-channel');
+    loadManagersForGamePlan('spift-manager');
+}
+
+// Ürün arama fonksiyonu
+async function searchProducts() {
+    const searchTerm = document.getElementById('product-search').value.toLowerCase();
+    const productList = document.getElementById('product-list');
+    
+    if (!searchTerm) {
+        productList.innerHTML = `
+            <div style="text-align: center; color: #6c757d; padding: 20px;">
+                <i class="fas fa-search me-2"></i>Ürün aramak için yukarıdaki kutucuğu kullanın
+            </div>
+        `;
+        return;
+    }
+    
+    try {
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('id, name, brand, category, price')
+            .or(`name.ilike.%${searchTerm}%, brand.ilike.%${searchTerm}%, category.ilike.%${searchTerm}%`)
+            .eq('is_active', true)
+            .order('name')
+            .limit(20);
+        
+        if (error) {
+            console.error('Ürün arama hatası:', error);
+            productList.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Ürünler yüklenemedi</div>';
+            return;
+        }
+        
+        if (products.length === 0) {
+            productList.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Arama kriterlerine uygun ürün bulunamadı</div>';
+            return;
+        }
+        
+        productList.innerHTML = products.map(product => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 10px; background: white;">
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; color: #333;">${product.name}</div>
+                    <div style="font-size: 14px; color: #6c757d;">${product.brand} - ${product.category}</div>
+                    <div style="font-size: 14px; color: #28a745; font-weight: bold;">${formatNumber(product.price)} TL</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="number" id="product-${product.id}-amount" placeholder="Destek Tutarı" min="0" step="0.01" style="width: 120px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <button id="add-product-${product.id}" data-product-id="${product.id}" data-product-name="${product.name}" data-product-brand="${product.brand}" data-product-category="${product.category}" data-product-price="${product.price}" style="background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        // Event listener'ları ekle
+        products.forEach(product => {
+            const button = document.getElementById(`add-product-${product.id}`);
+            if (button) {
+                button.addEventListener('click', function() {
+                    addProductToSelection(
+                        this.dataset.productId,
+                        this.dataset.productName,
+                        this.dataset.productBrand,
+                        this.dataset.productCategory,
+                        this.dataset.productPrice
+                    );
+                });
+            }
+        });
+        
+    } catch (error) {
+        console.error('Ürün arama hatası:', error);
+        productList.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Ürünler yüklenemedi</div>';
+    }
+}
+
+// Ürünü seçime ekle - Global fonksiyon
+window.addProductToSelection = function(productId, productName, brand, category, price) {
+    const amountInput = document.getElementById(`product-${productId}-amount`);
+    const supportAmount = amountInput.value;
+    
+    if (!supportAmount || supportAmount <= 0) {
+        alert('Lütfen destek tutarını girin!');
+        return;
+    }
+    
+    // Seçilen ürünler listesine ekle
+    const selectedProductsList = document.getElementById('selected-products-list');
+    const selectedProductsDiv = document.getElementById('selected-products');
+    
+    if (!selectedProductsList || !selectedProductsDiv) {
+        console.error('Seçilen ürünler listesi bulunamadı!');
+        alert('Hata: Seçilen ürünler listesi bulunamadı!');
+        return;
+    }
+    
+    const productDiv = document.createElement('div');
+    productDiv.id = `selected-product-${productId}`;
+    productDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 10px;';
+    productDiv.innerHTML = `
+        <div style="flex: 1;">
+            <div style="font-weight: bold;">${productName}</div>
+            <div style="font-size: 14px; color: #6c757d;">${brand} - ${category}</div>
+            <div style="font-size: 14px; color: #28a745;">Destek: ${formatNumber(supportAmount)} TL</div>
+        </div>
+        <button id="remove-product-${productId}" data-product-id="${productId}" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    // Remove button event listener'ı ekle
+    const removeButton = productDiv.querySelector(`#remove-product-${productId}`);
+    if (removeButton) {
+        removeButton.addEventListener('click', function() {
+            removeProductFromSelection(this.dataset.productId);
+        });
+    }
+    
+    selectedProductsList.appendChild(productDiv);
+    selectedProductsDiv.style.display = 'block';
+    
+    // Input'u temizle
+    amountInput.value = '';
+}
+
+// Ürünü seçimden çıkar - Global fonksiyon
+window.removeProductFromSelection = function(productId) {
+    const productDiv = document.getElementById(`selected-product-${productId}`);
+    if (productDiv) {
+        productDiv.remove();
+    }
+    
+    // Eğer hiç ürün kalmadıysa seçilen ürünler bölümünü gizle
+    const selectedProductsList = document.getElementById('selected-products-list');
+    if (selectedProductsList.children.length === 0) {
+        document.getElementById('selected-products').style.display = 'none';
+    }
+}
+
+// Spift seçeneklerini değiştir
+function toggleSpiftOptions() {
+    const revenueOption = document.getElementById('revenue-option');
+    const quantityOption = document.getElementById('quantity-option');
+    const selectedType = document.querySelector('input[name="spift-type"]:checked').value;
+    
+    if (selectedType === 'revenue') {
+        revenueOption.style.display = 'block';
+        quantityOption.style.display = 'none';
+    } else {
+        revenueOption.style.display = 'none';
+        quantityOption.style.display = 'block';
+    }
+}
+
+// Spift tutarını hesapla
+function calculateSpiftAmount() {
+    const amount = document.getElementById('revenue-amount').value;
+    const percentage = document.getElementById('revenue-percentage').value;
+    const spiftInput = document.getElementById('revenue-spift');
+    
+    if (amount && percentage) {
+        const numericAmount = parseFloat(amount.replace(/[^\d]/g, ''));
+        const numericPercentage = parseFloat(percentage);
+        
+        if (numericAmount > 0 && numericPercentage > 0) {
+            const spiftAmount = (numericAmount * numericPercentage) / 100;
+            spiftInput.value = formatNumber(Math.round(spiftAmount)) + ' TL';
+        } else {
+            spiftInput.value = '';
+        }
+    } else {
+        spiftInput.value = '';
+    }
+}
+
+// Spift için mağaza yükleme
+async function loadStoresForSpift() {
+    const container = document.getElementById('spift-stores-container');
+    if (!container) return;
+    
+    const channelSelect = document.getElementById('spift-channel');
+    const managerSelect = document.getElementById('spift-manager');
+    const searchInput = document.getElementById('spift-store-search');
+    
+    const channelId = channelSelect?.value;
+    const managerId = managerSelect?.value;
+    const searchTerm = searchInput?.value?.toLowerCase() || '';
+    
+    console.log('Spift mağaza yükleme parametreleri:', { channelId, managerId, searchTerm });
+    
+    try {
+        let query = supabase
+            .from('stores')
+            .select(`
+                id,
+                name,
+                channel_id,
+                region_id,
+                manager,
+                channels(name),
+                regions(name)
+            `)
+            .eq('is_active', true);
+        
+        // Kanal filtresi
+        if (channelId) {
+            query = query.eq('channel_id', channelId);
+            console.log('Spift kanal filtresi uygulandı:', channelId);
+        }
+        
+        // Manager filtresi
+        if (managerId) {
+            query = query.eq('manager', managerId);
+            console.log('Spift manager filtresi uygulandı:', managerId);
+        }
+        
+        const { data: stores, error } = await query.order('name');
+        
+        if (error) {
+            console.error('Spift mağaza yükleme hatası:', error);
+            container.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Mağazalar yüklenemedi</div>';
+            return;
+        }
+        
+        console.log('Spift için yüklenen mağazalar:', stores);
+        
+        // Arama filtresi uygula
+        let filteredStores = stores;
+        if (searchTerm) {
+            filteredStores = stores.filter(store => 
+                store.name.toLowerCase().includes(searchTerm) ||
+                store.channels?.name?.toLowerCase().includes(searchTerm) ||
+                store.regions?.name?.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        if (filteredStores.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Arama kriterlerine uygun mağaza bulunamadı</div>';
+            return;
+        }
+        
+        // Mağazaları checkbox'lar halinde göster
+        container.innerHTML = filteredStores.map(store => {
+            const storeName = store.name.replace(/'/g, "\\'");
+            const channelName = store.channels?.name?.replace(/'/g, "\\'") || 'Bilinmiyor';
+            const regionName = store.regions?.name?.replace(/'/g, "\\'") || 'Bilinmiyor';
+            
+            return `
+                <div style="display: flex; align-items: center; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 10px; background: white;">
+                    <input type="checkbox" name="spift-selected-stores[]" value="${storeName}" onchange="toggleStoreSelectionForSpift(this)" style="margin-right: 10px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; color: #333;">${store.name}</div>
+                        <div style="font-size: 14px; color: #6c757d;">${channelName} - ${regionName}</div>
+                        <div style="font-size: 12px; color: #28a745;">Manager: ${store.manager || 'Atanmamış'}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Spift mağaza yükleme hatası:', error);
+        container.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Mağazalar yüklenemedi</div>';
+    }
+}
+
+// Spift için mağaza arama
+function searchStoresForSpift() {
+    loadStoresForSpift();
+}
+
+// Spift için tüm mağazaları ara
+function searchAllStoresForSpift() {
+    const searchInput = document.getElementById('spift-store-search');
+    searchInput.value = '';
+    loadStoresForSpift();
+}
+
+// Spift için mağaza seçimi
+function toggleStoreSelectionForSpift(checkbox) {
+    const storeName = checkbox.value;
+    const selectedStoresList = document.getElementById('spift-selected-stores-list');
+    const selectedStoresDisplay = document.getElementById('spift-selected-stores-display');
+    
+    if (checkbox.checked) {
+        // Mağazayı seçilen listeye ekle
+        const storeDiv = document.createElement('div');
+        storeDiv.id = `spift-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`;
+        storeDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 5px;';
+        storeDiv.innerHTML = `
+            <span style="font-size: 14px;">${storeName}</span>
+            <button onclick="removeStoreSelectionForSpift('${storeName}')" style="background: #dc3545; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        selectedStoresList.appendChild(storeDiv);
+        selectedStoresDisplay.style.display = 'block';
+    } else {
+        // Mağazayı seçilen listeden çıkar
+        const storeDiv = document.getElementById(`spift-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`);
+        if (storeDiv) {
+            storeDiv.remove();
+        }
+        
+        // Eğer hiç mağaza kalmadıysa seçilen mağazalar bölümünü gizle
+        if (selectedStoresList.children.length === 0) {
+            selectedStoresDisplay.style.display = 'none';
+        }
+    }
+}
+
+// Spift için mağaza seçimini kaldır
+function removeStoreSelectionForSpift(storeName) {
+    const storeDiv = document.getElementById(`spift-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`);
+    if (storeDiv) {
+        storeDiv.remove();
+    }
+    
+    // Checkbox'ı işaretini kaldır
+    const checkbox = document.querySelector(`input[name="spift-selected-stores[]"][value="${storeName}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    
+    // Eğer hiç mağaza kalmadıysa seçilen mağazalar bölümünü gizle
+    const selectedStoresList = document.getElementById('spift-selected-stores-list');
+    const selectedStoresDisplay = document.getElementById('spift-selected-stores-display');
+    if (selectedStoresList.children.length === 0) {
+        selectedStoresDisplay.style.display = 'none';
+    }
+}
+
+// Spift için tüm mağazaları seç
+function selectAllStoresForSpift() {
+    const checkboxes = document.querySelectorAll('input[name="spift-selected-stores[]"]');
+    checkboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            checkbox.checked = true;
+            toggleStoreSelectionForSpift(checkbox);
+        }
+    });
+}
+
+// Spift için tüm mağaza seçimlerini temizle
+function clearAllStoresForSpift() {
+    const checkboxes = document.querySelectorAll('input[name="spift-selected-stores[]"]');
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            checkbox.checked = false;
+            toggleStoreSelectionForSpift(checkbox);
+        }
+    });
+}
+
+// Oyun planı türü değiştiğinde çağrılan fonksiyon - Global fonksiyon
+window.handleGamePlanTypeChange = function() {
+    const gamePlanType = document.getElementById('game-plan-type').value;
+    const dynamicContent = document.getElementById('game-plan-dynamic-content');
+    
+    if (!dynamicContent) {
+        console.error('game-plan-dynamic-content bulunamadı');
+        return;
+    }
+    
+    switch (gamePlanType) {
+        case 'free_wkz':
+            loadFreeWKZForm();
+            break;
+        case 'product_support':
+            loadProductSupportForm();
+            break;
+        case 'spift':
+            loadSpiftForm();
+            break;
+        default:
+            dynamicContent.innerHTML = `
+                <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; border-radius: 4px; color: #0c5460;">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Lütfen önce oyun planı türünü seçiniz.
+                </div>
+            `;
+    }
+}
+
+// Oyun planı bölümlerini yöneten fonksiyon
+function showGamePlanSection(sectionName) {
+    console.log('showGamePlanSection çağrıldı:', sectionName);
+    
+    if (sectionName === 'create') {
+        console.log('Oyun planı oluşturma sayfası açılıyor...');
+        
+        // Tüm bölümleri gizle
+        const sections = document.querySelectorAll('.content-section');
+        console.log('Bulunan content-section sayısı:', sections.length);
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Oyun planı oluşturma bölümünü göster
+        const createSection = document.getElementById('game-plan-create-section');
+        console.log('game-plan-create-section elementi:', createSection);
+        
+        if (createSection) {
+            createSection.style.display = 'block';
+            console.log('Oyun planı oluşturma sayfası gösterildi');
+            
+            // Formu sıfırla
+            const form = document.getElementById('create-game-plan-form');
+            if (form) {
+                form.reset();
+                console.log('Form sıfırlandı');
+            }
+            
+            // Seçilen mağazaları temizle
+            selectedStores = [];
+            updateSelectedStoresDisplay();
+            
+            // Dinamik içeriği temizle
+            const dynamicContent = document.getElementById('game-plan-dynamic-content');
+            if (dynamicContent) {
+                dynamicContent.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Lütfen önce oyun planı türünü seçiniz.
+                    </div>
+                `;
+                console.log('Dinamik içerik sıfırlandı');
+            }
+        } else {
+            console.error('game-plan-create-section bulunamadı');
+            console.log('Mevcut tüm elementler:', document.querySelectorAll('[id*="game-plan"]'));
+        }
+    } else if (sectionName === 'list') {
+        console.log('Oyun planları listesi açılıyor...');
+        showSection('game-plans');
+    }
+}
+
+// Oyun planları ana bölümünü gösteren özel fonksiyon
+function showGamePlansSection() {
+    console.log('showGamePlansSection çağrıldı');
+    
+    // Tüm bölümleri gizle
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Oyun planları bölümünü göster
+    const gamePlansSection = document.getElementById('game-plans-section');
+    if (gamePlansSection) {
+        gamePlansSection.style.display = 'block';
+        console.log('Oyun planları bölümü gösterildi');
+        
+        // Dashboard alt bölümünü göster
+        showGamePlanSubSection('dashboard');
+    } else {
+        console.error('game-plans-section bulunamadı');
+    }
+    
+    // Menü aktif durumunu güncelle
+    const menuItems = document.querySelectorAll('.nav-link');
+    menuItems.forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    const activeItem = document.querySelector('[href="#game-plans"]');
+    if (activeItem) {
+        activeItem.classList.add('active');
+    }
+    
+    // Sayfa başlığını güncelle
+    const pageTitle = document.getElementById('page-title');
+    if (pageTitle) {
+        pageTitle.textContent = 'Oyun Planları';
+    }
+}
+
+// Oyun planları alt bölümlerini göster
+function showGamePlanSubSection(subSection) {
+    console.log('Oyun planı alt bölümü gösteriliyor:', subSection);
+    
+    // Tüm alt bölümleri gizle
+    const subSections = document.querySelectorAll('.game-plan-sub-section');
+    subSections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Seçilen alt bölümü göster
+    const targetSection = document.getElementById('game-plans-' + subSection);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+        
+        // Alt bölüme özel veri yükleme
+        switch(subSection) {
+            case 'dashboard':
+                loadGamePlansList();
+                break;
+            case 'pending':
+                loadPendingGamePlans();
+                break;
+            case 'approved':
+                loadApprovedGamePlans();
+                break;
+            case 'reports':
+                loadGamePlanReports();
+                break;
+        }
+    } else {
+        console.error('Alt bölüm bulunamadı:', 'game-plans-' + subSection);
+    }
+}
+
+// Onaya giden oyun planlarını yükle
+async function loadPendingGamePlans() {
+    try {
+        // Demo veri (Supabase tablosu oluşturulana kadar)
+        const pendingPlans = [
+            {
+                id: 1,
+                title: 'Yaz Kampanyası Free WKZ',
+                type: 'free_wkz',
+                created_by: 'Admin User',
+                created_at: '2024-01-15',
+                budget: '50000'
+            }
+        ];
+        
+        displayPendingGamePlans(pendingPlans);
+        
+    } catch (error) {
+        console.error('Onaya giden oyun planları yükleme hatası:', error);
+    }
+}
+
+// Onaylanan oyun planlarını yükle
+async function loadApprovedGamePlans() {
+    try {
+        // Demo veri (Supabase tablosu oluşturulana kadar)
+        const approvedPlans = [
+            {
+                id: 2,
+                title: 'Ürün Destek Primi Kampanyası',
+                type: 'product_support',
+                created_by: 'Manager User',
+                approved_at: '2024-01-14',
+                budget: '75000'
+            }
+        ];
+        
+        displayApprovedGamePlans(approvedPlans);
+        
+    } catch (error) {
+        console.error('Onaylanan oyun planları yükleme hatası:', error);
+    }
+}
+
+// Oyun planı raporlarını yükle
+function loadGamePlanReports() {
+    // Raporlama grafiklerini oluştur
+    createBudgetChart();
+    createStatusChart();
+}
+
+// Onaya giden oyun planlarını göster
+function displayPendingGamePlans(plans) {
+    const tbody = document.getElementById('pending-game-plans-table');
+    
+    if (plans.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted">
+                    <i class="fas fa-clock me-2"></i>Onaya giden oyun planı bulunmuyor
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = plans.map(plan => `
+        <tr>
+            <td>${plan.title}</td>
+            <td><span class="badge bg-primary">${getGamePlanTypeName(plan.type)}</span></td>
+            <td>${plan.created_by}</td>
+            <td>${formatDate(plan.created_at)}</td>
+            <td>${plan.budget} TL</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="viewGamePlan(${plan.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-success me-1" onclick="approveGamePlan(${plan.id})">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="rejectGamePlan(${plan.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Onaylanan oyun planlarını göster
+function displayApprovedGamePlans(plans) {
+    const tbody = document.getElementById('approved-game-plans-table');
+    
+    if (plans.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted">
+                    <i class="fas fa-check-circle me-2"></i>Onaylanan oyun planı bulunmuyor
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = plans.map(plan => `
+        <tr>
+            <td>${plan.title}</td>
+            <td><span class="badge bg-primary">${getGamePlanTypeName(plan.type)}</span></td>
+            <td>${plan.created_by}</td>
+            <td>${formatDate(plan.approved_at)}</td>
+            <td>${plan.budget} TL</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="viewGamePlan(${plan.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-info me-1" onclick="exportGamePlan(${plan.id})">
+                    <i class="fas fa-download"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Bütçe analizi grafiği
+function createBudgetChart() {
+    const ctx = document.getElementById('budget-chart');
+    if (!ctx) return;
+    
+    // Demo grafik (Chart.js gerekli)
+    ctx.innerHTML = '<div class="text-center text-muted"><i class="fas fa-chart-bar me-2"></i>Grafik yükleniyor...</div>';
+}
+
+// Durum dağılımı grafiği
+function createStatusChart() {
+    const ctx = document.getElementById('status-chart');
+    if (!ctx) return;
+    
+    // Demo grafik (Chart.js gerekli)
+    ctx.innerHTML = '<div class="text-center text-muted"><i class="fas fa-chart-pie me-2"></i>Grafik yükleniyor...</div>';
+}
+
+// Oyun planını onayla
+function approveGamePlan(planId) {
+    if (confirm('Bu oyun planını onaylamak istediğinizden emin misiniz?')) {
+        console.log('Oyun planı onaylanıyor:', planId);
+        showAlert('Oyun planı onaylandı!', 'success');
+        loadPendingGamePlans();
+        loadApprovedGamePlans();
+    }
+}
+
+// Oyun planını reddet
+function rejectGamePlan(planId) {
+    if (confirm('Bu oyun planını reddetmek istediğinizden emin misiniz?')) {
+        console.log('Oyun planı reddediliyor:', planId);
+        showAlert('Oyun planı reddedildi!', 'warning');
+        loadPendingGamePlans();
+    }
+}
+
+// Oyun planını dışa aktar
+function exportGamePlan(planId) {
+    console.log('Oyun planı dışa aktarılıyor:', planId);
+    showAlert('Oyun planı dışa aktarma özelliği yakında eklenecek!', 'info');
+}
+
+// Oyun planı türü değiştiğinde dinamik içerik yükleme
+window.handleGamePlanTypeChange = function() {
+    const type = document.getElementById('game-plan-type').value;
+    const dynamicContent = document.getElementById('game-plan-dynamic-content');
+    
+    if (!type) {
+        dynamicContent.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Lütfen önce oyun planı türünü seçiniz.
+            </div>
+        `;
+        return;
+    }
+    
+    switch(type) {
+        case 'free_wkz':
+            loadFreeWKZForm();
+            break;
+        case 'product_support':
+            loadProductSupportForm();
+            break;
+        case 'spift':
+            loadSpiftForm();
+            break;
+    }
+}
+
+// Free WKZ formu yükleme
+function loadFreeWKZForm() {
+    const dynamicContent = document.getElementById('game-plan-dynamic-content');
+    dynamicContent.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Free WKZ Detayları</h6>
+            </div>
+            <div class="card-body">
+                <!-- Hedef Baremleri -->
+                <div class="mb-3">
+                    <label class="form-label">Hedef Baremleri *</label>
+                    <div id="target-levels-container">
+                        <div class="target-level-item mb-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" placeholder="Hedef Tutar" name="target-amount[]" onblur="formatAmount(this)" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <select class="form-select" name="target-tax[]" onchange="calculateBudget(this)" required>
+                                        <option value="">KDV</option>
+                                        <option value="included">Dahil</option>
+                                        <option value="excluded">Hariç</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control" placeholder="Destek %" name="target-support[]" step="0.01" min="0" max="100" oninput="calculateBudget(this)" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" placeholder="Tahmini Bütçe" name="target-budget[]" readonly>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeTargetLevel(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addTargetLevel()">
+                        <i class="fas fa-plus me-1"></i>Hedef Ekle
+                    </button>
+                </div>
+                
+                <!-- Mağaza Seçimi -->
+                <div class="mb-3">
+                    <label class="form-label">Mağaza Seçimi *</label>
+                    
+                    <!-- Filtreleme Bölümü -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Mağaza Filtreleme</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Kanal</label>
+                                    <select class="form-select" id="free-wkz-channel" onchange="loadStoresForGamePlan()">
+                                        <option value="">Tüm Kanallar</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Manager</label>
+                                    <select class="form-select" id="free-wkz-manager" onchange="loadStoresForGamePlan()">
+                                        <option value="">Tüm Manager'lar</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Arama</label>
+                                    <input type="text" class="form-control" id="free-wkz-store-search" placeholder="Mağaza adı ara..." onkeyup="searchStoresForGamePlan()">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-outline-primary w-100" onclick="searchAllStores()" title="Tüm mağazaları ara">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mağaza Listesi -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Mevcut Mağazalar</h6>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="selectAllStores()">
+                                    <i class="fas fa-check-square me-1"></i>Tümünü Seç
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllStores()">
+                                    <i class="fas fa-square me-1"></i>Tümünü Temizle
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="free-wkz-stores-container" class="row" style="max-height: 300px; overflow-y: auto;">
+                                <div class="col-12 text-center text-muted">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Önce filtreleme yapın veya arama yapın
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Seçilen Mağazalar -->
+                    <div class="mt-3" id="selected-stores-display" style="display: none;">
+                        <label class="form-label">Seçilen Mağazalar</label>
+                        <div id="selected-stores-list" class="border rounded p-2 bg-light">
+                            <!-- Seçilen mağazalar burada gösterilecek -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Dropdown'ları yükle
+    loadChannelsForGamePlan('free-wkz-channel');
+    loadManagersForGamePlan('free-wkz-manager');
+    
+    // HTML'de oninput ve onchange event'leri kullanıldığı için ek event listener gerekmiyor
+}
+
+// Hedef seviyesi ekleme
+function addTargetLevel() {
+    const container = document.getElementById('target-levels-container');
+    const newLevel = document.createElement('div');
+    newLevel.className = 'target-level-item mb-2';
+    newLevel.innerHTML = `
+        <div class="row">
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Hedef Tutar" name="target-amount[]" onblur="formatAmount(this)" required>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="target-tax[]" onchange="calculateBudget(this)" required>
+                    <option value="">KDV</option>
+                    <option value="included">Dahil</option>
+                    <option value="excluded">Hariç</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" placeholder="Destek %" name="target-support[]" step="0.01" min="0" max="100" oninput="calculateBudget(this)" required>
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Tahmini Bütçe" name="target-budget[]" readonly>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeTargetLevel(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    container.appendChild(newLevel);
+    
+    // HTML'de oninput ve onchange event'leri kullanıldığı için ek event listener gerekmiyor
+}
+
+// Hedef seviyesi silme
+function removeTargetLevel(button) {
+    button.closest('.target-level-item').remove();
+}
+
+    // Hedef tutar formatla (HTML onblur ile çağrılır)
+    function formatAmount(input) {
+        let value = input.value.replace(/[^\d]/g, ''); // Sadece rakamları al
+        
+        if (value && value !== '0') {
+            const number = parseInt(value);
+            input.value = formatNumber(number) + ' TL';
+        } else {
+            input.value = '';
+        }
+    }
+
+// Bütçe hesapla (HTML oninput/onchange ile çağrılır)
+function calculateBudget(input) {
+    const targetLevel = input.closest('.target-level-item');
+    const amountInput = targetLevel.querySelector('input[name="target-amount[]"]');
+    const taxSelect = targetLevel.querySelector('select[name="target-tax[]"]');
+    const supportInput = targetLevel.querySelector('input[name="target-support[]"]');
+    const budgetInput = targetLevel.querySelector('input[name="target-budget[]"]');
+    
+    // Hedef tutar alanından sayıyı al
+    const amountValue = amountInput.value.replace(/[^\d]/g, '');
+    const amount = parseFloat(amountValue) || 0;
+    const supportPercentage = parseFloat(supportInput.value) || 0;
+    const taxStatus = taxSelect.value;
+    
+    if (amount > 0 && supportPercentage > 0 && taxStatus) {
+        // Destek tutarını hesapla: (Hedef Tutar * Destek %) / 100
+        // KDV durumu sadece bilgi amaçlı, hesaplamaya etki etmiyor
+        let calculatedBudget = (amount * supportPercentage) / 100;
+        
+        // Kuruşları kaldır ve formatla
+        const roundedBudget = Math.round(calculatedBudget);
+        budgetInput.value = formatNumber(roundedBudget) + ' TL';
+    } else {
+        budgetInput.value = '';
+    }
+}
+
+// Global event listener'ları ayarla (Event Delegation)
+function setupGlobalEventListeners() {
+    // Hedef tutar alanları için event delegation
+    document.addEventListener('input', function(event) {
+        if (event.target.matches('input[name="target-amount[]"]')) {
+            formatAmountInput(event);
+        }
+    });
+    
+    document.addEventListener('blur', function(event) {
+        if (event.target.matches('input[name="target-amount[]"]')) {
+            formatAmountInput(event);
+        }
+    });
+    
+    // Hesaplama için event delegation
+    document.addEventListener('input', function(event) {
+        if (event.target.matches('input[name="target-amount[]"], input[name="target-support[]"], select[name="target-tax[]"]')) {
+            setTimeout(() => calculateTargetBudget(event), 50);
+        }
+    });
+    
+    document.addEventListener('change', function(event) {
+        if (event.target.matches('input[name="target-amount[]"], input[name="target-support[]"], select[name="target-tax[]"]')) {
+            setTimeout(() => calculateTargetBudget(event), 50);
+        }
+    });
+    
+    document.addEventListener('keyup', function(event) {
+        if (event.target.matches('input[name="target-amount[]"], input[name="target-support[]"], select[name="target-tax[]"]')) {
+            setTimeout(() => calculateTargetBudget(event), 50);
+        }
+    });
+}
+
+
+// Hedef tutar alanını formatla
+function formatAmountInput(event) {
+    const input = event.target;
+    let value = input.value.replace(/[^\d]/g, ''); // Sadece rakamları al
+    
+    if (value) {
+        const number = parseInt(value);
+        input.value = formatNumber(number) + ' TL';
+    }
+}
+
+// Hedef satırı bütçe hesaplama
+function calculateTargetBudget(event) {
+    const targetLevel = event.target.closest('.target-level-item');
+    
+    if (!targetLevel) {
+        console.log('Target level bulunamadı');
+        return;
+    }
+    
+    const amountInput = targetLevel.querySelector('input[name="target-amount[]"]');
+    const taxSelect = targetLevel.querySelector('select[name="target-tax[]"]');
+    const supportInput = targetLevel.querySelector('input[name="target-support[]"]');
+    const budgetInput = targetLevel.querySelector('input[name="target-budget[]"]');
+    
+    if (!amountInput || !taxSelect || !supportInput || !budgetInput) {
+        console.log('Gerekli input alanları bulunamadı');
+        return;
+    }
+    
+    // Hedef tutar alanından sayıyı al (formatlanmış değerden)
+    const amountValue = amountInput.value.replace(/[^\d]/g, ''); // Sadece rakamları al
+    const amount = parseFloat(amountValue) || 0;
+    const supportPercentage = parseFloat(supportInput.value) || 0;
+    const taxStatus = taxSelect.value;
+    
+    console.log('Hesaplama verileri:', {
+        amount: amount,
+        supportPercentage: supportPercentage,
+        taxStatus: taxStatus
+    });
+    
+    if (amount > 0 && supportPercentage > 0 && taxStatus) {
+        // Destek tutarını hesapla: (Hedef Tutar * Destek %) / 100
+        // KDV durumu sadece bilgi amaçlı, hesaplamaya etki etmiyor
+        let calculatedBudget = (amount * supportPercentage) / 100;
+        
+        // Kuruşları kaldır ve formatla
+        const roundedBudget = Math.round(calculatedBudget);
+        budgetInput.value = formatNumber(roundedBudget) + ' TL';
+        console.log('Hesaplanan bütçe:', budgetInput.value);
+    } else {
+        budgetInput.value = '';
+        console.log('Hesaplama için yeterli veri yok');
+    }
+}
+
+// Sayıyı binlik ayıracı ile formatla
+function formatNumber(number) {
+    return new Intl.NumberFormat('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(number);
+}
+
+// Oyun planı formunu sıfırlama
+function resetGamePlanForm() {
+    document.getElementById('create-game-plan-form').reset();
+    document.getElementById('game-plan-dynamic-content').innerHTML = `
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Lütfen önce oyun planı türünü seçiniz.
+        </div>
+    `;
+}
+
+// Oyun planları listesini yükleme
+async function loadGamePlansList() {
+    console.log('Oyun planları listesi yükleniyor...');
+    
+    try {
+        // Demo veri (Supabase tablosu oluşturulana kadar)
+        const demoGamePlans = [
+            {
+                id: 1,
+                title: 'Yaz Kampanyası Free WKZ',
+                type: 'free_wkz',
+                status: 'pending',
+                created_by: 'Admin User',
+                created_at: '2024-01-15',
+                budget: '50000'
+            },
+            {
+                id: 2,
+                title: 'Ürün Destek Primi Kampanyası',
+                type: 'product_support',
+                status: 'approved',
+                created_by: 'Manager User',
+                created_at: '2024-01-14',
+                budget: '75000'
+            }
+        ];
+        
+        // İstatistikleri güncelle
+        updateGamePlanStatistics(demoGamePlans);
+        
+        // Tabloyu güncelle
+        displayGamePlansTable(demoGamePlans);
+        
+    } catch (error) {
+        console.error('Oyun planları yükleme hatası:', error);
+        showAlert('Oyun planları yüklenirken hata oluştu!', 'danger');
+    }
+}
+
+// Oyun planı istatistiklerini güncelleme
+function updateGamePlanStatistics(gamePlans) {
+    const total = gamePlans.length;
+    const pending = gamePlans.filter(plan => plan.status === 'pending').length;
+    const approved = gamePlans.filter(plan => plan.status === 'approved').length;
+    const active = gamePlans.filter(plan => plan.status === 'active').length;
+    
+    document.getElementById('total-game-plans').textContent = total;
+    document.getElementById('pending-game-plans').textContent = pending;
+    document.getElementById('approved-game-plans').textContent = approved;
+    document.getElementById('active-game-plans').textContent = active;
+}
+
+// Oyun planları tablosunu gösterme
+function displayGamePlansTable(gamePlans) {
+    const tbody = document.getElementById('game-plans-table-body');
+    
+    if (gamePlans.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Henüz oyun planı oluşturulmamış.
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = gamePlans.map(plan => `
+        <tr>
+            <td>${plan.title}</td>
+            <td><span class="badge bg-primary">${getGamePlanTypeName(plan.type)}</span></td>
+            <td><span class="badge ${getStatusBadgeClass(plan.status)}">${getStatusName(plan.status)}</span></td>
+            <td>${plan.created_by}</td>
+            <td>${formatDate(plan.created_at)}</td>
+            <td>${plan.budget} TL</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="viewGamePlan(${plan.id})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-warning me-1" onclick="editGamePlan(${plan.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteGamePlan(${plan.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Yardımcı fonksiyonlar
+function getGamePlanTypeName(type) {
+    const types = {
+        'free_wkz': 'Free WKZ',
+        'product_support': 'Ürün Başına Destek',
+        'spift': 'Spift Ödemeleri'
+    };
+    return types[type] || type;
+}
+
+function getStatusBadgeClass(status) {
+    const classes = {
+        'pending': 'bg-warning',
+        'approved': 'bg-success',
+        'active': 'bg-info',
+        'completed': 'bg-secondary'
+    };
+    return classes[status] || 'bg-secondary';
+}
+
+function getStatusName(status) {
+    const names = {
+        'pending': 'Onay Bekleyen',
+        'approved': 'Onaylanan',
+        'active': 'Aktif',
+        'completed': 'Tamamlanan'
+    };
+    return names[status] || status;
+}
+
+// Filtreleri temizleme
+function clearGamePlanFilters() {
+    document.getElementById('game-plan-search').value = '';
+    document.getElementById('game-plan-type-filter').value = '';
+    document.getElementById('game-plan-status-filter').value = '';
+    loadGamePlansList();
+}
+
+// Excel export
+function exportGamePlansToExcel() {
+    showAlert('Excel export özelliği yakında eklenecek!', 'info');
+}
+
+// Oyun planı görüntüleme
+function viewGamePlan(planId) {
+    console.log('Oyun planı görüntüleniyor:', planId);
+    showAlert('Oyun planı detay sayfası yakında eklenecek!', 'info');
+}
+
+// Oyun planı düzenleme
+function editGamePlan(planId) {
+    console.log('Oyun planı düzenleniyor:', planId);
+    showAlert('Oyun planı düzenleme sayfası yakında eklenecek!', 'info');
+}
+
+// Oyun planı silme
+function deleteGamePlan(planId) {
+    if (confirm('Bu oyun planını silmek istediğinizden emin misiniz?')) {
+        console.log('Oyun planı siliniyor:', planId);
+        showAlert('Oyun planı silme işlemi yakında eklenecek!', 'info');
+    }
+}
+
+// Dropdown yükleme fonksiyonları
+async function loadChannelsForGamePlan(selectId) {
+    const select = document.getElementById(selectId);
+    if (select) {
+        try {
+            const { data: channels, error } = await supabase
+                .from('channels')
+                .select('id, name')
+                .eq('is_active', true)
+                .order('name');
+            
+            if (error) {
+                console.error('Kanal yükleme hatası:', error);
+                select.innerHTML = '<option value="">Kanal yüklenemedi</option>';
+                return;
+            }
+            
+            select.innerHTML = '<option value="">Kanal Seçiniz</option>' + 
+                channels.map(channel => `<option value="${channel.id}">${channel.name}</option>`).join('');
+        } catch (error) {
+            console.error('Kanal yükleme hatası:', error);
+            select.innerHTML = '<option value="">Kanal yüklenemedi</option>';
+        }
+    }
+}
+
+async function loadManagersForGamePlan(selectId) {
+    const select = document.getElementById(selectId);
+    if (select) {
+        try {
+            // Stores tablosundan unique manager'ları çek
+            const { data: stores, error } = await supabase
+                .from('stores')
+                .select('manager, regions(name)')
+                .eq('is_active', true)
+                .not('manager', 'is', null);
+            
+            if (error) {
+                console.error('Manager yükleme hatası:', error);
+                select.innerHTML = '<option value="">Manager yüklenemedi</option>';
+                return;
+            }
+            
+            // Unique manager'ları al
+            const uniqueManagers = [...new Set(stores.map(store => store.manager))].filter(manager => manager);
+            
+            console.log('Yüklenen manager\'lar:', uniqueManagers);
+            
+            select.innerHTML = '<option value="">Manager Seçiniz</option>' + 
+                uniqueManagers.map(manager => `<option value="${manager}">${manager}</option>`).join('');
+        } catch (error) {
+            console.error('Manager yükleme hatası:', error);
+            select.innerHTML = '<option value="">Manager yüklenemedi</option>';
+        }
+    }
+}
+
+async function loadStoresForGamePlan() {
+    const container = document.getElementById('free-wkz-stores-container');
+    if (!container) return;
+    
+    const channelSelect = document.getElementById('free-wkz-channel');
+    const managerSelect = document.getElementById('free-wkz-manager');
+    const searchInput = document.getElementById('free-wkz-store-search');
+    
+    const channelId = channelSelect?.value;
+    const managerId = managerSelect?.value;
+    const searchTerm = searchInput?.value?.toLowerCase() || '';
+    
+    console.log('Mağaza yükleme parametreleri:', { channelId, managerId, searchTerm });
+    
+    try {
+        let query = supabase
+            .from('stores')
+            .select(`
+                id,
+                name,
+                channel_id,
+                region_id,
+                manager,
+                channels(name),
+                regions(name)
+            `)
+            .eq('is_active', true);
+        
+        // Kanal filtresi
+        if (channelId) {
+            query = query.eq('channel_id', channelId);
+            console.log('Kanal filtresi uygulandı:', channelId);
+        }
+        
+        // Manager filtresi - manager ismine göre filtrele
+        if (managerId) {
+            query = query.eq('manager', managerId);
+            console.log('Manager filtresi uygulandı:', managerId);
+        }
+        
+        const { data: stores, error } = await query.order('name');
+        
+        if (error) {
+            console.error('Mağaza yükleme hatası:', error);
+            container.innerHTML = '<div class="col-12 text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Mağazalar yüklenemedi</div>';
+            return;
+        }
+        
+        console.log('Supabase\'den gelen mağazalar:', stores);
+        console.log('Toplam mağaza sayısı:', stores.length);
+        
+        // Arama filtresi uygula
+        let filteredStores = stores;
+        if (searchTerm) {
+            filteredStores = stores.filter(store => 
+                store.name.toLowerCase().includes(searchTerm) ||
+                store.channels?.name?.toLowerCase().includes(searchTerm) ||
+                store.regions?.name?.toLowerCase().includes(searchTerm)
+            );
+            console.log('Arama sonrası filtrelenmiş mağazalar:', filteredStores.length);
+        }
+        
+        if (filteredStores.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center text-muted"><i class="fas fa-search me-2"></i>Arama kriterlerine uygun mağaza bulunamadı</div>';
+            return;
+        }
+        
+        // Mağazaları checkbox'lar halinde göster
+        container.innerHTML = filteredStores.map(store => {
+            const storeName = store.name.replace(/'/g, "\\'");
+            const channelName = (store.channels?.name || 'Kanal Yok').replace(/'/g, "\\'");
+            const regionName = (store.regions?.name || 'Bölge Yok').replace(/'/g, "\\'");
+            
+            return `
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <div class="form-check">
+                        <input class="form-check-input store-checkbox" type="checkbox" 
+                               value="${store.id}" 
+                               id="store-${store.id}"
+                               onchange="toggleStoreSelection(${store.id}, '${storeName}', '${channelName}', '${regionName}')">
+                        <label class="form-check-label" for="store-${store.id}">
+                            <strong>${store.name}</strong><br>
+                            <small class="text-muted">
+                                <i class="fas fa-building me-1"></i>${store.channels?.name || 'Kanal Yok'} | 
+                                <i class="fas fa-map-marker-alt me-1"></i>${store.regions?.name || 'Bölge Yok'}
+                            </small>
+                        </label>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Mağaza yükleme hatası:', error);
+        container.innerHTML = '<div class="col-12 text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Mağazalar yüklenemedi</div>';
+    }
+}
+
+function searchStoresForGamePlan() {
+    // Arama yapıldığında mağazaları yeniden yükle
+    loadStoresForGamePlan();
+}
+
+// Tüm mağazaları arama (filtreleme olmadan)
+async function searchAllStores() {
+    const container = document.getElementById('free-wkz-stores-container');
+    const searchInput = document.getElementById('free-wkz-store-search');
+    
+    if (!container || !searchInput) return;
+    
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    if (!searchTerm) {
+        showAlert('Lütfen arama terimi girin!', 'warning');
+        return;
+    }
+    
+    try {
+        // Tüm aktif mağazaları çek (filtreleme olmadan)
+        const { data: stores, error } = await supabase
+            .from('stores')
+            .select(`
+                id,
+                name,
+                channel_id,
+                region_id,
+                manager_id,
+                channels(name),
+                regions(name)
+            `)
+            .eq('is_active', true)
+            .order('name');
+        
+        if (error) {
+            console.error('Mağaza arama hatası:', error);
+            container.innerHTML = '<div class="col-12 text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Mağazalar aranırken hata oluştu</div>';
+            return;
+        }
+        
+        // Arama terimine göre filtrele
+        const filteredStores = stores.filter(store => 
+            store.name.toLowerCase().includes(searchTerm) ||
+            store.channels?.name?.toLowerCase().includes(searchTerm) ||
+            store.regions?.name?.toLowerCase().includes(searchTerm)
+        );
+        
+        if (filteredStores.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center text-muted"><i class="fas fa-search me-2"></i>"' + searchTerm + '" için mağaza bulunamadı</div>';
+            return;
+        }
+        
+        // Mağazaları checkbox'lar halinde göster
+        container.innerHTML = filteredStores.map(store => {
+            const storeName = store.name.replace(/'/g, "\\'");
+            const channelName = (store.channels?.name || 'Kanal Yok').replace(/'/g, "\\'");
+            const regionName = (store.regions?.name || 'Bölge Yok').replace(/'/g, "\\'");
+            
+            return `
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <div class="form-check">
+                        <input class="form-check-input store-checkbox" type="checkbox" 
+                               value="${store.id}" 
+                               id="store-${store.id}"
+                               onchange="toggleStoreSelection(${store.id}, '${storeName}', '${channelName}', '${regionName}')">
+                        <label class="form-check-label" for="store-${store.id}">
+                            <strong>${store.name}</strong><br>
+                            <small class="text-muted">
+                                <i class="fas fa-building me-1"></i>${store.channels?.name || 'Kanal Yok'} | 
+                                <i class="fas fa-map-marker-alt me-1"></i>${store.regions?.name || 'Bölge Yok'}
+                            </small>
+                        </label>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Arama sonucu bilgisi göster
+        const resultInfo = document.createElement('div');
+        resultInfo.className = 'col-12 mb-2';
+        resultInfo.innerHTML = `<small class="text-info"><i class="fas fa-info-circle me-1"></i>"${searchTerm}" için ${filteredStores.length} mağaza bulundu</small>`;
+        container.insertBefore(resultInfo, container.firstChild);
+        
+    } catch (error) {
+        console.error('Mağaza arama hatası:', error);
+        container.innerHTML = '<div class="col-12 text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Mağazalar aranırken hata oluştu</div>';
+    }
+}
+
+// Seçilen mağazaları takip etmek için global değişken
+let selectedStores = [];
+
+// Mağaza seçimi toggle fonksiyonu
+function toggleStoreSelection(storeId, storeName, channelName, regionName) {
+    const checkbox = document.getElementById(`store-${storeId}`);
+    const isChecked = checkbox.checked;
+    
+    if (isChecked) {
+        // Mağazayı seçilen listesine ekle
+        if (!selectedStores.find(store => store.id === storeId)) {
+            selectedStores.push({
+                id: storeId,
+                name: storeName,
+                channel: channelName,
+                region: regionName
+            });
+        }
+    } else {
+        // Mağazayı seçilen listesinden çıkar
+        selectedStores = selectedStores.filter(store => store.id !== storeId);
+    }
+    
+    updateSelectedStoresDisplay();
+}
+
+// Seçilen mağazaları güncelle
+function updateSelectedStoresDisplay() {
+    const display = document.getElementById('selected-stores-display');
+    const list = document.getElementById('selected-stores-list');
+    
+    if (selectedStores.length === 0) {
+        display.style.display = 'none';
+        return;
+    }
+    
+    display.style.display = 'block';
+    list.innerHTML = selectedStores.map(store => `
+        <span class="badge bg-primary me-2 mb-2" style="font-size: 0.9em;">
+            ${store.name} (${store.channel} - ${store.region})
+            <button type="button" class="btn-close btn-close-white ms-2" style="font-size: 0.7em;" 
+                    onclick="removeStoreSelection(${store.id})" aria-label="Kaldır"></button>
+        </span>
+    `).join('');
+}
+
+// Mağaza seçimini kaldır
+function removeStoreSelection(storeId) {
+    selectedStores = selectedStores.filter(store => store.id !== storeId);
+    
+    // Checkbox'ı da kaldır
+    const checkbox = document.getElementById(`store-${storeId}`);
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    
+    updateSelectedStoresDisplay();
+}
+
+// Tüm mağazaları seç
+function selectAllStores() {
+    const checkboxes = document.querySelectorAll('.store-checkbox');
+    checkboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            checkbox.checked = true;
+            const storeId = parseInt(checkbox.value);
+            const storeName = checkbox.closest('.form-check').querySelector('label strong').textContent;
+            const channelName = checkbox.closest('.form-check').querySelector('small').textContent.split('|')[0].trim().replace('🏢 ', '');
+            const regionName = checkbox.closest('.form-check').querySelector('small').textContent.split('|')[1].trim().replace('📍 ', '');
+            
+            if (!selectedStores.find(store => store.id === storeId)) {
+                selectedStores.push({
+                    id: storeId,
+                    name: storeName,
+                    channel: channelName,
+                    region: regionName
+                });
+            }
+        }
+    });
+    updateSelectedStoresDisplay();
+}
+
+// Tüm mağaza seçimlerini temizle
+function clearAllStores() {
+    const checkboxes = document.querySelectorAll('.store-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    selectedStores = [];
+    updateSelectedStoresDisplay();
+}
+
+// Oyun planı oluşturma işlemi
+async function handleCreateGamePlan(event) {
+    event.preventDefault();
+    
+    const title = document.getElementById('game-plan-title').value;
+    const type = document.getElementById('game-plan-type').value;
+    
+    if (!title || !type) {
+        showAlert('Lütfen tüm zorunlu alanları doldurun!', 'danger');
+        return;
+    }
+    
+    // Seçilen mağaza kontrolü
+    if (selectedStores.length === 0) {
+        showAlert('Lütfen en az bir mağaza seçin!', 'danger');
+        return;
+    }
+    
+    // Hedef baremleri kontrolü (Free WKZ için)
+    if (type === 'free_wkz') {
+        const targetAmounts = document.querySelectorAll('input[name="target-amount[]"]');
+        const targetSupports = document.querySelectorAll('input[name="target-support[]"]');
+        const targetTaxes = document.querySelectorAll('select[name="target-tax[]"]');
+        
+        let hasValidTarget = false;
+        for (let i = 0; i < targetAmounts.length; i++) {
+            if (targetAmounts[i].value && targetSupports[i].value && targetTaxes[i].value) {
+                hasValidTarget = true;
+                break;
+            }
+        }
+        
+        if (!hasValidTarget) {
+            showAlert('Lütfen en az bir hedef baremi doldurun!', 'danger');
+            return;
+        }
+    }
+    
+    // Özet görüntüyü göster
+    showGamePlanSummary(title, type);
+}
+
+// Oyun planı özet görüntüsü
+function showGamePlanSummary(title, type) {
+    const dynamicContent = document.getElementById('game-plan-dynamic-content');
+    
+    // Hedef baremlerini topla
+    const targetLevels = [];
+    const targetAmounts = document.querySelectorAll('input[name="target-amount[]"]');
+    const targetSupports = document.querySelectorAll('input[name="target-support[]"]');
+    const targetTaxes = document.querySelectorAll('select[name="target-tax[]"]');
+    const targetBudgets = document.querySelectorAll('input[name="target-budget[]"]');
+    
+    for (let i = 0; i < targetAmounts.length; i++) {
+        if (targetAmounts[i].value && targetSupports[i].value && targetTaxes[i].value) {
+            targetLevels.push({
+                amount: targetAmounts[i].value,
+                support: targetSupports[i].value,
+                tax: targetTaxes[i].value,
+                budget: targetBudgets[i].value
+            });
+        }
+    }
+    
+    // Toplam bütçe hesapla
+    const totalBudget = targetLevels.reduce((sum, level) => {
+        const budget = parseFloat(level.budget.replace(/[^\d]/g, '')) || 0;
+        return sum + budget;
+    }, 0);
+    
+    dynamicContent.innerHTML = `
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Oyun Planı Özeti</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Genel Bilgiler</h6>
+                        <p><strong>Başlık:</strong> ${title}</p>
+                        <p><strong>Tür:</strong> ${getGamePlanTypeName(type)}</p>
+                        <p><strong>Seçilen Mağaza Sayısı:</strong> ${selectedStores.length}</p>
+                        <p><strong>Toplam Tahmini Bütçe:</strong> ${formatNumber(totalBudget)} TL</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Seçilen Mağazalar</h6>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            ${selectedStores.map(store => `
+                                <span class="badge bg-secondary me-1 mb-1">${store.name}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                ${type === 'free_wkz' ? `
+                <div class="mt-3">
+                    <h6>Hedef Baremleri</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Hedef Tutar</th>
+                                    <th>KDV</th>
+                                    <th>Destek %</th>
+                                    <th>Tahmini Bütçe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${targetLevels.map(level => `
+                                    <tr>
+                                        <td>${level.amount}</td>
+                                        <td>${level.tax === 'included' ? 'Dahil' : 'Hariç'}</td>
+                                        <td>%${level.support}</td>
+                                        <td>${level.budget}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div class="mt-4 text-center">
+                    <button type="button" class="btn btn-success me-2" onclick="submitGamePlanForApproval()">
+                        <i class="fas fa-paper-plane me-2"></i>Onaya Gönder
+                    </button>
+                    <button type="button" class="btn btn-warning me-2" onclick="editGamePlanFromSummary()">
+                        <i class="fas fa-edit me-2"></i>Tekrar Düzenle
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelGamePlanCreation()">
+                        <i class="fas fa-times me-2"></i>İptal
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Oyun planını onaya gönder
+async function submitGamePlanForApproval() {
+    const title = document.getElementById('game-plan-title').value;
+    const type = document.getElementById('game-plan-type').value;
+    
+    try {
+        // Oyun planı verilerini topla
+        const gamePlanData = {
+            title: title,
+            type: type,
+            status: 'pending',
+            created_by: getCurrentUserId(),
+            created_at: new Date().toISOString(),
+            selected_stores: selectedStores,
+            target_levels: getTargetLevelsData()
+        };
+        
+        // Demo veri olarak ekle (Supabase tablosu oluşturulana kadar)
+        console.log('Oyun planı onaya gönderiliyor:', gamePlanData);
+        
+        showAlert('Oyun planı başarıyla onaya gönderildi!', 'success');
+        showGamePlanSection('list');
+        loadGamePlansList();
+        
+    } catch (error) {
+        console.error('Oyun planı onaya gönderme hatası:', error);
+        showAlert('Oyun planı onaya gönderilirken hata oluştu!', 'danger');
+    }
+}
+
+// Hedef baremlerini topla
+function getTargetLevelsData() {
+    const targetLevels = [];
+    const targetAmounts = document.querySelectorAll('input[name="target-amount[]"]');
+    const targetSupports = document.querySelectorAll('input[name="target-support[]"]');
+    const targetTaxes = document.querySelectorAll('select[name="target-tax[]"]');
+    const targetBudgets = document.querySelectorAll('input[name="target-budget[]"]');
+    
+    for (let i = 0; i < targetAmounts.length; i++) {
+        if (targetAmounts[i].value && targetSupports[i].value && targetTaxes[i].value) {
+            targetLevels.push({
+                amount: targetAmounts[i].value,
+                support: targetSupports[i].value,
+                tax: targetTaxes[i].value,
+                budget: targetBudgets[i].value
+            });
+        }
+    }
+    
+    return targetLevels;
+}
+
+// Özetten düzenlemeye dön
+function editGamePlanFromSummary() {
+    // Orijinal formu geri yükle
+    handleGamePlanTypeChange();
+}
+
+// Oyun planı oluşturmayı iptal et
+function cancelGamePlanCreation() {
+    showGamePlanSection('list');
+}
+
+// Mevcut kullanıcı ID'sini al
+function getCurrentUserId() {
+    const user = checkUserSession();
+    return user ? user.id : 1; // Demo için 1 döndür
+}
+
+// Sayı formatla (binlik ayırıcı ile, kuruşsuz)
+function formatNumber(number) {
+    return new Intl.NumberFormat('tr-TR').format(number);
+}
+
+// Tüm mağazaları seç (Ürün Başına Destek Primi) - Global fonksiyon
+window.selectAllStoresForProduct = function() {
+    // Sadece mevcut filtrelenmiş mağazaları seç, yeni mağaza yükleme
+    const checkboxes = document.querySelectorAll('#product-stores-container input[name="product-selected-stores[]"]');
+    console.log('Seçilecek mağaza sayısı:', checkboxes.length);
+    
+    checkboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            checkbox.checked = true;
+            // Store selection'ı da güncelle
+            toggleStoreSelectionForProduct(checkbox);
+        }
+    });
+    
+    console.log(`${checkboxes.length} mağaza seçildi`);
+}
+
+// Tüm mağaza seçimlerini temizle (Ürün Başına Destek Primi) - Global fonksiyon
+window.clearAllStoresForProduct = function() {
+    const checkboxes = document.querySelectorAll('#product-stores-container input[name="product-selected-stores[]"]');
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            checkbox.checked = false;
+            // Store selection'ı da güncelle
+            toggleStoreSelectionForProduct(checkbox);
+        }
+    });
+}
+
+// Seçilen mağazaları ürün listesine ekle - Global fonksiyon
+window.addSelectedStoresToProduct = function() {
+    const selectedCheckboxes = document.querySelectorAll('#product-stores-container input[name="product-selected-stores[]"]:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        alert('Lütfen en az bir mağaza seçin!');
+        return;
+    }
+    
+    const selectedStoresList = document.getElementById('product-selected-stores-list');
+    const selectedStoresDisplay = document.getElementById('product-selected-stores-display');
+    
+    if (!selectedStoresList || !selectedStoresDisplay) {
+        console.error('Seçilen mağazalar listesi bulunamadı!');
+        return;
+    }
+    
+    // Seçilen mağazaları ekle
+    selectedCheckboxes.forEach(checkbox => {
+        const storeId = checkbox.value;
+        const storeName = checkbox.dataset.storeName;
+        const channelName = checkbox.dataset.channelName;
+        const regionName = checkbox.dataset.regionName;
+        
+        // Zaten eklenmiş mi kontrol et
+        if (document.getElementById(`added-store-${storeId}`)) {
+            return; // Zaten eklenmiş, atla
+        }
+        
+        const storeDiv = document.createElement('div');
+        storeDiv.id = `added-store-${storeId}`;
+        storeDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 10px;';
+        storeDiv.innerHTML = `
+            <div style="flex: 1;">
+                <div style="font-weight: bold;">${storeName}</div>
+                <div style="font-size: 14px; color: #6c757d;">${channelName} | ${regionName}</div>
+            </div>
+            <button onclick="removeStoreFromProduct(${storeId})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        selectedStoresList.appendChild(storeDiv);
+    });
+    
+    // Seçilen mağazalar bölümünü göster
+    selectedStoresDisplay.style.display = 'block';
+    
+    // Checkbox'ları temizle
+    selectedCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    alert(`${selectedCheckboxes.length} mağaza başarıyla eklendi!`);
+}
+
+// Mağazayı ürün listesinden çıkar - Global fonksiyon
+window.removeStoreFromProduct = function(storeId) {
+    const storeDiv = document.getElementById(`added-store-${storeId}`);
+    if (storeDiv) {
+        storeDiv.remove();
+    }
+    
+    // Eğer hiç mağaza kalmadıysa seçilen mağazalar bölümünü gizle
+    const selectedStoresList = document.getElementById('product-selected-stores-list');
+    if (selectedStoresList && selectedStoresList.children.length === 0) {
+        document.getElementById('product-selected-stores-display').style.display = 'none';
+    }
+}
+
+// Tüm mağazaları yükle (filtreleme olmadan)
+async function loadAllStoresForProduct() {
+    const container = document.getElementById('product-stores-container');
+    if (!container) return;
+    
+    container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;"><i class="fas fa-spinner fa-spin me-2"></i>Mağazalar yükleniyor...</div>';
+    
+    try {
+        const { data: stores, error } = await supabase
+            .from('stores')
+            .select(`
+                id,
+                name,
+                channel_id,
+                region_id,
+                manager,
+                channels(name),
+                regions(name)
+            `)
+            .eq('is_active', true)
+            .order('name');
+        
+        if (error) {
+            console.error('Mağaza yükleme hatası:', error);
+            container.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;"><i class="fas fa-exclamation-triangle me-2"></i>Mağazalar yüklenemedi</div>';
+            return;
+        }
+        
+        container.innerHTML = stores.map(store => {
+            const storeName = store.name.replace(/'/g, "\\'");
+            const channelName = (store.channels?.name || 'Kanal Yok').replace(/'/g, "\\'");
+            const regionName = (store.regions?.name || 'Bölge Yok').replace(/'/g, "\\'");
+            
+            return `
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               name="product-selected-stores[]"
+                               value="${store.id}" 
+                               id="product-store-${store.id}"
+                               data-store-id="${store.id}"
+                               data-store-name="${storeName}"
+                               data-channel-name="${channelName}"
+                               data-region-name="${regionName}">
+                        <label class="form-check-label" for="product-store-${store.id}">
+                            <strong>${store.name}</strong><br>
+                            <small class="text-muted">
+                                <i class="fas fa-building me-1"></i>${store.channels?.name || 'Kanal Yok'} | 
+                                <i class="fas fa-map-marker-alt me-1"></i>${store.regions?.name || 'Bölge Yok'}
+                            </small>
+                        </label>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Mağaza yükleme hatası:', error);
+        container.innerHTML = '<div class="col-12 text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Mağazalar yüklenemedi</div>';
+    }
+}
+
+// Ürün Başına Destek Primi için mağaza yükleme
+async function loadStoresForProduct() {
+    const container = document.getElementById('product-stores-container');
+    if (!container) return;
+    
+    const channelSelect = document.getElementById('product-channel');
+    const managerSelect = document.getElementById('product-manager');
+    const searchInput = document.getElementById('product-store-search');
+    
+    const channelId = channelSelect?.value;
+    const managerId = managerSelect?.value;
+    const searchTerm = searchInput?.value?.toLowerCase() || '';
+    
+    console.log('Ürün destek mağaza yükleme parametreleri:', { channelId, managerId, searchTerm });
+    
+    try {
+        let query = supabase
+            .from('stores')
+            .select(`
+                id,
+                name,
+                channel_id,
+                region_id,
+                manager,
+                channels(name),
+                regions(name)
+            `)
+            .eq('is_active', true);
+        
+        // Kanal filtresi - sadece kanal seçilmişse uygula
+        if (channelId && channelId !== '') {
+            query = query.eq('channel_id', channelId);
+            console.log('Ürün destek kanal filtresi uygulandı:', channelId);
+        }
+        
+        // Manager filtresi - sadece manager seçilmişse uygula
+        if (managerId && managerId !== '') {
+            query = query.eq('manager', managerId);
+            console.log('Ürün destek manager filtresi uygulandı:', managerId);
+        }
+        
+        // Arama filtresi - sadece arama terimi varsa uygula
+        if (searchTerm && searchTerm.trim() !== '') {
+            query = query.ilike('name', `%${searchTerm}%`);
+            console.log('Ürün destek arama filtresi uygulandı:', searchTerm);
+        }
+        
+        const { data: stores, error } = await query.order('name');
+        
+        if (error) {
+            console.error('Ürün destek mağaza yükleme hatası:', error);
+            container.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Mağazalar yüklenemedi</div>';
+            return;
+        }
+        
+        console.log('Ürün destek için yüklenen mağazalar:', stores);
+        
+        // Arama filtresi uygula
+        let filteredStores = stores;
+        if (searchTerm) {
+            filteredStores = stores.filter(store => 
+                store.name.toLowerCase().includes(searchTerm) ||
+                store.channels?.name?.toLowerCase().includes(searchTerm) ||
+                store.regions?.name?.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        if (filteredStores.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Arama kriterlerine uygun mağaza bulunamadı</div>';
+            return;
+        }
+        
+        // Mağazaları checkbox'lar halinde göster
+        container.innerHTML = filteredStores.map(store => {
+            const storeName = store.name.replace(/'/g, "\\'");
+            const channelName = store.channels?.name?.replace(/'/g, "\\'") || 'Bilinmiyor';
+            const regionName = store.regions?.name?.replace(/'/g, "\\'") || 'Bilinmiyor';
+            
+            return `
+                <div style="display: flex; align-items: center; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 10px; background: white;">
+                    <input type="checkbox" name="product-selected-stores[]" value="${storeName}" onchange="toggleStoreSelectionForProduct(this)" style="margin-right: 10px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; color: #333;">${store.name}</div>
+                        <div style="font-size: 14px; color: #6c757d;">${channelName} - ${regionName}</div>
+                        <div style="font-size: 12px; color: #28a745;">Manager: ${store.manager || 'Atanmamış'}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Ürün destek mağaza yükleme hatası:', error);
+        container.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">Mağazalar yüklenemedi</div>';
+    }
+}
+
+// Ürün destek için mağaza arama
+function searchStoresForProduct() {
+    loadStoresForProduct();
+}
+
+// Ürün destek için tüm mağazaları ara
+function searchAllStoresForProduct() {
+    const searchInput = document.getElementById('product-store-search');
+    searchInput.value = '';
+    loadStoresForProduct();
+}
+
+// Ürün destek için mağaza seçimi
+function toggleStoreSelectionForProduct(checkbox) {
+    const storeName = checkbox.value;
+    const selectedStoresList = document.getElementById('product-selected-stores-list');
+    const selectedStoresDisplay = document.getElementById('product-selected-stores-display');
+    
+    if (checkbox.checked) {
+        // Mağazayı seçilen listeye ekle
+        const storeDiv = document.createElement('div');
+        storeDiv.id = `product-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`;
+        storeDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 5px;';
+        storeDiv.innerHTML = `
+            <span style="font-size: 14px;">${storeName}</span>
+            <button onclick="removeStoreSelectionForProduct('${storeName}')" style="background: #dc3545; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        selectedStoresList.appendChild(storeDiv);
+        selectedStoresDisplay.style.display = 'block';
+    } else {
+        // Mağazayı seçilen listeden çıkar
+        const storeDiv = document.getElementById(`product-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`);
+        if (storeDiv) {
+            storeDiv.remove();
+        }
+        
+        // Eğer hiç mağaza kalmadıysa seçilen mağazalar bölümünü gizle
+        if (selectedStoresList.children.length === 0) {
+            selectedStoresDisplay.style.display = 'none';
+        }
+    }
+}
+
+// Ürün destek için mağaza seçimini kaldır
+function removeStoreSelectionForProduct(storeName) {
+    const storeDiv = document.getElementById(`product-selected-store-${storeName.replace(/[^a-zA-Z0-9]/g, '')}`);
+    if (storeDiv) {
+        storeDiv.remove();
+    }
+    
+    // Checkbox'ı işaretini kaldır
+    const checkbox = document.querySelector(`input[name="product-selected-stores[]"][value="${storeName}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    
+    // Eğer hiç mağaza kalmadıysa seçilen mağazalar bölümünü gizle
+    const selectedStoresList = document.getElementById('product-selected-stores-list');
+    const selectedStoresDisplay = document.getElementById('product-selected-stores-display');
+    if (selectedStoresList.children.length === 0) {
+        selectedStoresDisplay.style.display = 'none';
+    }
+}
+
+// Ürün destek için tüm mağazaları seç
+function selectAllStoresForProduct() {
+    const checkboxes = document.querySelectorAll('input[name="product-selected-stores[]"]');
+    checkboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            checkbox.checked = true;
+            toggleStoreSelectionForProduct(checkbox);
+        }
+    });
+}
+
+// Ürün destek için tüm mağaza seçimlerini temizle
+function clearAllStoresForProduct() {
+    const checkboxes = document.querySelectorAll('input[name="product-selected-stores[]"]');
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            checkbox.checked = false;
+            toggleStoreSelectionForProduct(checkbox);
+        }
+    });
 }

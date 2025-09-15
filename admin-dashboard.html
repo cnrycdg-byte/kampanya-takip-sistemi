@@ -9,7 +9,6 @@
     <link href="css/style.css" rel="stylesheet">
     
     <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -75,6 +74,11 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#regions" onclick="showSection('regions')">
                                 <i class="fas fa-map-marker-alt me-2"></i>Bölgeler
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#game-plans" onclick="showGamePlansSection()">
+                                <i class="fas fa-gamepad me-2"></i>Oyun Planları
                             </a>
                         </li>
                         <li class="nav-item">
@@ -862,6 +866,289 @@
                                 </button>
                             </form>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Oyun Planları İçeriği -->
+                <div id="game-plans-section" class="content-section" style="display: none;">
+                    <!-- Oyun Planları Alt Menüsü -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <button class="btn btn-outline-primary w-100" onclick="showGamePlanSubSection('dashboard')">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-outline-warning w-100" onclick="showGamePlanSubSection('pending')">
+                                        <i class="fas fa-clock me-2"></i>Onaya Gidenler
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-outline-success w-100" onclick="showGamePlanSubSection('approved')">
+                                        <i class="fas fa-check-circle me-2"></i>Onaylananlar
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-outline-info w-100" onclick="showGamePlanSubSection('reports')">
+                                        <i class="fas fa-chart-bar me-2"></i>Raporlama
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Oyun Planları Dashboard -->
+                    <div id="game-plans-dashboard" class="game-plan-sub-section">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3>Oyun Planları Dashboard</h3>
+                            <div>
+                                <button class="btn btn-success me-2" onclick="exportGamePlansToExcel()">
+                                    <i class="fas fa-file-excel me-2"></i>Excel İndir
+                                </button>
+                                <button class="btn btn-primary" onclick="testGamePlanCreate()">
+                                    <i class="fas fa-plus me-2"></i>Yeni Oyun Planı
+                                </button>
+                            </div>
+                        </div>
+                    
+                    <!-- Oyun Planı İstatistikleri -->
+                    <div class="row mb-4">
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Toplam Plan</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-game-plans">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-gamepad fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                Onay Bekleyen</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="pending-game-plans">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Onaylanan</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="approved-game-plans">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                Aktif Plan</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-game-plans">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-play-circle fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Oyun Planı Filtreleme -->
+                    <div class="card shadow mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="game-plan-search" class="form-label">Arama</label>
+                                        <input type="text" class="form-control" id="game-plan-search" placeholder="Oyun planı adı ara...">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="game-plan-type-filter" class="form-label">Tür Filtresi</label>
+                                        <select class="form-select" id="game-plan-type-filter">
+                                            <option value="">Tüm Türler</option>
+                                            <option value="free_wkz">Free WKZ</option>
+                                            <option value="product_support">Ürün Başına Destek</option>
+                                            <option value="spift">Spift Ödemeleri</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label for="game-plan-status-filter" class="form-label">Durum Filtresi</label>
+                                        <select class="form-select" id="game-plan-status-filter">
+                                            <option value="">Tüm Durumlar</option>
+                                            <option value="pending">Onay Bekleyen</option>
+                                            <option value="approved">Onaylanan</option>
+                                            <option value="active">Aktif</option>
+                                            <option value="completed">Tamamlanan</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button class="btn btn-outline-secondary w-100" onclick="clearGamePlanFilters()">
+                                            <i class="fas fa-times me-1"></i>Temizle
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Oyun Planları Listesi -->
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Plan Adı</th>
+                                            <th>Tür</th>
+                                            <th>Durum</th>
+                                            <th>Oluşturan</th>
+                                            <th>Oluşturma Tarihi</th>
+                                            <th>Bütçe</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="game-plans-table-body">
+                                        <tr>
+                                            <td colspan="7" class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Yükleniyor...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Onaya Gidenler -->
+                    <div id="game-plans-pending" class="game-plan-sub-section" style="display: none;">
+                        <h3>Onaya Giden Oyun Planları</h3>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Plan Adı</th>
+                                                <th>Tür</th>
+                                                <th>Oluşturan</th>
+                                                <th>Oluşturma Tarihi</th>
+                                                <th>Bütçe</th>
+                                                <th>İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="pending-game-plans-table">
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted">
+                                                    <i class="fas fa-clock me-2"></i>Onaya giden oyun planı bulunmuyor
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Onaylananlar -->
+                    <div id="game-plans-approved" class="game-plan-sub-section" style="display: none;">
+                        <h3>Onaylanan Oyun Planları</h3>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Plan Adı</th>
+                                                <th>Tür</th>
+                                                <th>Oluşturan</th>
+                                                <th>Onay Tarihi</th>
+                                                <th>Bütçe</th>
+                                                <th>İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="approved-game-plans-table">
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted">
+                                                    <i class="fas fa-check-circle me-2"></i>Onaylanan oyun planı bulunmuyor
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Raporlama -->
+                    <div id="game-plans-reports" class="game-plan-sub-section" style="display: none;">
+                        <h3>Oyun Planları Raporlama</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Bütçe Analizi</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="budget-chart" width="400" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Durum Dağılımı</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="status-chart" width="400" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Oyun Planı Oluşturma İçeriği -->
+                    <div id="game-plan-create-section" class="content-section" style="display: none;">
+                        <!-- Form içeriği JavaScript ile dinamik olarak oluşturulacak -->
                     </div>
                 </div>
             </main>
