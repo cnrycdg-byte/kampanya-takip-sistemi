@@ -97,23 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Test görevi oluşturma fonksiyonu
-function createTestTask() {
-    const testTask = {
-        id: 999,
-        title: 'Test Görevi - Silme Testi',
-        description: 'Bu görev silme işlemini test etmek için oluşturuldu',
-        category: 'test',
-        status: 'active',
-        start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        channels: { name: 'Test Kanalı' },
-        created_at: new Date().toISOString()
-    };
-    
-    console.log('Test görevi oluşturuldu:', testTask);
-    return testTask;
-}
 
 // Dashboard verilerini yükleyen fonksiyon
 async function loadDashboardData() {
@@ -126,17 +109,6 @@ async function loadDashboardData() {
         // Görevleri yükle
         await loadTasksList();
         
-        // Test görevini dashboard'a ekle
-        if (window.allTasks && window.allTasks.length > 0) {
-            console.log('Test görevi dashboard\'a eklendi');
-        } else {
-            // Eğer görev yoksa test görevi oluştur
-            console.log('Görev bulunamadı, test görevi oluşturuluyor...');
-            const testTask = createTestTask();
-            if (!window.allTasks) window.allTasks = [];
-            window.allTasks.push(testTask);
-            console.log('Test görevi eklendi, toplam görev sayısı:', window.allTasks.length);
-        }
         
         // Mağazaları yükle
         await loadStoresList();
@@ -186,48 +158,31 @@ async function loadTaskDetailStats(tasks) {
         
         container.innerHTML = '';
         
-        // Eğer görev yoksa test görevi oluştur
         if (!tasks || tasks.length === 0) {
-            console.log('Görev bulunamadı, test görevi oluşturuluyor...');
-            const testTask = createTestTask();
-            tasks = [testTask];
-            // Test görevini allTasks'a da ekle
-            if (!window.allTasks) window.allTasks = [];
-            if (!window.allTasks.find(task => task.id === 999)) {
-                window.allTasks.push(testTask);
-            }
+            container.innerHTML = '<div class="col-12 text-center text-muted"><i class="fas fa-inbox me-2"></i>Henüz görev bulunmuyor</div>';
+            return;
         }
         
         for (const task of tasks) {
             let assignments = [];
             
-            // Test görevi için özel atama verisi oluştur
-            if (task.id === 999) {
-                assignments = [
-                    { id: 1, status: 'assigned', photo_urls: [], stores: { name: 'Test Mağaza 1', manager: 'Test Müdür' } },
-                    { id: 2, status: 'in_progress', photo_urls: [], stores: { name: 'Test Mağaza 2', manager: 'Test Müdür' } },
-                    { id: 3, status: 'completed', photo_urls: ['test1.jpg', 'test2.jpg'], stores: { name: 'Test Mağaza 3', manager: 'Test Müdür' } }
-                ];
-                console.log('Test görevi için özel atama verisi oluşturuldu');
-            } else {
-                // Gerçek görevler için veritabanından atamaları al
-                const { data: assignmentData, error } = await supabase
-                    .from('task_assignments')
-                    .select(`
-                        id,
-                        status,
-                        photo_urls,
-                        stores(name, manager)
-                    `)
-                    .eq('task_id', task.id);
-                
-                if (error) {
-                    console.error('Görev atamaları alınırken hata:', error);
-                    continue;
-                }
-                
-                assignments = assignmentData || [];
+            // Gerçek görevler için veritabanından atamaları al
+            const { data: assignmentData, error } = await supabase
+                .from('task_assignments')
+                .select(`
+                    id,
+                    status,
+                    photo_urls,
+                    stores(name, manager)
+                `)
+                .eq('task_id', task.id);
+            
+            if (error) {
+                console.error('Görev atamaları alınırken hata:', error);
+                continue;
             }
+            
+            assignments = assignmentData || [];
             
             const totalStores = assignments.length;
             const completedStores = assignments.filter(a => a.status === 'completed' && a.photo_urls && a.photo_urls.length > 0).length;
@@ -242,7 +197,7 @@ async function loadTaskDetailStats(tasks) {
             taskCard.innerHTML = `
                 <div class="card shadow h-100">
                     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                        <h6 class="m-0 font-weight-bold text-primary">${task.title}${task.id === 999 ? ' <small class="text-info">(Test)</small>' : ''}</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">${task.title}</h6>
                         <span class="badge bg-${getTaskStatusColor(task.status)}">${getTaskStatusText(task.status)}</span>
                     </div>
                     <div class="card-body">
@@ -282,8 +237,6 @@ async function loadTaskDetailStats(tasks) {
                                 ${formatDateTime(task.start_date)} - ${formatDateTime(task.end_date)}
                             </small>
                         </div>
-                        ${task.id === 999 ? '<div class="mt-2"><small class="text-info"><i class="fas fa-info-circle me-1"></i>Test Görevi - Silme işlemini test etmek için oluşturuldu</small></div>' : ''}
-                        ${task.id === 999 ? '<div class="mt-1"><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Bu görev silme işlemini test etmek için oluşturuldu</small></div>' : ''}
                     </div>
                     <div class="card-footer">
                         <div class="btn-group w-100" role="group">
@@ -341,17 +294,7 @@ function loadRecentTasks(tasks = []) {
     
     tbody.innerHTML = '';
     
-    // Eğer görev yoksa test görevi oluştur
     if (!tasks || tasks.length === 0) {
-        console.log('Son görevler için test görevi oluşturuluyor...');
-        const testTask = createTestTask();
-        tasks = [testTask];
-    }
-    
-    // Son 5 görevi al
-    const recentTasks = tasks.slice(0, 5);
-    
-    if (recentTasks.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center text-muted">
@@ -362,14 +305,17 @@ function loadRecentTasks(tasks = []) {
         return;
     }
     
+    // Son 5 görevi al
+    const recentTasks = tasks.slice(0, 5);
+    
     recentTasks.forEach(task => {
-        const channelName = task.channels?.name || (task.id === 999 ? 'Test Kanalı' : 'Bilinmiyor');
+        const channelName = task.channels?.name || 'Bilinmiyor';
         const statusClass = getTaskStatusClass(task.status);
         const statusText = getTaskStatusText(task.status);
         
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${task.title}${task.id === 999 ? ' <small class="text-info">(Test)</small>' : ''}</td>
+            <td>${task.title}</td>
             <td>${channelName}</td>
             <td><span class="badge bg-${statusClass}">${statusText}</span></td>
             <td>${formatDateTime(task.start_date)}</td>
@@ -2457,12 +2403,6 @@ async function loadTasksList() {
         console.log('Görevler yüklendi:', tasks);
         window.allTasks = tasks || []; // Global değişkende sakla
         
-        // Test görevini ekle
-        if (!window.allTasks.find(task => task.id === 999)) {
-            const testTask = createTestTask();
-            window.allTasks.unshift(testTask);
-            console.log('Test görevi görevler listesine eklendi');
-        }
         
         displayTasksList(window.allTasks);
         
@@ -2492,13 +2432,8 @@ function displayTasksList(tasks) {
     }
 
     tbody.innerHTML = tasks.map(task => {
-        const channelName = task.channels?.name || (task.id === 999 ? 'Test Kanalı' : 'Bilinmiyor');
+        const channelName = task.channels?.name || 'Bilinmiyor';
         let allStores = task.task_assignments?.map(ta => ta.stores?.name).filter(Boolean) || [];
-        
-        // Test görevi için özel mağaza atamaları
-        if (task.id === 999) {
-            allStores = ['Test Mağaza 1', 'Test Mağaza 2', 'Test Mağaza 3'];
-        }
         
         const storeCount = allStores.length;
         const assignedStores = storeCount > 0 ? 
@@ -2512,7 +2447,7 @@ function displayTasksList(tasks) {
         return `
             <tr>
                 <td>
-                    <strong>${task.title}${task.id === 999 ? ' <small class="text-info">(Test)</small>' : ''}</strong>
+                    <strong>${task.title}</strong>
                     <br>
                     <small class="text-muted">${task.description?.substring(0, 50)}${task.description?.length > 50 ? '...' : ''}</small>
                 </td>
@@ -4050,7 +3985,6 @@ function getTaskCategoryBadge(category) {
         'display': { text: 'Vitrin', color: 'info' },
         'training': { text: 'Eğitim', color: 'warning' },
         'other': { text: 'Diğer', color: 'secondary' },
-        'test': { text: 'Test', color: 'success' }
     };
     const categoryInfo = categoryMap[category] || { text: 'Bilinmiyor', color: 'secondary' };
     return `<span class="badge bg-${categoryInfo.color}">${categoryInfo.text}</span>`;
@@ -4062,7 +3996,6 @@ function getCategoryText(category) {
         'display': 'Vitrin',
         'training': 'Eğitim',
         'other': 'Diğer',
-        'test': 'Test'
     };
     return categoryMap[category] || 'Bilinmiyor';
 }
@@ -4111,41 +4044,29 @@ window.deleteTask = function(taskId) {
         
         console.log('Kullanıcı oturumu:', user);
         
-        // Supabase'den görevi sil
+        // Gerçek görev için veritabanı silme işlemi
+        // Önce görevi 'cancelled' olarak güncelle (soft delete)
         supabase
-            .from('task_assignments')
-            .delete()
-            .eq('task_id', taskId)
-            .then(({ error: assignmentError }) => {
-                if (assignmentError) {
-                    console.error('Görev atamaları silinirken hata:', assignmentError);
-                    showAlert('Görev atamaları silinirken hata: ' + assignmentError.message, 'danger');
+            .from('tasks')
+            .update({ status: 'cancelled' })
+            .eq('id', taskId)
+            .then(({ error: updateError }) => {
+                if (updateError) {
+                    console.error('Görev güncelleme hatası:', updateError);
+                    showAlert('Görev güncellenirken hata oluştu: ' + updateError.message, 'danger');
                     return;
                 }
                 
-                console.log('Görev atamaları silindi, ana görev siliniyor...');
+                console.log('Görev başarıyla iptal edildi');
+                showAlert('Görev başarıyla iptal edildi!', 'success');
                 
-                // Ana görevi sil
-                return supabase
-                    .from('tasks')
-                    .delete()
-                    .eq('id', taskId);
-            })
-            .then(({ error: taskError }) => {
-                if (taskError) {
-                    console.error('Görev silme hatası:', taskError);
-                    showAlert('Görev silinirken hata oluştu: ' + taskError.message, 'danger');
-                } else {
-                    console.log('Görev başarıyla silindi');
-                    showAlert('Görev başarıyla silindi!', 'success');
-                    
-                    // Görev listesini yenile
-                    loadTasks();
-                }
+                // Görev listesini yenile
+                loadTasksList();
+                loadDashboardData();
             })
             .catch((error) => {
-                console.error('Görev silme catch hatası:', error);
-                showAlert('Görev silinirken beklenmeyen hata: ' + error.message, 'danger');
+                console.error('Görev güncelleme catch hatası:', error);
+                showAlert('Görev güncellenirken beklenmeyen hata: ' + error.message, 'danger');
             });
     } catch (error) {
         console.error('Görev silme try-catch hatası:', error);
