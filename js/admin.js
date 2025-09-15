@@ -3763,7 +3763,7 @@ async function deleteTask(taskId) {
         try {
             const { error } = await supabase
                 .from('tasks')
-                .update({ is_active: false })
+                .update({ status: 'cancelled' })
                 .eq('id', taskId);
             
             if (error) throw error;
