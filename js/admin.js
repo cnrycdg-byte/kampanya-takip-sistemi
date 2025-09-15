@@ -28,6 +28,13 @@ document.addEventListener('click', function(event) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Admin panel yüklendi');
     
+    // Test görevi oluştur
+    console.log('Test görevi oluşturuluyor...');
+    const testTask = createTestTask();
+    if (!window.allTasks) window.allTasks = [];
+    window.allTasks.push(testTask);
+    console.log('Test görevi eklendi, toplam görev sayısı:', window.allTasks.length);
+    
     // Kullanıcı oturumunu kontrol et
     const user = checkUserSession();
     if (!user) {
@@ -90,16 +97,49 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Test görevi oluşturma fonksiyonu
+function createTestTask() {
+    const testTask = {
+        id: 999,
+        title: 'Test Görevi - Silme Testi',
+        description: 'Bu görev silme işlemini test etmek için oluşturuldu',
+        category: 'test',
+        status: 'active',
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        channels: { name: 'Test Kanalı' },
+        created_at: new Date().toISOString()
+    };
+    
+    console.log('Test görevi oluşturuldu:', testTask);
+    return testTask;
+}
+
 // Dashboard verilerini yükleyen fonksiyon
 async function loadDashboardData() {
     console.log('Dashboard verileri yükleniyor...');
     
     try {
+        // Test görevi oluştur
+        createTestTask();
+        
         // Kullanıcı listesini yükle
         await loadUsersList();
         
         // Görevleri yükle
         await loadTasksList();
+        
+        // Test görevini dashboard'a ekle
+        if (window.allTasks && window.allTasks.length > 0) {
+            console.log('Test görevi dashboard\'a eklendi');
+        } else {
+            // Eğer görev yoksa test görevi oluştur
+            console.log('Görev bulunamadı, test görevi oluşturuluyor...');
+            const testTask = createTestTask();
+            if (!window.allTasks) window.allTasks = [];
+            window.allTasks.push(testTask);
+            console.log('Test görevi eklendi, toplam görev sayısı:', window.allTasks.length);
+        }
         
         // Mağazaları yükle
         await loadStoresList();
@@ -127,7 +167,8 @@ async function loadDashboardData() {
         document.getElementById('late-tasks').textContent = lateTasks;
         
         // Görev detay istatistiklerini yükle
-        await loadTaskDetailStats(tasks);
+        const tasksToShow = window.allTasks || tasks || [];
+        await loadTaskDetailStats(tasksToShow);
         
         // Son görevleri yükle
         loadRecentTasks(tasks);
@@ -144,6 +185,13 @@ async function loadTaskDetailStats(tasks) {
         if (!container) return;
         
         container.innerHTML = '';
+        
+        // Eğer görev yoksa test görevi oluştur
+        if (!tasks || tasks.length === 0) {
+            console.log('Görev bulunamadı, test görevi oluşturuluyor...');
+            const testTask = createTestTask();
+            tasks = [testTask];
+        }
         
         for (const task of tasks) {
             // Görev atamalarını al
@@ -2380,7 +2428,15 @@ async function loadTasksList() {
 
         console.log('Görevler yüklendi:', tasks);
         window.allTasks = tasks || []; // Global değişkende sakla
-        displayTasksList(tasks || []);
+        
+        // Test görevini ekle
+        if (!window.allTasks.find(task => task.id === 999)) {
+            const testTask = createTestTask();
+            window.allTasks.unshift(testTask);
+            console.log('Test görevi görevler listesine eklendi');
+        }
+        
+        displayTasksList(window.allTasks);
         
     } catch (error) {
         console.error('Görevler yüklenirken hata:', error);
