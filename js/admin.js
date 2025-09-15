@@ -3757,23 +3757,139 @@ async function exportTaskToExcel(taskId) {
     }
 }
 
+// Supabase bağlantısını test eden fonksiyon
+async function testSupabaseConnection() {
+    try {
+        console.log('Supabase bağlantısı test ediliyor...');
+        
+        // Basit bir select sorgusu ile bağlantıyı test et
+        const { data, error } = await supabase
+            .from('tasks')
+            .select('id, title, status')
+            .limit(1);
+        
+        if (error) {
+            console.error('Supabase bağlantı hatası:', error);
+            console.error('Hata detayları:', JSON.stringify(error, null, 2));
+            return false;
+        }
+        
+        console.log('Supabase bağlantısı başarılı:', data);
+        return true;
+        
+    } catch (error) {
+        console.error('Supabase bağlantı test hatası:', error);
+        return false;
+    }
+}
+
+// Tasks tablosunun yapısını kontrol eden fonksiyon
+async function checkTasksTableStructure() {
+    try {
+        console.log('Tasks tablosu yapısı kontrol ediliyor...');
+        
+        // Tüm sütunları seçmeye çalış
+        const { data, error } = await supabase
+            .from('tasks')
+            .select('*')
+            .limit(1);
+        
+        if (error) {
+            console.error('Tasks tablosu yapısı hatası:', error);
+            console.error('Hata detayları:', JSON.stringify(error, null, 2));
+            return false;
+        }
+        
+        console.log('Tasks tablosu yapısı başarılı:', data);
+        if (data && data.length > 0) {
+            console.log('Mevcut sütunlar:', Object.keys(data[0]));
+        }
+        return true;
+        
+    } catch (error) {
+        console.error('Tasks tablosu yapısı kontrol hatası:', error);
+        return false;
+    }
+}
+
 // Görev silme fonksiyonu
 async function deleteTask(taskId) {
     if (confirm('Bu görevi silmek istediğinizden emin misiniz?')) {
         try {
-            const { error } = await supabase
+            console.log('Görev silme işlemi başlatılıyor, taskId:', taskId);
+            
+            // Önce Supabase bağlantısını test et
+            const connectionOk = await testSupabaseConnection();
+            if (!connectionOk) {
+                throw new Error('Supabase bağlantısı kurulamadı');
+            }
+            
+            // Tasks tablosu yapısını kontrol et
+            const tableOk = await checkTasksTableStructure();
+            if (!tableOk) {
+                throw new Error('Tasks tablosu yapısı kontrol edilemedi');
+            }
+            
+            // Önce görevin mevcut durumunu kontrol et
+            console.log('Görev bilgisi alınıyor...');
+            const { data: task, error: fetchError } = await supabase
                 .from('tasks')
-                .update({ status: 'cancelled' })
-                .eq('id', taskId);
+                .select('id, title, status')
+                .eq('id', taskId)
+                .single();
             
-            if (error) throw error;
+            if (fetchError) {
+                console.error('Görev bilgisi alınırken hata:', fetchError);
+                console.error('Fetch hata detayları:', JSON.stringify(fetchError, null, 2));
+                throw new Error('Görev bilgisi alınamadı: ' + fetchError.message);
+            }
             
+            console.log('Görev bilgisi alındı:', task);
+            
+            // Görevi cancelled olarak güncelle
+            console.log('Görev güncelleniyor...');
+            
+            // Önce basit bir güncelleme deneyelim
+            let updateData, updateError;
+            
+            try {
+                // İlk deneme: sadece status güncelle
+                const result = await supabase
+                    .from('tasks')
+                    .update({ status: 'cancelled' })
+                    .eq('id', taskId)
+                    .select();
+                
+                updateData = result.data;
+                updateError = result.error;
+                
+            } catch (updateException) {
+                console.error('Update exception:', updateException);
+                updateError = updateException;
+            }
+            
+            if (updateError) {
+                console.error('Görev güncelleme hatası:', updateError);
+                console.error('Update hata detayları:', JSON.stringify(updateError, null, 2));
+                
+                // Eğer 401 hatası ise, RLS politikası sorunu olabilir
+                if (updateError.status === 401 || updateError.code === 'PGRST301') {
+                    throw new Error('Yetkilendirme hatası: Bu işlem için gerekli yetkiniz yok. Lütfen admin olarak giriş yapın.');
+                } else if (updateError.status === 400) {
+                    throw new Error('Geçersiz istek: ' + (updateError.message || 'Bilinmeyen hata'));
+                } else {
+                    throw new Error('Görev güncellenemedi: ' + updateError.message);
+                }
+            }
+            
+            console.log('Görev başarıyla güncellendi:', updateData);
             showAlert('Görev başarıyla silindi!', 'success');
             loadDashboardData(); // Dashboard'ı yenile
             
         } catch (error) {
             console.error('Görev silme hatası:', error);
-            showAlert('Görev silinirken hata oluştu!', 'danger');
+            console.error('Hata detayları:', JSON.stringify(error, null, 2));
+            showAlert('Görev silinirken hata oluştu: ' + error.message, 'danger');
         }
     }
 }
