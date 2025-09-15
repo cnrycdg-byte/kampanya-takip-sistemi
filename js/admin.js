@@ -28,12 +28,6 @@ document.addEventListener('click', function(event) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Admin panel yüklendi');
     
-    // Test görevi oluştur
-    console.log('Test görevi oluşturuluyor...');
-    const testTask = createTestTask();
-    if (!window.allTasks) window.allTasks = [];
-    window.allTasks.push(testTask);
-    console.log('Test görevi eklendi, toplam görev sayısı:', window.allTasks.length);
     
     // Kullanıcı oturumunu kontrol et
     const user = checkUserSession();
@@ -158,12 +152,35 @@ async function loadTaskDetailStats(tasks) {
         
         container.innerHTML = '';
         
-        if (!tasks || tasks.length === 0) {
+        // Kullanıcı oturumunu kontrol et
+        const user = checkUserSession();
+        if (!user) {
+            container.innerHTML = '<div class="col-12 text-center text-muted"><i class="fas fa-exclamation-triangle me-2"></i>Oturum bulunamadı</div>';
+            return;
+        }
+        
+        // Yetki kontrolü: Saha satış temsilcileri sadece aktif ve devam eden görevleri görsün
+        let filteredTasks = tasks || [];
+        if (user.role === 'sales_rep') {
+            filteredTasks = tasks.filter(task => ['active', 'in_progress'].includes(task.status));
+            console.log('Saha satış temsilcisi için görevler filtrelendi:', filteredTasks.length);
+        }
+        // Admin ve manager'lar tüm görevleri görebilir (cancelled dahil)
+        else if (user.role === 'admin' || user.role === 'manager') {
+            console.log('Admin/Manager için tüm görevler gösteriliyor');
+        }
+        // Diğer roller için sadece aktif görevler
+        else {
+            filteredTasks = tasks.filter(task => task.status === 'active');
+            console.log('Diğer roller için görevler filtrelendi:', filteredTasks.length);
+        }
+        
+        if (!filteredTasks || filteredTasks.length === 0) {
             container.innerHTML = '<div class="col-12 text-center text-muted"><i class="fas fa-inbox me-2"></i>Henüz görev bulunmuyor</div>';
             return;
         }
         
-        for (const task of tasks) {
+        for (const task of filteredTasks) {
             let assignments = [];
             
             // Gerçek görevler için veritabanından atamaları al
@@ -249,9 +266,11 @@ async function loadTaskDetailStats(tasks) {
                             <button class="btn btn-sm btn-outline-success" onclick="exportTaskToExcel(${task.id})">
                                 <i class="fas fa-file-excel me-1"></i>Excel
                             </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTask(${task.id})">
-                                <i class="fas fa-trash me-1"></i>Sil
-                            </button>
+                            ${(user.role === 'admin' || user.role === 'manager') ? 
+                                `<button class="btn btn-sm btn-outline-danger" onclick="deleteTask(${task.id})">
+                                    <i class="fas fa-trash me-1"></i>Sil
+                                </button>` : ''
+                            }
                         </div>
                     </div>
                 </div>
@@ -294,7 +313,36 @@ function loadRecentTasks(tasks = []) {
     
     tbody.innerHTML = '';
     
-    if (!tasks || tasks.length === 0) {
+    // Kullanıcı oturumunu kontrol et
+    const user = checkUserSession();
+    if (!user) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Oturum bulunamadı
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Yetki kontrolü: Saha satış temsilcileri sadece aktif ve devam eden görevleri görsün
+    let filteredTasks = tasks || [];
+    if (user.role === 'sales_rep') {
+        filteredTasks = tasks.filter(task => ['active', 'in_progress'].includes(task.status));
+        console.log('Saha satış temsilcisi için son görevler filtrelendi:', filteredTasks.length);
+    }
+    // Admin ve manager'lar tüm görevleri görebilir (cancelled dahil)
+    else if (user.role === 'admin' || user.role === 'manager') {
+        console.log('Admin/Manager için tüm son görevler gösteriliyor');
+    }
+    // Diğer roller için sadece aktif görevler
+    else {
+        filteredTasks = tasks.filter(task => task.status === 'active');
+        console.log('Diğer roller için son görevler filtrelendi:', filteredTasks.length);
+    }
+    
+    if (!filteredTasks || filteredTasks.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center text-muted">
@@ -306,7 +354,7 @@ function loadRecentTasks(tasks = []) {
     }
     
     // Son 5 görevi al
-    const recentTasks = tasks.slice(0, 5);
+    const recentTasks = filteredTasks.slice(0, 5);
     
     recentTasks.forEach(task => {
         const channelName = task.channels?.name || 'Bilinmiyor';
@@ -331,9 +379,11 @@ function loadRecentTasks(tasks = []) {
                     <button class="btn btn-sm btn-success" onclick="exportTaskToExcel(${task.id})" style="flex: 1;">
                         <i class="fas fa-file-excel"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})" style="flex: 1;">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${(user.role === 'admin' || user.role === 'manager') ? 
+                        `<button class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})" style="flex: 1;">
+                            <i class="fas fa-trash"></i>
+                        </button>` : ''
+                    }
                 </div>
             </td>
         `;
@@ -2385,7 +2435,15 @@ async function loadTasksList() {
     try {
         console.log('Görevler yükleniyor...');
         
-        const { data: tasks, error } = await supabase
+        // Kullanıcı oturumunu kontrol et
+        const user = checkUserSession();
+        if (!user) {
+            console.error('Kullanıcı oturumu bulunamadı');
+            displayTasksList([]);
+            return;
+        }
+        
+        let query = supabase
             .from('tasks')
             .select(`
                 *,
@@ -2395,14 +2453,29 @@ async function loadTasksList() {
                     status,
                     stores(name, manager)
                 )
-            `)
-            .order('created_at', { ascending: false });
+            `);
+        
+        // Yetki kontrolü: Saha satış temsilcileri sadece aktif ve devam eden görevleri görsün
+        if (user.role === 'sales_rep') {
+            query = query.in('status', ['active', 'in_progress']);
+            console.log('Saha satış temsilcisi için sadece aktif ve devam eden görevler yükleniyor');
+        }
+        // Admin ve manager'lar tüm görevleri görebilir (cancelled dahil)
+        else if (user.role === 'admin' || user.role === 'manager') {
+            console.log('Admin/Manager için tüm görevler yükleniyor');
+        }
+        // Diğer roller için sadece aktif görevler
+        else {
+            query = query.eq('status', 'active');
+            console.log('Diğer roller için sadece aktif görevler yükleniyor');
+        }
+        
+        const { data: tasks, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
 
         console.log('Görevler yüklendi:', tasks);
         window.allTasks = tasks || []; // Global değişkende sakla
-        
         
         displayTasksList(window.allTasks);
         
@@ -2420,7 +2493,36 @@ function displayTasksList(tasks) {
         return;
     }
 
-    if (!tasks || tasks.length === 0) {
+    // Kullanıcı oturumunu kontrol et
+    const user = checkUserSession();
+    if (!user) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center text-muted">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Oturum bulunamadı
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    // Yetki kontrolü: Saha satış temsilcileri sadece aktif ve devam eden görevleri görsün
+    let filteredTasks = tasks || [];
+    if (user.role === 'sales_rep') {
+        filteredTasks = tasks.filter(task => ['active', 'in_progress'].includes(task.status));
+        console.log('Saha satış temsilcisi için görev listesi filtrelendi:', filteredTasks.length);
+    }
+    // Admin ve manager'lar tüm görevleri görebilir (cancelled dahil)
+    else if (user.role === 'admin' || user.role === 'manager') {
+        console.log('Admin/Manager için tüm görev listesi gösteriliyor');
+    }
+    // Diğer roller için sadece aktif görevler
+    else {
+        filteredTasks = tasks.filter(task => task.status === 'active');
+        console.log('Diğer roller için görev listesi filtrelendi:', filteredTasks.length);
+    }
+
+    if (!filteredTasks || filteredTasks.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="text-center text-muted">
@@ -2431,7 +2533,7 @@ function displayTasksList(tasks) {
         return;
     }
 
-    tbody.innerHTML = tasks.map(task => {
+    tbody.innerHTML = filteredTasks.map(task => {
         const channelName = task.channels?.name || 'Bilinmiyor';
         let allStores = task.task_assignments?.map(ta => ta.stores?.name).filter(Boolean) || [];
         
@@ -2468,9 +2570,14 @@ function displayTasksList(tasks) {
                         <button class="btn btn-outline-warning" onclick="exportTaskToPresentation(${task.id})" title="Sunum İndir">
                             <i class="fas fa-file-powerpoint"></i>
                         </button>
-                        <button class="btn btn-outline-danger" onclick="deleteTask(${task.id})" title="Sil">
-                            <i class="fas fa-trash"></i>
+                        <button class="btn btn-outline-success" onclick="exportTaskToExcel(${task.id})" title="Excel İndir">
+                            <i class="fas fa-file-excel"></i>
                         </button>
+                        ${(user.role === 'admin' || user.role === 'manager') ? 
+                            `<button class="btn btn-outline-danger" onclick="deleteTask(${task.id})" title="Sil">
+                                <i class="fas fa-trash"></i>
+                            </button>` : ''
+                        }
                     </div>
                 </td>
             </tr>
@@ -3884,6 +3991,12 @@ window.deleteTask = function(taskId) {
         const user = checkUserSession();
         if (!user) {
             showAlert('Oturum süreniz dolmuş! Lütfen tekrar giriş yapın.', 'danger');
+            return;
+        }
+        
+        // Yetki kontrolü: Sadece admin ve manager'lar görev silebilir
+        if (user.role !== 'admin' && user.role !== 'manager') {
+            showAlert('Görev silme yetkiniz yok! Sadece yöneticiler görev silebilir.', 'danger');
             return;
         }
         
@@ -7039,3 +7152,4 @@ function clearAllStoresForProduct() {
         }
     });
 }
+
