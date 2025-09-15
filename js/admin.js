@@ -120,9 +120,6 @@ async function loadDashboardData() {
     console.log('Dashboard verileri yükleniyor...');
     
     try {
-        // Test görevi oluştur
-        createTestTask();
-        
         // Kullanıcı listesini yükle
         await loadUsersList();
         
@@ -147,8 +144,11 @@ async function loadDashboardData() {
         // Dropdown'ları yükle
         loadDropdowns();
         
+        // Görev detay istatistiklerini yükle
+        await loadTaskDetailStats(window.allTasks);
+        
         // Gerçek verilerle istatistikleri hesapla
-        const tasks = allTasks || [];
+        const tasks = window.allTasks || [];
         const stores = allStores || [];
         
         const totalTasks = tasks.length;
@@ -171,7 +171,7 @@ async function loadDashboardData() {
         await loadTaskDetailStats(tasksToShow);
         
         // Son görevleri yükle
-        loadRecentTasks(tasks);
+        loadRecentTasks(window.allTasks || tasks);
         
     } catch (error) {
         console.error('Dashboard verileri yüklenirken hata:', error);
@@ -191,23 +191,42 @@ async function loadTaskDetailStats(tasks) {
             console.log('Görev bulunamadı, test görevi oluşturuluyor...');
             const testTask = createTestTask();
             tasks = [testTask];
+            // Test görevini allTasks'a da ekle
+            if (!window.allTasks) window.allTasks = [];
+            if (!window.allTasks.find(task => task.id === 999)) {
+                window.allTasks.push(testTask);
+            }
         }
         
         for (const task of tasks) {
-            // Görev atamalarını al
-            const { data: assignments, error } = await supabase
-                .from('task_assignments')
-                .select(`
-                    id,
-                    status,
-                    photo_urls,
-                    stores(name, manager)
-                `)
-                .eq('task_id', task.id);
+            let assignments = [];
             
-            if (error) {
-                console.error('Görev atamaları alınırken hata:', error);
-                continue;
+            // Test görevi için özel atama verisi oluştur
+            if (task.id === 999) {
+                assignments = [
+                    { id: 1, status: 'assigned', photo_urls: [], stores: { name: 'Test Mağaza 1', manager: 'Test Müdür' } },
+                    { id: 2, status: 'in_progress', photo_urls: [], stores: { name: 'Test Mağaza 2', manager: 'Test Müdür' } },
+                    { id: 3, status: 'completed', photo_urls: ['test1.jpg', 'test2.jpg'], stores: { name: 'Test Mağaza 3', manager: 'Test Müdür' } }
+                ];
+                console.log('Test görevi için özel atama verisi oluşturuldu');
+            } else {
+                // Gerçek görevler için veritabanından atamaları al
+                const { data: assignmentData, error } = await supabase
+                    .from('task_assignments')
+                    .select(`
+                        id,
+                        status,
+                        photo_urls,
+                        stores(name, manager)
+                    `)
+                    .eq('task_id', task.id);
+                
+                if (error) {
+                    console.error('Görev atamaları alınırken hata:', error);
+                    continue;
+                }
+                
+                assignments = assignmentData || [];
             }
             
             const totalStores = assignments.length;
@@ -223,7 +242,7 @@ async function loadTaskDetailStats(tasks) {
             taskCard.innerHTML = `
                 <div class="card shadow h-100">
                     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                        <h6 class="m-0 font-weight-bold text-primary">${task.title}</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">${task.title}${task.id === 999 ? ' <small class="text-info">(Test)</small>' : ''}</h6>
                         <span class="badge bg-${getTaskStatusColor(task.status)}">${getTaskStatusText(task.status)}</span>
                     </div>
                     <div class="card-body">
@@ -263,6 +282,8 @@ async function loadTaskDetailStats(tasks) {
                                 ${formatDateTime(task.start_date)} - ${formatDateTime(task.end_date)}
                             </small>
                         </div>
+                        ${task.id === 999 ? '<div class="mt-2"><small class="text-info"><i class="fas fa-info-circle me-1"></i>Test Görevi - Silme işlemini test etmek için oluşturuldu</small></div>' : ''}
+                        ${task.id === 999 ? '<div class="mt-1"><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Bu görev silme işlemini test etmek için oluşturuldu</small></div>' : ''}
                     </div>
                     <div class="card-footer">
                         <div class="btn-group w-100" role="group">
@@ -320,6 +341,13 @@ function loadRecentTasks(tasks = []) {
     
     tbody.innerHTML = '';
     
+    // Eğer görev yoksa test görevi oluştur
+    if (!tasks || tasks.length === 0) {
+        console.log('Son görevler için test görevi oluşturuluyor...');
+        const testTask = createTestTask();
+        tasks = [testTask];
+    }
+    
     // Son 5 görevi al
     const recentTasks = tasks.slice(0, 5);
     
@@ -335,13 +363,13 @@ function loadRecentTasks(tasks = []) {
     }
     
     recentTasks.forEach(task => {
-        const channelName = task.channels?.name || 'Bilinmiyor';
+        const channelName = task.channels?.name || (task.id === 999 ? 'Test Kanalı' : 'Bilinmiyor');
         const statusClass = getTaskStatusClass(task.status);
         const statusText = getTaskStatusText(task.status);
         
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${task.title}</td>
+            <td>${task.title}${task.id === 999 ? ' <small class="text-info">(Test)</small>' : ''}</td>
             <td>${channelName}</td>
             <td><span class="badge bg-${statusClass}">${statusText}</span></td>
             <td>${formatDateTime(task.start_date)}</td>
@@ -2464,8 +2492,14 @@ function displayTasksList(tasks) {
     }
 
     tbody.innerHTML = tasks.map(task => {
-        const channelName = task.channels?.name || 'Bilinmiyor';
-        const allStores = task.task_assignments?.map(ta => ta.stores?.name).filter(Boolean) || [];
+        const channelName = task.channels?.name || (task.id === 999 ? 'Test Kanalı' : 'Bilinmiyor');
+        let allStores = task.task_assignments?.map(ta => ta.stores?.name).filter(Boolean) || [];
+        
+        // Test görevi için özel mağaza atamaları
+        if (task.id === 999) {
+            allStores = ['Test Mağaza 1', 'Test Mağaza 2', 'Test Mağaza 3'];
+        }
+        
         const storeCount = allStores.length;
         const assignedStores = storeCount > 0 ? 
             (storeCount > 3 ? 
@@ -2478,7 +2512,7 @@ function displayTasksList(tasks) {
         return `
             <tr>
                 <td>
-                    <strong>${task.title}</strong>
+                    <strong>${task.title}${task.id === 999 ? ' <small class="text-info">(Test)</small>' : ''}</strong>
                     <br>
                     <small class="text-muted">${task.description?.substring(0, 50)}${task.description?.length > 50 ? '...' : ''}</small>
                 </td>
@@ -3976,9 +4010,50 @@ function getStatusText(status) {
         'assigned': 'Atandı',
         'in_progress': 'Devam Ediyor',
         'completed': 'Tamamlandı',
-        'cancelled': 'İptal'
+        'cancelled': 'İptal',
+        'active': 'Aktif'
     };
     return statusMap[status] || 'Bilinmiyor';
+}
+
+function getTaskStatusText(status) {
+    const statusMap = {
+        'assigned': 'Atandı',
+        'in_progress': 'Devam Ediyor',
+        'completed': 'Tamamlandı',
+        'cancelled': 'İptal',
+        'active': 'Aktif'
+    };
+    return statusMap[status] || 'Bilinmiyor';
+}
+
+function getTaskStatusColor(status) {
+    const colorMap = {
+        'assigned': 'primary',
+        'in_progress': 'warning',
+        'completed': 'success',
+        'cancelled': 'danger',
+        'active': 'info'
+    };
+    return colorMap[status] || 'secondary';
+}
+
+function getTaskStatusBadge(status) {
+    const color = getTaskStatusColor(status);
+    const text = getTaskStatusText(status);
+    return `<span class="badge bg-${color}">${text}</span>`;
+}
+
+function getTaskCategoryBadge(category) {
+    const categoryMap = {
+        'promotion': { text: 'Promosyon', color: 'primary' },
+        'display': { text: 'Vitrin', color: 'info' },
+        'training': { text: 'Eğitim', color: 'warning' },
+        'other': { text: 'Diğer', color: 'secondary' },
+        'test': { text: 'Test', color: 'success' }
+    };
+    const categoryInfo = categoryMap[category] || { text: 'Bilinmiyor', color: 'secondary' };
+    return `<span class="badge bg-${categoryInfo.color}">${categoryInfo.text}</span>`;
 }
 
 function getCategoryText(category) {
@@ -3986,9 +4061,22 @@ function getCategoryText(category) {
         'promotion': 'Promosyon',
         'display': 'Vitrin',
         'training': 'Eğitim',
-        'other': 'Diğer'
+        'other': 'Diğer',
+        'test': 'Test'
     };
     return categoryMap[category] || 'Bilinmiyor';
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return 'Belirtilmemiş';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 function formatDateForExcel(dateString) {
