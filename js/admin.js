@@ -3822,6 +3822,15 @@ window.deleteTask = function(taskId) {
     }
     
     try {
+        // Önce kullanıcı oturumunu kontrol et
+        const user = checkUserSession();
+        if (!user) {
+            showAlert('Oturum süreniz dolmuş! Lütfen tekrar giriş yapın.', 'danger');
+            return;
+        }
+        
+        console.log('Kullanıcı oturumu:', user);
+        
         // Supabase'den görevi sil
         supabase
             .from('task_assignments')
@@ -3830,7 +3839,11 @@ window.deleteTask = function(taskId) {
             .then(({ error: assignmentError }) => {
                 if (assignmentError) {
                     console.error('Görev atamaları silinirken hata:', assignmentError);
+                    showAlert('Görev atamaları silinirken hata: ' + assignmentError.message, 'danger');
+                    return;
                 }
+                
+                console.log('Görev atamaları silindi, ana görev siliniyor...');
                 
                 // Ana görevi sil
                 return supabase
@@ -3849,9 +3862,13 @@ window.deleteTask = function(taskId) {
                     // Görev listesini yenile
                     loadTasks();
                 }
+            })
+            .catch((error) => {
+                console.error('Görev silme catch hatası:', error);
+                showAlert('Görev silinirken beklenmeyen hata: ' + error.message, 'danger');
             });
     } catch (error) {
-        console.error('Görev silme hatası:', error);
+        console.error('Görev silme try-catch hatası:', error);
         showAlert('Görev silinirken hata oluştu!', 'danger');
     }
 }
@@ -3873,6 +3890,15 @@ window.closeCampaign = function(campaignId) {
     }
     
     try {
+        // Önce kullanıcı oturumunu kontrol et
+        const user = checkUserSession();
+        if (!user) {
+            showAlert('Oturum süreniz dolmuş! Lütfen tekrar giriş yapın.', 'danger');
+            return;
+        }
+        
+        console.log('Kullanıcı oturumu:', user);
+        
         // Supabase'den kampanyayı kapat (status = 'closed')
         supabase
             .from('campaigns')
@@ -3889,9 +3915,13 @@ window.closeCampaign = function(campaignId) {
                     // Kampanya listesini yenile
                     loadCampaigns();
                 }
+            })
+            .catch((error) => {
+                console.error('Kampanya kapatma catch hatası:', error);
+                showAlert('Kampanya kapatılırken beklenmeyen hata: ' + error.message, 'danger');
             });
     } catch (error) {
-        console.error('Kampanya kapatma hatası:', error);
+        console.error('Kampanya kapatma try-catch hatası:', error);
         showAlert('Kampanya kapatılırken hata oluştu!', 'danger');
     }
 }
