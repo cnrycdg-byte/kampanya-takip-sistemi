@@ -2713,6 +2713,20 @@ async function viewTask(taskId) {
                                     </p>
                                 </div>
                             </div>
+                            ${task.example_photo_url ? `
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>Örnek Fotoğraf</h6>
+                                    <div class="text-center">
+                                        <img src="${supabase.supabaseUrl}/storage/v1/object/public/task-photos/${task.example_photo_url}" 
+                                             alt="Örnek Fotoğraf" 
+                                             class="img-fluid rounded" 
+                                             style="max-height: 300px; max-width: 100%;"
+                                             onerror="this.style.display='none'; this.parentElement.parentElement.style.display='none';">
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
                 <div class="row mt-3">
                     <div class="col-12">
                         <h6>Atanan Mağazalar (${task.task_assignments?.length || 0})</h6>
@@ -3119,10 +3133,17 @@ function getTaskAssignmentStatusBadge(status) {
 
 // Mağaza fotoğraf modal'ını açan fonksiyon
 function openStorePhotoModal(storeName, photoUrls, status) {
+    console.log('openStorePhotoModal çağrıldı:', { storeName, photoUrls, status });
+    
     if (!photoUrls || photoUrls.length === 0) {
         showAlert('Bu mağazada henüz fotoğraf yüklenmemiş!', 'info');
         return;
     }
+    
+    // URL'leri kontrol et
+    photoUrls.forEach((url, index) => {
+        console.log(`Fotoğraf ${index + 1} URL:`, url);
+    });
 
     const statusText = {
         'assigned': 'Atandı',
@@ -3147,11 +3168,23 @@ function openStorePhotoModal(storeName, photoUrls, status) {
                             ${photoUrls.map((photoUrl, index) => `
                                 <div class="col-md-4 col-sm-6 mb-3">
                                     <div class="card">
-                                        <img src="${photoUrl}" 
-                                             class="card-img-top" 
-                                             style="height: 200px; object-fit: cover; cursor: pointer;"
-                                             onclick="openSinglePhotoModal('${photoUrl}', '${storeName}')"
-                                             alt="Fotoğraf ${index + 1}">
+                                        <div class="position-relative" style="height: 200px;">
+                                            <img src="${photoUrl}" 
+                                                 class="card-img-top" 
+                                                 style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                 onclick="openSinglePhotoModal('${photoUrl}', '${storeName}')"
+                                                 alt="Fotoğraf ${index + 1}"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="d-none align-items-center justify-content-center bg-light" 
+                                                 style="height: 200px; cursor: pointer;"
+                                                 onclick="openSinglePhotoModal('${photoUrl}', '${storeName}')">
+                                                <div class="text-center text-muted">
+                                                    <i class="fas fa-image fa-3x mb-2"></i>
+                                                    <div>Fotoğraf ${index + 1}</div>
+                                                    <small>Yüklenemedi</small>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div class="card-body p-2">
                                             <small class="text-muted">Fotoğraf ${index + 1}</small>
                                         </div>
@@ -3185,6 +3218,18 @@ function openStorePhotoModal(storeName, photoUrls, status) {
 
 // Tek fotoğraf modal'ını açan fonksiyon
 function openSinglePhotoModal(photoUrl, storeName) {
+    console.log('openSinglePhotoModal çağrıldı:', { photoUrl, storeName });
+    
+    // URL'yi test et
+    const img = new Image();
+    img.onload = function() {
+        console.log('Fotoğraf başarıyla yüklendi:', photoUrl);
+    };
+    img.onerror = function() {
+        console.error('Fotoğraf yüklenemedi:', photoUrl);
+    };
+    img.src = photoUrl;
+    
     const modalContent = `
         <div class="modal fade" id="singlePhotoModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
@@ -3194,7 +3239,20 @@ function openSinglePhotoModal(photoUrl, storeName) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body text-center">
-                        <img src="${photoUrl}" class="img-fluid" alt="Fotoğraf">
+                        <div class="position-relative">
+                            <img src="${photoUrl}" 
+                                 class="img-fluid" 
+                                 alt="Fotoğraf"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="d-none align-items-center justify-content-center bg-light" 
+                                 style="min-height: 300px;">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-image fa-5x mb-3"></i>
+                                    <h5>Fotoğraf Yüklenemedi</h5>
+                                    <p>Bu fotoğraf görüntülenemiyor. Lütfen daha sonra tekrar deneyin.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>

@@ -103,6 +103,7 @@ async function loadTasks() {
                     response_text_enabled,
                     response_photo_enabled,
                     photo_limit,
+                    example_photo_url,
                     channels(name)
                 )
             `)
@@ -141,6 +142,7 @@ async function loadTasks() {
                     maxPhotos: task.photo_limit || 5,
                     responseTextEnabled: task.response_text_enabled,
                     responsePhotoEnabled: task.response_photo_enabled,
+                    examplePhotoUrl: task.example_photo_url,
                     channelName: task.channels?.name || 'Bilinmiyor',
                     isLate: isLate,
                     daysLeft: daysLeft
@@ -306,6 +308,25 @@ function openTaskModal(taskId, assignmentId) {
     document.getElementById('modal-end-date').textContent = formatDate(task.endDate);
     document.getElementById('modal-status').textContent = task.status;
     document.getElementById('modal-description').textContent = task.description;
+    
+    // Örnek fotoğrafı göster/gizle
+    const examplePhotoSection = document.getElementById('example-photo-section');
+    const examplePhotoImg = document.getElementById('modal-example-photo');
+    
+    if (task.examplePhotoUrl) {
+        // Supabase storage URL'sini oluştur
+        const photoUrl = `${supabase.supabaseUrl}/storage/v1/object/public/task-photos/${task.examplePhotoUrl}`;
+        examplePhotoImg.src = photoUrl;
+        examplePhotoSection.style.display = 'block';
+        
+        // Fotoğraf yüklenme hatası durumunda
+        examplePhotoImg.onerror = function() {
+            console.error('Örnek fotoğraf yüklenemedi:', photoUrl);
+            examplePhotoSection.style.display = 'none';
+        };
+    } else {
+        examplePhotoSection.style.display = 'none';
+    }
     
     // Fotoğraf yükleme alanını sıfırla
     document.getElementById('gallery-upload').value = '';
@@ -538,6 +559,24 @@ async function completeTask() {
 async function uploadPhotos(photos, taskId) {
     const photoUrls = [];
     
+    // Supabase storage bucket'ını kontrol et
+    try {
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        if (bucketError) {
+            console.error('Bucket listesi alınamadı:', bucketError);
+        } else {
+            console.log('Mevcut bucket\'lar:', buckets);
+            const taskPhotosBucket = buckets.find(bucket => bucket.name === 'task-photos');
+            if (taskPhotosBucket) {
+                console.log('task-photos bucket bulundu:', taskPhotosBucket);
+            } else {
+                console.error('task-photos bucket bulunamadı!');
+            }
+        }
+    } catch (error) {
+        console.error('Bucket kontrolü hatası:', error);
+    }
+    
     for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
         const fileName = `task_${taskId}_${Date.now()}_${i}.jpg`;
@@ -560,6 +599,18 @@ async function uploadPhotos(photos, taskId) {
             
             photoUrls.push(urlData.publicUrl);
             console.log(`Fotoğraf ${i + 1} yüklendi:`, urlData.publicUrl);
+            console.log(`Fotoğraf ${i + 1} dosya yolu:`, filePath);
+            console.log(`Fotoğraf ${i + 1} boyut:`, photo.size, 'bytes');
+            
+            // URL'yi test et
+            const testImg = new Image();
+            testImg.onload = function() {
+                console.log(`Fotoğraf ${i + 1} URL testi başarılı`);
+            };
+            testImg.onerror = function() {
+                console.error(`Fotoğraf ${i + 1} URL testi başarısız:`, urlData.publicUrl);
+            };
+            testImg.src = urlData.publicUrl;
             
         } catch (error) {
             console.error(`Fotoğraf ${i + 1} yükleme hatası:`, error);
