@@ -1,0 +1,6 @@
+user_id,role,channel_id,is_active
+1,key_account_manager,1,true
+2,key_account_manager,2,true
+3,key_account_manager,3,true
+4,marketing_manager,,true
+5,marketing_manager,,true

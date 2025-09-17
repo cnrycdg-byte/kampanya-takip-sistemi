@@ -2707,6 +2707,9 @@ function getStatusText(status) {
 // Tür metnini döndüren fonksiyon
 function getTypeText(type) {
     const typeTexts = {
+        'free_wkz': 'Free WKZ',
+        'product_support': 'Ürün Başına Destek',
+        'spift': 'Spift Ödemeleri',
         'individual': 'Bireysel',
         'team': 'Takım',
         'store': 'Mağaza',

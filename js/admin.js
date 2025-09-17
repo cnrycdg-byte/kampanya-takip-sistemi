@@ -49,6 +49,9 @@ document.addEventListener('DOMContentLoaded', function() {
         loadManagerData(user);
     }
     
+    // Menü öğelerini kullanıcı rolüne göre ayarla
+    setupMenuForUser(user);
+    
     // Dashboard verilerini yükle
     loadDashboardData();
     
@@ -7151,5 +7154,37 @@ function clearAllStoresForProduct() {
             toggleStoreSelectionForProduct(checkbox);
         }
     });
+}
+
+// Yönetici verilerini yükleyen fonksiyon
+function loadManagerData(user) {
+    console.log('Yönetici verileri yükleniyor:', user);
+    // Yönetici için özel veri yükleme işlemleri burada yapılabilir
+    // Şu an için boş bırakıyoruz
+}
+
+// Kullanıcı rolüne göre menü öğelerini ayarlayan fonksiyon
+function setupMenuForUser(user) {
+    console.log('Menü öğeleri ayarlanıyor, kullanıcı rolü:', user.role);
+    
+    // Kullanıcı Ekle menü öğesi
+    const addUserMenu = document.getElementById('add-user-menu');
+    if (addUserMenu) {
+        if (user.role === 'admin' || user.role === 'manager') {
+            addUserMenu.style.display = 'block';
+        } else {
+            addUserMenu.style.display = 'none';
+        }
+    }
+    
+    // Mağaza Ekle menü öğesi
+    const addStoreMenu = document.getElementById('add-store-menu');
+    if (addStoreMenu) {
+        if (user.role === 'admin' || user.role === 'manager') {
+            addStoreMenu.style.display = 'block';
+        } else {
+            addStoreMenu.style.display = 'none';
+        }
+    }
 }
 

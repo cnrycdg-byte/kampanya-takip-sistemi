@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Approvers Upload</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+</head>
+<body>
+    <h1>Onaylayıcıları Supabase'e Yükle</h1>
+    
+    <input type="file" id="csvFile" accept=".csv" />
+    <button onclick="uploadApprovers()">Yükle</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        async function uploadApprovers() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Lütfen CSV dosyası seçin');
+                return;
+            }
+            
+            const text = await file.text();
+            const lines = text.split('\n');
+            const headers = lines[0].split(',');
+            
+            const approvers = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = lines[i].split(',');
+                    const approver = {
+                        user_id: parseInt(values[0]),
+                        role: values[1],
+                        channel_id: values[2] ? parseInt(values[2]) : null,
+                        is_active: values[3] === 'true'
+                    };
+                    approvers.push(approver);
+                }
+            }
+            
+            console.log('Yüklenecek onaylayıcılar:', approvers);
+            
+            try {
+                const { data, error } = await supabase
+                    .from('approvers')
+                    .insert(approvers);
+                
+                if (error) throw error;
+                
+                document.getElementById('result').innerHTML = `
+                    <div style="color: green; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+                        ✅ ${approvers.length} onaylayıcı başarıyla yüklendi!
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Yükleme hatası:', error);
+                document.getElementById('result').innerHTML = `
+                    <div style="color: red; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
+                        ❌ Hata: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

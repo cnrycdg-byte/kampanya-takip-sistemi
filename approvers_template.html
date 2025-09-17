@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Approvers Template</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Onaylayıcılar Template</h1>
+    <p>Bu dosyayı Excel olarak kaydedin ve verilerinizi girin.</p>
+    
+    <table id="approversTable" border="1" style="border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f0f0f0;">
+                <th>user_id</th>
+                <th>role</th>
+                <th>channel_id</th>
+                <th>is_active</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>key_account_manager</td>
+                <td>1</td>
+                <td>true</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>key_account_manager</td>
+                <td>2</td>
+                <td>true</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>key_account_manager</td>
+                <td>3</td>
+                <td>true</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>marketing_manager</td>
+                <td></td>
+                <td>true</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>marketing_manager</td>
+                <td></td>
+                <td>true</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <br>
+    <button onclick="exportToExcel()">Excel Olarak İndir</button>
+    
+    <script>
+        function exportToExcel() {
+            const table = document.getElementById('approversTable');
+            const wb = XLSX.utils.table_to_book(table);
+            XLSX.writeFile(wb, 'approvers_template.xlsx');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free WKZ - Oyun Planları</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="document.getElementById('free-wkz-create-section').style.display='none'; document.getElementById('dashboard-section').style.display='block';">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="document.getElementById('dashboard-section').style.display='none'; document.getElementById('free-wkz-create-section').style.display='block'; initializeFreeWKZ();">
+                                <i class="fas fa-gift me-2"></i>Free WKZ
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- Dashboard Section -->
+                <div id="dashboard-section" class="content-section">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h1 class="h2">Free WKZ Dashboard</h1>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card text-white bg-primary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4 class="card-title" id="saved-count">0</h4>
+                                            <p class="card-text">Kaydedilenler</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-save fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-warning">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4 class="card-title" id="pending-count">0</h4>
+                                            <p class="card-text">Onaya Gidenler</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-clock fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-success">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4 class="card-title" id="approved-count">0</h4>
+                                            <p class="card-text">Onaylananlar</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-check-circle fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs" id="dashboard-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="saved-tab" data-bs-toggle="tab" data-bs-target="#saved" type="button" role="tab">
+                                Kaydedilenler
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                                Onaya Gidenler
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">
+                                Onaylananlar
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="dashboard-tabContent">
+                        <div class="tab-pane fade show active" id="saved" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Başlık</th>
+                                            <th>Başlangıç Tarihi</th>
+                                            <th>Bitiş Tarihi</th>
+                                            <th>Oluşturma Tarihi</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="saved-plans-table">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                <i class="fas fa-info-circle me-2"></i>Kaydedilen plan bulunmuyor
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="pending" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Başlık</th>
+                                            <th>Başlangıç Tarihi</th>
+                                            <th>Bitiş Tarihi</th>
+                                            <th>Gönderim Tarihi</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pending-plans-table">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                <i class="fas fa-info-circle me-2"></i>Onaya giden plan bulunmuyor
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="approved" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Başlık</th>
+                                            <th>Başlangıç Tarihi</th>
+                                            <th>Bitiş Tarihi</th>
+                                            <th>Onay Tarihi</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="approved-plans-table">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                <i class="fas fa-info-circle me-2"></i>Onaylanan plan bulunmuyor
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Yeni Free WKZ Butonu -->
+                    <div class="text-center mt-4">
+                        <button class="btn btn-primary btn-lg" onclick="document.getElementById('dashboard-section').style.display='none'; document.getElementById('free-wkz-create-section').style.display='block'; initializeFreeWKZ();">
+                            <i class="fas fa-plus me-2"></i>Yeni Free WKZ Oluştur
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Free WKZ Create Section -->
+                <div id="free-wkz-create-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h1 class="h2">Yeni Free WKZ Oluştur</h1>
+                        <button class="btn btn-secondary" onclick="document.getElementById('free-wkz-create-section').style.display='none'; document.getElementById('dashboard-section').style.display='block';">
+                            <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" id="progress-bar" style="width: 20%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">Adım 1: Tarih Seçimi</small>
+                            <small class="text-muted">Adım 2: Ciro Bazlı Plan</small>
+                            <small class="text-muted">Adım 3: Ürün Bazlı Plan</small>
+                            <small class="text-muted">Adım 4: Mağaza Seçimi</small>
+                            <small class="text-muted">Adım 5: Özet</small>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Tarih Seçimi -->
+                    <div id="step-1" class="step-content">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-calendar me-2"></i>1. Tarih Seçimi</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="start-date" class="form-label">Başlangıç Tarihi *</label>
+                                            <input type="date" class="form-control" id="start-date" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="end-date" class="form-label">Bitiş Tarihi *</label>
+                                            <input type="date" class="form-control" id="end-date" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                                        İleri <i class="fas fa-arrow-right ms-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Ciro Bazlı Oyun Planı -->
+                    <div id="step-2" class="step-content" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>2. Ciro Bazlı Oyun Planı</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="revenue-rows">
+                                    <div class="revenue-row border rounded p-3 mb-3">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Ciro Hedef Tutarı (₺) *</label>
+                                                    <input type="text" class="form-control revenue-amount" placeholder="Örn: 100.000" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="mb-3">
+                                                    <label class="form-label">KDV Durumu</label>
+                                                    <select class="form-select kdv-status">
+                                                        <option value="included">KDV Dahil</option>
+                                                        <option value="excluded">KDV Hariç</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Destek Oranı (%) *</label>
+                                                    <input type="number" class="form-control support-rate" placeholder="Örn: 5" step="0.01" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <label class="form-label">&nbsp;</label>
+                                                    <button type="button" class="btn btn-danger form-control" onclick="removeRevenueRow(this)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-body d-flex justify-content-between">
+                                                        <strong>Hesaplanan Destek Tutarı:</strong>
+                                                        <span class="calculated-amount">0 ₺</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-center mb-3">
+                                    <button type="button" class="btn btn-outline-primary" onclick="addRevenueRow()">
+                                        <i class="fas fa-plus me-1"></i>Satır Ekle
+                                    </button>
+                                </div>
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-secondary me-2" onclick="prevStep(1)">
+                                        <i class="fas fa-arrow-left me-1"></i>Geri
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                                        İleri <i class="fas fa-arrow-right ms-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Ürün Bazlı Oyun Planı -->
+                    <div id="step-3" class="step-content" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-box me-2"></i>3. Ürün Bazlı Oyun Planı</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Ürün Arama</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="product-search" placeholder="Ürün kodu veya adı ara..." onkeyup="searchProducts()">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="searchProducts()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="product-list" class="mb-3" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px;">
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-search me-2"></i>Ürün aramak için yukarıdaki kutucuğu kullanın
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Seçilen Ürünler <span class="badge bg-primary" id="product-count">0</span></label>
+                                    <div id="selected-products" class="border rounded p-3" style="min-height: 100px; background-color: #f8f9fa;">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-box me-2"></i>Henüz ürün seçilmedi
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-secondary me-2" onclick="prevStep(2)">
+                                        <i class="fas fa-arrow-left me-1"></i>Geri
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="nextStep(4)">
+                                        İleri <i class="fas fa-arrow-right ms-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Mağaza Seçimi -->
+                    <div id="step-4" class="step-content" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-store me-2"></i>4. Mağaza Seçimi</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Filtreleme -->
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Kanal</label>
+                                        <select class="form-select" id="channel-filter" onchange="filterStores()">
+                                            <option value="">Tüm Kanallar</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Manager</label>
+                                        <select class="form-select" id="manager-filter" onchange="filterStores()">
+                                            <option value="">Tüm Manager'lar</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Arama</label>
+                                        <input type="text" class="form-control" id="store-search" placeholder="Mağaza adı ara..." onkeyup="filterStores()">
+                                    </div>
+                                </div>
+                                
+                                <!-- Mağaza Listesi -->
+                                <div class="border rounded p-3 mb-3" style="max-height: 400px; overflow-y: auto;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">Mevcut Mağazalar</h6>
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-success me-2" onclick="selectAllStores()">
+                                                <i class="fas fa-check-square me-1"></i>Tümünü Seç
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary" onclick="clearAllStores()">
+                                                <i class="fas fa-square me-1"></i>Tümünü Temizle
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="stores-container">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-info-circle me-2"></i>Mağazalar yükleniyor...
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Seçilen Mağazalar -->
+                                <div id="selected-stores-display" style="display: none;">
+                                    <label class="form-label">Seçilen Mağazalar</label>
+                                    <div id="selected-stores-list" class="border rounded p-3" style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa;">
+                                        <!-- Seçilen mağazalar burada gösterilecek -->
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-secondary me-2" onclick="prevStep(3)">
+                                        <i class="fas fa-arrow-left me-1"></i>Geri
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="nextStep(5)">
+                                        İleri <i class="fas fa-arrow-right ms-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Özet -->
+                    <div id="step-5" class="step-content" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-list me-2"></i>5. Özet</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="summary-content">
+                                    <!-- Özet içeriği burada gösterilecek -->
+                                </div>
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-secondary me-2" onclick="prevStep(4)">
+                                        <i class="fas fa-arrow-left me-1"></i>Geri
+                                    </button>
+                                    <button type="button" class="btn btn-warning me-2" onclick="saveDraft()">
+                                        <i class="fas fa-save me-1"></i>Kaydet
+                                    </button>
+                                    <button type="button" class="btn btn-success me-2" onclick="sendForApproval()">
+                                        <i class="fas fa-paper-plane me-1"></i>Onaya Gönder
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/game-plans.js"></script>
+    
+    <script>
+        // Free WKZ oluşturma sayfasını göster - Test için en başa taşındı
+        function showFreeWKZCreate() {
+            console.log('Free WKZ oluşturma sayfası açılıyor...');
+            
+            // Dashboard'ı gizle
+            document.getElementById('free-wkz-section').style.display = 'none';
+            
+            // Free WKZ oluşturma bölümünü göster
+            document.getElementById('free-wkz-create-section').style.display = 'block';
+            
+            // Formu başlat
+            initializeFreeWKZ();
+        }
+
+        // Global değişkenler
+        let currentStep = 1;
+        let selectedProducts = [];
+        let selectedStores = [];
+        let revenueRows = [];
+        let searchTimeout;
+        let allStores = []; // Tüm mağazaları sakla
+
+
+
+        // Dashboard'a geri dön
+        function showFreeWKZDashboard() {
+            console.log('Dashboard\'a dönülüyor...');
+            
+            // Free WKZ oluşturma bölümünü gizle
+            document.getElementById('free-wkz-create-section').style.display = 'none';
+            
+            // Dashboard'ı göster
+            document.getElementById('free-wkz-section').style.display = 'block';
+        }
+
+        // Genel section gösterme fonksiyonu
+        function showSection(sectionName) {
+            console.log('Section gösteriliyor:', sectionName);
+            
+            // Tüm section'ları gizle
+            const sections = ['dashboard-section', 'free-wkz-section', 'free-wkz-create-section'];
+            sections.forEach(section => {
+                const element = document.getElementById(section);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            });
+            
+            // İstenen section'ı göster
+            switch(sectionName) {
+                case 'dashboard':
+                    document.getElementById('dashboard-section').style.display = 'block';
+                    break;
+                case 'free-wkz':
+                    document.getElementById('free-wkz-section').style.display = 'block';
+                    break;
+                case 'free-wkz-create':
+                    document.getElementById('free-wkz-create-section').style.display = 'block';
+                    break;
+                default:
+                    console.log('Bilinmeyen section:', sectionName);
+            }
+        }
+
+        // Free WKZ formunu başlat
+        function initializeFreeWKZ() {
+            console.log('Free WKZ formu başlatılıyor...');
+            
+            // Bugünün tarihini başlangıç tarihi olarak ayarla
+            const today = new Date();
+            const oneMonthLater = new Date();
+            oneMonthLater.setMonth(today.getMonth() + 1);
+            
+            document.getElementById('start-date').value = today.toISOString().split('T')[0];
+            document.getElementById('end-date').value = oneMonthLater.toISOString().split('T')[0];
+            
+            // Minimum tarih ayarla
+            document.getElementById('start-date').min = today.toISOString().split('T')[0];
+            document.getElementById('end-date').min = today.toISOString().split('T')[0];
+            
+            // İlk adımı göster
+            showStep(1);
+            
+            // Verileri yükle
+            console.log('Veriler yükleniyor...');
+            loadChannels();
+            loadManagers();
+            loadStores();
+        }
+
+        // Adım gösterme
+        function showStep(stepNumber) {
+            currentStep = stepNumber;
+            
+            // Tüm adımları gizle
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById(`step-${i}`);
+                if (step) {
+                    step.style.display = 'none';
+                }
+            }
+            
+            // Seçilen adımı göster
+            const currentStepElement = document.getElementById(`step-${stepNumber}`);
+            if (currentStepElement) {
+                currentStepElement.style.display = 'block';
+            }
+            
+            // 5. adım (özet) ise özeti oluştur
+            if (stepNumber === 5) {
+                console.log('5. adıma geçiliyor, özet oluşturuluyor...');
+                setTimeout(() => {
+                    generateSummary();
+                }, 100);
+            }
+            
+            // Progress bar güncelle
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = `${(stepNumber / 5) * 100}%`;
+        }
+
+        // Sonraki adım
+        function nextStep(stepNumber) {
+            if (validateCurrentStep(stepNumber - 1)) {
+                showStep(stepNumber);
+            }
+        }
+
+        // Önceki adım
+        function prevStep(stepNumber) {
+            if (stepNumber > 1) {
+                showStep(stepNumber - 1);
+            }
+        }
+
+        // Mevcut adımı doğrula
+        function validateCurrentStep(stepNumber) {
+            switch(stepNumber) {
+                case 1: // Tarih seçimi
+                    const startDate = document.getElementById('start-date').value;
+                    const endDate = document.getElementById('end-date').value;
+                    
+                    if (!startDate || !endDate) {
+                        alert('Lütfen tarih alanlarını doldurun!');
+                        return false;
+                    }
+                    
+                    const startDateObj = new Date(startDate);
+                    const endDateObj = new Date(endDate);
+                    
+                    if (startDateObj >= endDateObj) {
+                        alert('Bitiş tarihi başlangıç tarihinden sonra olmalıdır!');
+                        return false;
+                    }
+                    
+                    return true;
+                    
+                case 2: // Ciro bazlı plan (opsiyonel)
+                    // Ciro bazlı plan doldurulmuşsa kontrol et
+                    const revenueAmounts = document.querySelectorAll('.revenue-amount');
+                    const supportRates = document.querySelectorAll('.support-rate');
+                    
+                    let hasFilledRows = false;
+                    for (let i = 0; i < revenueAmounts.length; i++) {
+                        if (revenueAmounts[i].value && supportRates[i].value) {
+                            hasFilledRows = true;
+                        } else if (revenueAmounts[i].value || supportRates[i].value) {
+                            // Kısmen doldurulmuş satır varsa hata ver
+                            alert('Lütfen ciro ve destek oranı alanlarını birlikte doldurun!');
+                            return false;
+                        }
+                    }
+                    
+                    // Hiç doldurulmamışsa da geçerli (opsiyonel)
+                    return true;
+                    
+                case 3: // Ürün bazlı plan (opsiyonel)
+                    // Ürün seçimi opsiyonel, boş geçilebilir
+                    return true;
+                    
+                case 4: // Mağaza seçimi
+                    if (selectedStores.length === 0) {
+                        alert('Lütfen en az bir mağaza seçin!');
+                        return false;
+                    }
+                    return true;
+                    
+                default:
+                    return true;
+            }
+        }
+
+        // Ciro satırı ekle
+        function addRevenueRow() {
+            const revenueRows = document.getElementById('revenue-rows');
+            const newRow = document.createElement('div');
+            newRow.className = 'revenue-row border rounded p-3 mb-3';
+            newRow.innerHTML = `
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Ciro Hedef Tutarı (₺) *</label>
+                            <input type="text" class="form-control revenue-amount" placeholder="Örn: 100.000" required>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">KDV Durumu</label>
+                            <select class="form-select kdv-status">
+                                <option value="included">KDV Dahil</option>
+                                <option value="excluded">KDV Hariç</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">Destek Oranı (%) *</label>
+                            <input type="number" class="form-control support-rate" placeholder="Örn: 5" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-danger form-control" onclick="removeRevenueRow(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body d-flex justify-content-between">
+                                <strong>Hesaplanan Destek Tutarı:</strong>
+                                <span class="calculated-amount">0 ₺</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            revenueRows.appendChild(newRow);
+            
+            // Event listener ekle
+            const newAmountInput = newRow.querySelector('.revenue-amount');
+            const newRateInput = newRow.querySelector('.support-rate');
+            newAmountInput.addEventListener('input', calculateSupportAmount);
+            newRateInput.addEventListener('input', calculateSupportAmount);
+            
+            // Ciro tutarı için blur event listener ekle
+            newAmountInput.addEventListener('blur', function() {
+                formatInputNumber(this);
+                calculateSupportAmount({ target: this });
+            });
+        }
+
+        // Ciro satırını kaldır
+        function removeRevenueRow(button) {
+            button.closest('.revenue-row').remove();
+        }
+
+        // Sayı formatlama fonksiyonu
+        function formatNumber(value) {
+            return parseFloat(value).toLocaleString('tr-TR');
+        }
+
+        // Input formatlama fonksiyonu
+        function formatInputNumber(input) {
+            const value = input.value.replace(/[^\d]/g, ''); // Sadece rakamları al
+            if (value) {
+                // Büyük sayıları desteklemek için Number.MAX_SAFE_INTEGER kontrolü
+                const numValue = parseFloat(value);
+                if (numValue <= Number.MAX_SAFE_INTEGER) {
+                    const formatted = numValue.toLocaleString('tr-TR');
+                    input.value = formatted;
+                } else {
+                    // Çok büyük sayılar için string olarak formatla
+                    const formatted = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                    input.value = formatted;
+                }
+            }
+        }
+
+        // Input temizleme fonksiyonu (hesaplama için)
+        function cleanNumber(value) {
+            const cleanValue = value.replace(/[^\d]/g, '');
+            if (!cleanValue) return 0;
+            
+            // Büyük sayıları desteklemek için
+            const numValue = parseFloat(cleanValue);
+            if (numValue <= Number.MAX_SAFE_INTEGER) {
+                return numValue;
+            } else {
+                // Çok büyük sayılar için string olarak işle
+                return cleanValue;
+            }
+        }
+
+        // Destek tutarını hesapla
+        function calculateSupportAmount(event) {
+            const row = event.target.closest('.revenue-row');
+            const amount = cleanNumber(row.querySelector('.revenue-amount').value);
+            const rate = parseFloat(row.querySelector('.support-rate').value) || 0;
+            
+            // Büyük sayıları desteklemek için
+            let calculatedAmount;
+            if (typeof amount === 'number') {
+                calculatedAmount = (amount * rate / 100).toFixed(2);
+            } else {
+                // String olarak gelen büyük sayılar için
+                const amountNum = parseFloat(amount);
+                if (amountNum <= Number.MAX_SAFE_INTEGER) {
+                    calculatedAmount = (amountNum * rate / 100).toFixed(2);
+                } else {
+                    // Çok büyük sayılar için yaklaşık hesaplama
+                    calculatedAmount = (amountNum * rate / 100).toFixed(2);
+                }
+            }
+            
+            const formattedAmount = formatNumber(calculatedAmount);
+            row.querySelector('.calculated-amount').textContent = formattedAmount + ' ₺';
+        }
+
+        // Ürün arama (debounced)
+        function searchProducts() {
+            // Önceki timeout'u temizle
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // 300ms sonra arama yap (kullanıcı yazmayı bitirdikten sonra)
+            searchTimeout = setTimeout(performProductSearch, 300);
+        }
+
+        // Gerçek arama fonksiyonu
+        async function performProductSearch() {
+            const searchTerm = document.getElementById('product-search').value.toLowerCase();
+            const productList = document.getElementById('product-list');
+            
+            if (!searchTerm) {
+                productList.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-search me-2"></i>Ürün aramak için yukarıdaki kutucuğu kullanın
+                    </div>
+                `;
+                return;
+            }
+            
+            // Yükleniyor göstergesi
+            productList.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Ürünler aranıyor...
+                </div>
+            `;
+            
+            try {
+                const { data: products, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .or(`name.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%`)
+                    .limit(500); // Limit 500'e çıkarıldı
+                
+                if (error) throw error;
+                
+                if (products.length === 0) {
+                    productList.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-search me-2"></i>Arama kriterlerine uygun ürün bulunamadı
+                        </div>
+                    `;
+                    return;
+                }
+                
+                productList.innerHTML = products.map(product => {
+                    const safeCode = String(product.code || '').replace(/['"`]/g, '');
+                    const safeName = String(product.name || '').replace(/['"`]/g, '');
+                    return `
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <div>
+                                <strong>${safeCode}</strong> - ${safeName}
+                                <br><small class="text-muted">${product.price ? parseFloat(product.price).toLocaleString('tr-TR') + ' ₺' : 'Fiyat belirtilmemiş'}</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="addProduct(${product.id}, '${safeCode}', '${safeName}')">
+                                <i class="fas fa-plus me-1"></i>Ekle
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Ürün arama hatası:', error);
+                productList.innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Ürünler yüklenirken hata oluştu
+                    </div>
+                `;
+            }
+        }
+
+        // Ürün ekle
+        function addProduct(productId, productCode, productName) {
+            // String güvenliği için özel karakterleri temizle
+            const safeCode = String(productCode).replace(/['"`]/g, '');
+            const safeName = String(productName).replace(/['"`]/g, '');
+            
+            // Zaten eklenmiş mi kontrol et
+            if (selectedProducts.find(p => p.id === productId)) {
+                alert('Bu ürün zaten seçilmiş!');
+                return;
+            }
+            
+            // Maksimum ürün sayısı kontrolü (50'den fazla ürün eklenebilir)
+            if (selectedProducts.length >= 100) {
+                alert('Maksimum 100 ürün ekleyebilirsiniz!');
+                return;
+            }
+            
+            selectedProducts.push({
+                id: productId,
+                code: safeCode,
+                name: safeName,
+                supportAmount: 0
+            });
+            
+            updateSelectedProductsDisplay();
+            
+            // Başarı mesajı
+            console.log('Ürün eklendi: ' + safeCode + ' - ' + safeName + '. Toplam: ' + selectedProducts.length + ' ürün');
+        }
+
+        // Seçilen ürünleri güncelle
+        function updateSelectedProductsDisplay() {
+            const selectedProductsDiv = document.getElementById('selected-products');
+            const productCount = document.getElementById('product-count');
+            
+            // Ürün sayacını güncelle
+            if (productCount) {
+                productCount.textContent = selectedProducts.length;
+            }
+            
+            if (selectedProducts.length === 0) {
+                selectedProductsDiv.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-box me-2"></i>Henüz ürün seçilmedi
+                    </div>
+                `;
+                return;
+            }
+            
+            selectedProductsDiv.innerHTML = selectedProducts.map((product, index) => {
+                const safeCode = String(product.code || '').replace(/['"`]/g, '');
+                const safeName = String(product.name || '').replace(/['"`]/g, '');
+                return `
+                    <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+                        <div>
+                            <strong>${safeCode}</strong> - ${safeName}
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <input type="text" class="form-control me-2" style="width: 120px;" 
+                                   placeholder="Destek tutarı" 
+                                   value="${product.supportAmount ? formatNumber(product.supportAmount) : ''}"
+                                   onchange="updateProductSupportAmount(${index}, this.value)"
+                                   onblur="formatProductSupportInput(this, ${index})">
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeProduct(${index})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Ürün destek tutarını güncelle
+        function updateProductSupportAmount(index, value) {
+            selectedProducts[index].supportAmount = cleanNumber(value);
+        }
+
+        // Ürün destek tutarı input formatlama
+        function formatProductSupportInput(input, index) {
+            formatInputNumber(input);
+            updateProductSupportAmount(index, input.value);
+        }
+
+        // Ürün çıkar
+        function removeProduct(index) {
+            const removedProduct = selectedProducts[index];
+            selectedProducts.splice(index, 1);
+            updateSelectedProductsDisplay();
+            
+            // Başarı mesajı (güvenli string)
+            const safeCode = String(removedProduct.code || '').replace(/['"`]/g, '');
+            const safeName = String(removedProduct.name || '').replace(/['"`]/g, '');
+            console.log('Ürün çıkarıldı: ' + safeCode + ' - ' + safeName + '. Kalan: ' + selectedProducts.length + ' ürün');
+        }
+
+        // Kanal verilerini yükle
+        async function loadChannels() {
+            try {
+                const { data: channels, error } = await supabase
+                    .from('channels')
+                    .select('*')
+                    .order('name');
+                
+                if (error) throw error;
+                
+                const channelFilter = document.getElementById('channel-filter');
+                channelFilter.innerHTML = '<option value="">Tüm Kanallar</option>' + 
+                    channels.map(channel => `<option value="${channel.id}">${channel.name}</option>`).join('');
+                
+            } catch (error) {
+                console.error('Kanal yükleme hatası:', error);
+            }
+        }
+
+        // Manager verilerini yükle (stores tablosundan)
+        async function loadManagers() {
+            try {
+                console.log('Manager yükleme başlatıldı...');
+                
+                const { data: stores, error } = await supabase
+                    .from('stores')
+                    .select('id, name, manager')
+                    .order('name');
+                
+                if (error) {
+                    console.error('Stores sorgu hatası:', error);
+                    throw error;
+                }
+                
+                console.log('Yüklenen mağazalar (manager için):', stores);
+                
+                if (!stores || stores.length === 0) {
+                    console.log('Hiç mağaza bulunamadı');
+                    const managerFilter = document.getElementById('manager-filter');
+                    managerFilter.innerHTML = '<option value="">Mağaza bulunamadı</option>';
+                    return;
+                }
+                
+                // Manager'ları unique olarak al (null, undefined ve boş string olanları filtrele)
+                const managers = stores
+                    .map(store => store.manager)
+                    .filter(manager => manager && manager.trim() !== '' && manager !== null && manager !== undefined);
+                
+                console.log('Filtrelenmiş manager\'lar:', managers);
+                
+                const uniqueManagers = [...new Set(managers)];
+                
+                console.log('Unique manager\'lar:', uniqueManagers);
+                
+                const managerFilter = document.getElementById('manager-filter');
+                if (!managerFilter) {
+                    console.error('Manager filter elementi bulunamadı');
+                    return;
+                }
+                
+                if (uniqueManagers.length === 0) {
+                    managerFilter.innerHTML = '<option value="">Manager bulunamadı</option>';
+                } else {
+                    managerFilter.innerHTML = '<option value="">Tüm Manager\'lar</option>' + 
+                        uniqueManagers.map(manager => `<option value="${manager}">${manager}</option>`).join('');
+                }
+                
+                console.log('Manager filter güncellendi');
+                
+            } catch (error) {
+                console.error('Manager yükleme hatası:', error);
+                
+                // Hata durumunda fallback
+                const managerFilter = document.getElementById('manager-filter');
+                if (managerFilter) {
+                    managerFilter.innerHTML = '<option value="">Yükleme hatası</option>';
+                }
+            }
+        }
+
+        // Mağaza verilerini yükle (channel bilgileri ile)
+        async function loadStores() {
+            try {
+                // Önce basit sorgu ile test edelim
+                const { data: stores, error } = await supabase
+                    .from('stores')
+                    .select('*')
+                    .order('name');
+                
+                if (error) throw error;
+                
+                console.log('Yüklenen mağazalar (basit):', stores);
+                
+                // Şimdi channel bilgilerini ayrı ayrı alalım
+                const { data: channels, error: channelError } = await supabase
+                    .from('channels')
+                    .select('*');
+                
+                if (channelError) throw channelError;
+                
+                console.log('Yüklenen kanallar:', channels);
+                
+                // Mağazaları channel bilgileri ile birleştir
+                const storesWithChannels = stores.map(store => {
+                    const channel = channels.find(c => c.id === store.channel_id);
+                    return {
+                        ...store,
+                        channels: channel || null
+                    };
+                });
+                
+                // Tüm mağazaları global değişkende sakla
+                allStores = storesWithChannels || [];
+                console.log('Birleştirilmiş mağazalar:', allStores);
+                displayStores(allStores);
+                
+            } catch (error) {
+                console.error('Mağaza yükleme hatası:', error);
+                
+                // Hata durumunda boş array ile devam et
+                allStores = [];
+                displayStores([]);
+            }
+        }
+
+        // Mağazaları göster
+        function displayStores(stores) {
+            const storesContainer = document.getElementById('stores-container');
+            
+            console.log('Gösterilecek mağazalar:', stores);
+            
+            if (!stores || stores.length === 0) {
+                storesContainer.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle me-2"></i>Mağaza bulunamadı
+                    </div>
+                `;
+                return;
+            }
+            
+            storesContainer.innerHTML = stores.map(store => {
+                const safeName = String(store.name || 'İsimsiz Mağaza').replace(/['"`]/g, '');
+                const safeAddress = String(store.address || '').replace(/['"`]/g, '');
+                const channelName = (store.channels && store.channels.name) ? store.channels.name : 'Kanal Bilgisi Yok';
+                const managerName = store.manager || 'Manager Bilgisi Yok';
+                
+                console.log('Mağaza detayı:', { 
+                    id: store.id, 
+                    name: safeName, 
+                    channel: channelName, 
+                    manager: managerName 
+                });
+                
+                return `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="store-${store.id}" value="${store.id}" onchange="toggleStoreSelection(${store.id}, this.checked)">
+                        <label class="form-check-label" for="store-${store.id}">
+                            <strong>${safeName}</strong>
+                            <br><small class="text-muted">${safeAddress || 'Adres bilgisi yok'}</small>
+                            <br><small class="text-info">Kanal: ${channelName} | Manager: ${managerName}</small>
+                        </label>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Mağaza filtreleme
+        function filterStores() {
+            const channelFilter = document.getElementById('channel-filter').value;
+            const managerFilter = document.getElementById('manager-filter').value;
+            const searchTerm = document.getElementById('store-search').value.toLowerCase();
+            
+            console.log('Filtreleme başlatıldı:', { channelFilter, managerFilter, searchTerm });
+            console.log('Toplam mağaza sayısı:', allStores.length);
+            
+            let filteredStores = allStores;
+            
+            // Kanal filtresi
+            if (channelFilter) {
+                filteredStores = filteredStores.filter(store => 
+                    store.channels && store.channels.id == channelFilter
+                );
+                console.log('Kanal filtresi sonrası:', filteredStores.length);
+            }
+            
+            // Manager filtresi (stores tablosundaki manager sütununa göre)
+            if (managerFilter) {
+                filteredStores = filteredStores.filter(store => 
+                    store.manager === managerFilter
+                );
+                console.log('Manager filtresi sonrası:', filteredStores.length);
+            }
+            
+            // Arama filtresi
+            if (searchTerm) {
+                filteredStores = filteredStores.filter(store => 
+                    store.name.toLowerCase().includes(searchTerm) ||
+                    (store.address && store.address.toLowerCase().includes(searchTerm))
+                );
+                console.log('Arama filtresi sonrası:', filteredStores.length);
+            }
+            
+            console.log('Filtrelenmiş mağaza sayısı:', filteredStores.length);
+            displayStores(filteredStores);
+        }
+
+        // Mağaza seçimini değiştir
+        function toggleStoreSelection(storeId, isSelected) {
+            const store = allStores.find(s => s.id == storeId);
+            if (!store) return;
+            
+            if (isSelected) {
+                if (!selectedStores.find(s => s.id == storeId)) {
+                    selectedStores.push({
+                        id: storeId,
+                        name: store.name,
+                        address: store.address
+                    });
+                }
+            } else {
+                selectedStores = selectedStores.filter(s => s.id != storeId);
+            }
+            
+            updateSelectedStoresDisplay();
+        }
+
+        // Seçilen mağazaları güncelle
+        function updateSelectedStoresDisplay() {
+            const selectedStoresDisplay = document.getElementById('selected-stores-display');
+            const selectedStoresList = document.getElementById('selected-stores-list');
+            
+            if (selectedStores.length === 0) {
+                selectedStoresDisplay.style.display = 'none';
+                return;
+            }
+            
+            selectedStoresDisplay.style.display = 'block';
+            selectedStoresList.innerHTML = selectedStores.map(store => {
+                const safeName = String(store.name || '').replace(/['"`]/g, '');
+                const safeAddress = String(store.address || '').replace(/['"`]/g, '');
+                return `
+                    <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+                        <div>
+                            <strong>${safeName}</strong>
+                            ${safeAddress ? '<br><small class="text-muted">' + safeAddress + '</small>' : ''}
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeStore(${store.id})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Mağaza çıkar
+        function removeStore(storeId) {
+            selectedStores = selectedStores.filter(s => s.id != storeId);
+            const checkbox = document.getElementById(`store-${storeId}`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            updateSelectedStoresDisplay();
+        }
+
+        // Tüm mağazaları seç
+        function selectAllStores() {
+            const checkboxes = document.querySelectorAll('#stores-container input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                toggleStoreSelection(parseInt(checkbox.value), true);
+            });
+        }
+
+        // Tüm mağaza seçimlerini temizle
+        function clearAllStores() {
+            const checkboxes = document.querySelectorAll('#stores-container input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                toggleStoreSelection(parseInt(checkbox.value), false);
+            });
+        }
+
+        // Özet oluştur
+        function generateSummary() {
+            console.log('=== ÖZET OLUŞTURULUYOR ===');
+            
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            console.log('Tarih bilgileri:', { startDate, endDate });
+            console.log('Seçilen ürünler:', selectedProducts);
+            console.log('Seçilen mağazalar:', selectedStores);
+            
+            // Önce basit bir test yapalım
+            const summaryElement = document.getElementById('summary-content');
+            if (!summaryElement) {
+                console.error('summary-content elementi bulunamadı!');
+                return;
+            }
+            
+            console.log('summary-content elementi bulundu:', summaryElement);
+            
+            // Ciro bazlı plan detayları
+            const revenueRows = document.querySelectorAll('.revenue-row');
+            let revenueDetails = '';
+            if (revenueRows.length > 0) {
+                revenueDetails = '<div class="mt-2"><h6>Ciro Bazlı Plan Detayları:</h6><ul class="list-unstyled">';
+                revenueRows.forEach((row, index) => {
+                    const amount = row.querySelector('.revenue-amount').value;
+                    const rate = row.querySelector('.support-rate').value;
+                    const calculated = row.querySelector('.calculated-amount').textContent;
+                    if (amount && rate) {
+                        revenueDetails += `<li><strong>Satır ${index + 1}:</strong> ${formatNumber(amount)} TL - %${rate} = ${calculated}</li>`;
+                    }
+                });
+                revenueDetails += '</ul></div>';
+            }
+            
+            // Ürün detayları
+            let productDetails = '';
+            if (selectedProducts.length > 0) {
+                productDetails = '<div class="mt-2"><h6>Seçilen Ürünler:</h6><ul class="list-unstyled">';
+                selectedProducts.forEach((product, index) => {
+                    const supportAmount = product.supportAmount || 0;
+                    productDetails += `<li><strong>${product.name}</strong> (${product.code}) - Destek: ${formatNumber(supportAmount)} TL</li>`;
+                });
+                productDetails += '</ul></div>';
+            }
+            
+            // Mağaza detayları
+            let storeDetails = '';
+            if (selectedStores.length > 0) {
+                storeDetails = '<div class="mt-2"><h6>Seçilen Mağazalar:</h6><ul class="list-unstyled">';
+                selectedStores.forEach(storeId => {
+                    const store = allStores.find(s => s.id == storeId);
+                    if (store) {
+                        storeDetails += `<li><strong>${store.name}</strong> - ${store.address || 'Adres yok'}</li>`;
+                    }
+                });
+                storeDetails += '</ul></div>';
+            }
+            
+            const summaryDiv = document.getElementById('summary-content');
+            const summaryHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Tarih Bilgileri</h6>
+                        <p><strong>Başlangıç:</strong> ${startDate || 'Belirtilmemiş'}</p>
+                        <p><strong>Bitiş:</strong> ${endDate || 'Belirtilmemiş'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Özet</h6>
+                        <p><strong>Ciro Bazlı Satır:</strong> ${revenueRows.length}</p>
+                        <p><strong>Seçilen Ürün:</strong> ${selectedProducts.length}</p>
+                        <p><strong>Seçilen Mağaza:</strong> ${selectedStores.length}</p>
+                    </div>
+                </div>
+                ${revenueDetails}
+                ${productDetails}
+                ${storeDetails}
+            `;
+            
+            console.log('Özet HTML:', summaryHTML);
+            
+            // Önce basit bir test yapalım
+            summaryDiv.innerHTML = '<div class="alert alert-info"><strong>Test:</strong> Özet çalışıyor!</div>';
+            console.log('Test HTML eklendi');
+            
+            // 2 saniye sonra gerçek içeriği ekle
+            setTimeout(() => {
+                summaryDiv.innerHTML = summaryHTML;
+                console.log('Gerçek özet içeriği eklendi');
+            }, 2000);
+        }
+
+        // Taslak kaydet
+        async function saveDraft() {
+            try {
+                generateSummary();
+                
+                const gamePlanData = await collectFormData();
+                gamePlanData.status = 'draft';
+                
+                const { data, error } = await supabase
+                    .from('game_plans')
+                    .insert([gamePlanData]);
+                
+                if (error) throw error;
+                
+                alert('Taslak kaydedildi!');
+                console.log('Taslak kaydedildi:', data);
+                
+                // Dashboard'a dön ve verileri yenile
+                document.getElementById('free-wkz-create-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                loadDashboardData();
+                
+            } catch (error) {
+                console.error('Kaydetme hatası:', error);
+                alert('Kaydetme sırasında hata oluştu: ' + error.message);
+            }
+        }
+
+        // Onaya gönder
+        async function sendForApproval() {
+            try {
+                generateSummary();
+                
+                // Admin kullanıcıları kontrol et
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                if (currentUser.role !== 'admin') {
+                    // Admin değilse, admin kullanıcıları bul
+                    const { data: admins, error: adminError } = await supabase
+                        .from('users')
+                        .select('id, name, email')
+                        .eq('role', 'admin');
+                    
+                    if (adminError) throw adminError;
+                    
+                    if (!admins || admins.length === 0) {
+                        alert('Onaylayıcı bulunamadı! Lütfen sistem yöneticisi ile iletişime geçin.');
+                        return;
+                    }
+                    
+                    console.log('Onaylayıcılar:', admins);
+                }
+                
+                const gamePlanData = await collectFormData();
+                gamePlanData.status = 'pending';
+                
+                const { data, error } = await supabase
+                    .from('game_plans')
+                    .insert([gamePlanData]);
+                
+                if (error) throw error;
+                
+                alert('Onaya gönderildi!');
+                console.log('Onaya gönderildi:', data);
+                
+                // Dashboard'a dön ve verileri yenile
+                document.getElementById('free-wkz-create-section').style.display = 'none';
+                document.getElementById('dashboard-section').style.display = 'block';
+                loadDashboardData();
+                
+            } catch (error) {
+                console.error('Onaya gönderme hatası:', error);
+                alert('Onaya gönderme sırasında hata oluştu: ' + error.message);
+            }
+        }
+
+        // Form verilerini topla
+        async function collectFormData() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            // Ciro bazlı plan verileri
+            const revenueRows = document.querySelectorAll('.revenue-row');
+            const revenueData = [];
+            revenueRows.forEach((row, index) => {
+                const amount = row.querySelector('.revenue-amount').value;
+                const rate = row.querySelector('.support-rate').value;
+                if (amount && rate) {
+                    revenueData.push({
+                        amount: cleanNumber(amount),
+                        rate: parseFloat(rate),
+                        calculated: cleanNumber(row.querySelector('.calculated-amount').textContent)
+                    });
+                }
+            });
+            
+            // Ürün verileri
+            const productData = selectedProducts.map(product => ({
+                id: product.id,
+                code: product.code,
+                name: product.name,
+                supportAmount: product.supportAmount || 0
+            }));
+            
+            // Mağaza verileri
+            const storeData = selectedStores.map(storeId => {
+                const store = allStores.find(s => s.id == storeId);
+                return {
+                    id: storeId,
+                    name: store ? store.name : 'Bilinmeyen Mağaza',
+                    address: store ? store.address : ''
+                };
+            });
+            
+            return {
+                type: 'free_wkz',
+                title: `Free WKZ - ${startDate} / ${endDate}`,
+                start_date: startDate,
+                end_date: endDate,
+                revenue_data: revenueData,
+                product_data: productData,
+                store_data: storeData,
+                created_by: JSON.parse(localStorage.getItem('user')).id,
+                created_at: new Date().toISOString()
+            };
+        }
+
+        // Dashboard verilerini yükle
+        async function loadDashboardData() {
+            try {
+                const { data: gamePlans, error } = await supabase
+                    .from('game_plans')
+                    .select('*')
+                    .eq('type', 'free_wkz')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                console.log('Yüklenen oyun planları:', gamePlans);
+                
+                // İstatistikleri güncelle
+                const savedCount = gamePlans.filter(plan => plan.status === 'draft').length;
+                const pendingCount = gamePlans.filter(plan => plan.status === 'pending').length;
+                const approvedCount = gamePlans.filter(plan => plan.status === 'approved').length;
+                
+                document.getElementById('saved-count').textContent = savedCount;
+                document.getElementById('pending-count').textContent = pendingCount;
+                document.getElementById('approved-count').textContent = approvedCount;
+                
+                // Tabloları güncelle
+                updateGamePlansTable('saved-plans', gamePlans.filter(plan => plan.status === 'draft'));
+                updateGamePlansTable('pending-plans', gamePlans.filter(plan => plan.status === 'pending'));
+                updateGamePlansTable('approved-plans', gamePlans.filter(plan => plan.status === 'approved'));
+                
+            } catch (error) {
+                console.error('Dashboard veri yükleme hatası:', error);
+            }
+        }
+
+        // Oyun planları tablosunu güncelle
+        function updateGamePlansTable(tableId, plans) {
+            const tbody = document.querySelector(`#${tableId} tbody`);
+            if (!tbody) return;
+            
+            if (plans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Veri bulunamadı</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = plans.map(plan => {
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const isAdmin = currentUser && currentUser.role === 'admin';
+                
+                return `
+                <tr>
+                    <td>${plan.title}</td>
+                    <td>${formatDateTime(plan.created_at)}</td>
+                    <td><span class="badge bg-${getStatusColor(plan.status)}">${getStatusText(plan.status)}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewPlan(${plan.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${plan.status === 'draft' ? `
+                            <button class="btn btn-sm btn-outline-success" onclick="editPlan(${plan.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deletePlan(${plan.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
+                        ${plan.status === 'pending' && isAdmin ? `
+                            <button class="btn btn-sm btn-outline-success" onclick="approvePlan(${plan.id})" title="Onayla">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="rejectPlan(${plan.id})" title="Reddet">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        // Status rengi
+        function getStatusColor(status) {
+            const colors = {
+                'draft': 'secondary',
+                'pending': 'warning',
+                'approved': 'success',
+                'rejected': 'danger'
+            };
+            return colors[status] || 'secondary';
+        }
+
+        // Status metni
+        function getStatusText(status) {
+            const texts = {
+                'draft': 'Taslak',
+                'pending': 'Onay Bekliyor',
+                'approved': 'Onaylandı',
+                'rejected': 'Reddedildi'
+            };
+            return texts[status] || status;
+        }
+
+        // Tarih formatla
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Plan görüntüle
+        function viewPlan(planId) {
+            console.log('Plan görüntüleniyor:', planId);
+            // TODO: Plan detaylarını göster
+        }
+
+        // Plan düzenle
+        function editPlan(planId) {
+            console.log('Plan düzenleniyor:', planId);
+            // TODO: Plan düzenleme formunu aç
+        }
+
+        // Plan sil
+        async function deletePlan(planId) {
+            if (!confirm('Bu planı silmek istediğinizden emin misiniz?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('game_plans')
+                    .delete()
+                    .eq('id', planId);
+                
+                if (error) throw error;
+                
+                alert('Plan silindi!');
+                loadDashboardData(); // Verileri yenile
+                
+            } catch (error) {
+                console.error('Silme hatası:', error);
+                alert('Silme sırasında hata oluştu: ' + error.message);
+            }
+        }
+
+        // Plan onayla (Admin)
+        async function approvePlan(planId) {
+            if (!confirm('Bu planı onaylamak istediğinizden emin misiniz?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('game_plans')
+                    .update({ 
+                        status: 'approved',
+                        approved_at: new Date().toISOString(),
+                        approved_by: JSON.parse(localStorage.getItem('user')).id
+                    })
+                    .eq('id', planId);
+                
+                if (error) throw error;
+                
+                alert('Plan onaylandı!');
+                loadDashboardData(); // Verileri yenile
+                
+            } catch (error) {
+                console.error('Onaylama hatası:', error);
+                alert('Onaylama sırasında hata oluştu: ' + error.message);
+            }
+        }
+
+        // Plan reddet (Admin)
+        async function rejectPlan(planId) {
+            const reason = prompt('Reddetme sebebini yazın:');
+            if (!reason) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('game_plans')
+                    .update({ 
+                        status: 'rejected',
+                        rejected_at: new Date().toISOString(),
+                        rejected_by: JSON.parse(localStorage.getItem('user')).id,
+                        rejection_reason: reason
+                    })
+                    .eq('id', planId);
+                
+                if (error) throw error;
+                
+                alert('Plan reddedildi!');
+                loadDashboardData(); // Verileri yenile
+                
+            } catch (error) {
+                console.error('Reddetme hatası:', error);
+                alert('Reddetme sırasında hata oluştu: ' + error.message);
+            }
+        }
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dashboard verilerini yükle
+            loadDashboardData();
+            
+            // Event listener'ları ekle
+            document.querySelectorAll('.revenue-amount, .support-rate').forEach(input => {
+                input.addEventListener('input', calculateSupportAmount);
+                if (input.classList.contains('revenue-amount')) {
+                    input.addEventListener('blur', function() {
+                        formatInputNumber(this);
+                        calculateSupportAmount({ target: this });
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

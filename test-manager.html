@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönetici Test Sayfası</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Yönetici Yetki Testi</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Admin Kullanıcısı</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="testUserRole('admin')">
+                            Admin Olarak Test Et
+                        </button>
+                        <div id="admin-result" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Yönetici Kullanıcısı</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="testUserRole('manager')">
+                            Yönetici Olarak Test Et
+                        </button>
+                        <div id="manager-result" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Menü Öğeleri Testi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="menu-test-results"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test fonksiyonu
+        function testUserRole(role) {
+            const user = {
+                id: 1,
+                name: role === 'admin' ? 'Admin Kullanıcı' : 'Yönetici Kullanıcı',
+                email: role === 'admin' ? 'admin@test.com' : 'manager@test.com',
+                role: role,
+                region: 'Test Bölgesi',
+                region_id: 1
+            };
+            
+            // Menü öğelerini test et
+            testMenuVisibility(user);
+            
+            // Sonuçları göster
+            const resultDiv = document.getElementById(role + '-result');
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>${role.toUpperCase()}</strong> rolü test edildi<br>
+                    Kullanıcı Adı: ${user.name}<br>
+                    E-posta: ${user.email}<br>
+                    Rol: ${user.role}
+                </div>
+            `;
+        }
+        
+        function testMenuVisibility(user) {
+            // Menü öğelerini simüle et
+            const menuItems = {
+                'add-user-menu': 'Kullanıcı Ekle',
+                'add-store-menu': 'Mağaza Ekle'
+            };
+            
+            let results = '<h6>Menü Öğeleri Görünürlük Testi:</h6><ul>';
+            
+            Object.keys(menuItems).forEach(menuId => {
+                const shouldShow = user.role === 'admin' || user.role === 'manager';
+                const status = shouldShow ? 'Görünür' : 'Gizli';
+                const badgeClass = shouldShow ? 'success' : 'secondary';
+                
+                results += `
+                    <li>
+                        <strong>${menuItems[menuId]}:</strong> 
+                        <span class="badge bg-${badgeClass}">${status}</span>
+                    </li>
+                `;
+            });
+            
+            results += '</ul>';
+            
+            document.getElementById('menu-test-results').innerHTML = results;
+        }
+    </script>
+</body>
+</html>
