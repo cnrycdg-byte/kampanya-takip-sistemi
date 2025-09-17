@@ -2576,7 +2576,7 @@ function displayTasksList(tasks) {
                         <button class="btn btn-outline-success" onclick="exportTaskToExcel(${task.id})" title="Excel İndir">
                             <i class="fas fa-file-excel"></i>
                         </button>
-                        ${(user.role === 'admin' || user.role === 'manager') ? 
+                        ${(user.role === 'admin' || user.role === 'manager') && task.status !== 'cancelled' ? 
                             `<button class="btn btn-outline-danger" onclick="deleteTask(${task.id})" title="Sil">
                                 <i class="fas fa-trash"></i>
                             </button>` : ''
@@ -2593,7 +2593,8 @@ function getTaskStatusBadge(status) {
     const badges = {
         'active': '<span class="badge bg-success">Aktif</span>',
         'in_progress': '<span class="badge bg-warning">Devam Ediyor</span>',
-        'completed': '<span class="badge bg-primary">Tamamlandı</span>'
+        'completed': '<span class="badge bg-primary">Tamamlandı</span>',
+        'cancelled': '<span class="badge bg-danger">İptal Edildi</span>'
     };
     return badges[status] || '<span class="badge bg-secondary">Bilinmiyor</span>';
 }
@@ -2863,28 +2864,37 @@ function getTaskAssignmentStatusBadge(status) {
 async function deleteTask(taskId) {
     if (confirm('Bu görevi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
         try {
-            // Önce task_assignments tablosundaki ilgili kayıtları sil
-            const { error: assignmentsError } = await supabase
-                .from('task_assignments')
-                .delete()
-                .eq('task_id', taskId);
-
-            if (assignmentsError) throw assignmentsError;
-
-            // Sonra görevi sil
+            // Soft delete: Görev durumunu "cancelled" yap
             const { error: taskError } = await supabase
                 .from('tasks')
-                .delete()
+                .update({ 
+                    status: 'cancelled',
+                    updated_at: new Date().toISOString()
+                })
                 .eq('id', taskId);
 
             if (taskError) throw taskError;
 
-            alert('✅ Görev başarıyla silindi!');
+            // Task assignments'ları da iptal et
+            const { error: assignmentsError } = await supabase
+                .from('task_assignments')
+                .update({ 
+                    status: 'cancelled',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('task_id', taskId);
+
+            if (assignmentsError) {
+                console.warn('Task assignments güncellenemedi:', assignmentsError);
+                // Bu hata kritik değil, devam et
+            }
+
+            alert('✅ Görev başarıyla iptal edildi!');
             loadTasksList(); // Listeyi yenile
 
         } catch (error) {
             console.error('Görev silme hatası:', error);
-            alert('❌ Görev silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
+            alert('❌ Görev iptal edilirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
         }
     }
 }
