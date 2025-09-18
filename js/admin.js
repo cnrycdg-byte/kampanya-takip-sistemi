@@ -1024,7 +1024,7 @@ async function loadUsersList() {
                     name
                 )
             `)
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('created_at', { ascending: false });
         
         console.log('Supabase response:', { data: users, error });
@@ -1163,7 +1163,7 @@ async function loadStoresList() {
                     name
                 )
             `)
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('created_at', { ascending: false });
         
         if (error) {
@@ -1243,7 +1243,7 @@ async function loadChannelsList() {
         const { data: channels, error } = await supabase
             .from('channels')
             .select('*')
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('created_at', { ascending: false });
         
         if (error) {
@@ -1321,7 +1321,7 @@ async function loadRegionsList() {
                 status,
                 created_at
             `)
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('created_at', { ascending: false });
         
         if (error) {
@@ -1974,7 +1974,7 @@ async function loadRegionFilterOptions() {
         const { data: regions, error } = await supabase
             .from('regions')
             .select('id, name')
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('name');
         
         if (error) throw error;
@@ -2007,7 +2007,7 @@ async function loadStoreFilterOptions() {
         const { data: channels, error: channelError } = await supabase
             .from('channels')
             .select('id, name')
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('name');
         
         if (channelError) throw channelError;
@@ -2032,7 +2032,7 @@ async function loadStoreFilterOptions() {
         const { data: regions, error: regionError } = await supabase
             .from('regions')
             .select('id, name')
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('name');
         
         if (regionError) throw regionError;
@@ -2200,7 +2200,7 @@ async function updateTaskStores() {
             .from('stores')
             .select('id, name')
             .eq('channel_id', channelId)
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('name');
         
         if (error) throw error;
@@ -2257,7 +2257,7 @@ async function loadTaskFormDropdowns() {
         const { data: channels, error: channelError } = await supabase
             .from('channels')
             .select('id, name')
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('name');
         
         if (channelError) throw channelError;
@@ -4045,48 +4045,28 @@ window.deleteTask = function(taskId) {
     
     console.log('Görev güncelleniyor, taskId:', taskIdInt);
     
-    // En basit güncelleme denemesi - Farklı status değerleri ile
-    const statusOptions = ['cancelled', 'inactive', 'deleted', 'archived'];
-    let updateSuccess = false;
-    
-    // Her status değerini sırayla dene
-    const tryUpdate = (index) => {
-        if (index >= statusOptions.length) {
-            if (!updateSuccess) {
-                console.error('Hiçbir status değeri çalışmadı');
-                showAlert('Görev silinirken hata oluştu! Lütfen yönetici ile iletişime geçin.', 'danger');
+    // En basit güncelleme denemesi - Sadece status ile
+    console.log('Görev güncelleme işlemi başlatılıyor...');
+    supabase
+        .from('tasks')
+        .update({ status: 'cancelled' })
+        .eq('id', taskIdInt)
+        .then(({ error }) => {
+            if (error) {
+                console.error('Görev güncelleme hatası:', error);
+                console.error('Hata detayları:', JSON.stringify(error, null, 2));
+                showAlert('Görev silinirken hata oluştu: ' + error.message, 'danger');
+            } else {
+                console.log('Görev başarıyla iptal edildi');
+                showAlert('Görev başarıyla iptal edildi!', 'success');
+                loadTasksList();
+                loadDashboardData();
             }
-            return;
-        }
-        
-        const status = statusOptions[index];
-        console.log(`${status} status ile güncelleme deneniyor...`);
-        
-        supabase
-            .from('tasks')
-            .update({ status: status })
-            .eq('id', taskIdInt)
-            .then(({ error }) => {
-                if (error) {
-                    console.log(`${status} status ile güncelleme başarısız:`, error.message);
-                    console.log('Hata detayları:', JSON.stringify(error, null, 2));
-                    tryUpdate(index + 1); // Sonraki status'u dene
-                } else {
-                    console.log(`${status} status ile güncelleme başarılı!`);
-                    updateSuccess = true;
-                    showAlert('Görev başarıyla iptal edildi!', 'success');
-                    loadTasksList();
-                    loadDashboardData();
-                }
-            })
-            .catch((error) => {
-                console.log(`${status} status ile güncelleme catch hatası:`, error.message);
-                tryUpdate(index + 1); // Sonraki status'u dene
-            });
-    };
-    
-    // İlk status'u dene
-    tryUpdate(0);
+        })
+        .catch((error) => {
+            console.error('Görev silme catch hatası:', error);
+            showAlert('Görev silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
+        });
 }
 
 // ==================== KAMPANYA KAPATMA FONKSİYONU ====================
@@ -5161,7 +5141,7 @@ async function searchProducts() {
             .from('products')
             .select('id, name, brand, category, price')
             .or(`name.ilike.%${searchTerm}%, brand.ilike.%${searchTerm}%, category.ilike.%${searchTerm}%`)
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('name')
             .limit(20);
         
@@ -6322,7 +6302,7 @@ async function loadChannelsForGamePlan(selectId) {
             const { data: channels, error } = await supabase
                 .from('channels')
                 .select('id, name')
-                .eq('is_active', true)
+                .eq('status', 'active')
                 .order('name');
             
             if (error) {
@@ -6348,7 +6328,7 @@ async function loadManagersForGamePlan(selectId) {
             const { data: stores, error } = await supabase
                 .from('stores')
                 .select('manager, regions(name)')
-                .eq('is_active', true)
+                .eq('status', 'active')
                 .not('manager', 'is', null);
             
             if (error) {
@@ -6501,7 +6481,7 @@ async function searchAllStores() {
                 channels(name),
                 regions(name)
             `)
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('name');
         
         if (error) {
@@ -6982,7 +6962,7 @@ async function loadAllStoresForProduct() {
                 channels(name),
                 regions(name)
             `)
-            .eq('is_active', true)
+            .eq('status', 'active')
             .order('name');
         
         if (error) {
