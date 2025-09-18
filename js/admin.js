@@ -2869,11 +2869,11 @@ async function deleteTask(taskId) {
             console.log('Soft delete başlatılıyor...');
             
             // Soft delete: Görev durumunu "cancelled" yap
+            console.log('Task güncelleniyor, taskId:', taskId);
             const { error: taskError } = await supabase
                 .from('tasks')
                 .update({ 
-                    status: 'cancelled',
-                    updated_at: new Date().toISOString()
+                    status: 'cancelled'
                 })
                 .eq('id', taskId);
 
@@ -2884,20 +2884,23 @@ async function deleteTask(taskId) {
 
             console.log('Task başarıyla iptal edildi');
 
-            // Task assignments'ları da iptal et
-            const { error: assignmentsError } = await supabase
-                .from('task_assignments')
-                .update({ 
-                    status: 'cancelled',
-                    updated_at: new Date().toISOString()
-                })
-                .eq('task_id', taskId);
+            // Task assignments'ları da iptal et (opsiyonel)
+            try {
+                const { error: assignmentsError } = await supabase
+                    .from('task_assignments')
+                    .update({ 
+                        status: 'cancelled'
+                    })
+                    .eq('task_id', taskId);
 
-            if (assignmentsError) {
-                console.warn('Task assignments güncellenemedi:', assignmentsError);
+                if (assignmentsError) {
+                    console.warn('Task assignments güncellenemedi:', assignmentsError);
+                } else {
+                    console.log('Task assignments başarıyla iptal edildi');
+                }
+            } catch (assignmentsError) {
+                console.warn('Task assignments güncellenirken hata:', assignmentsError);
                 // Bu hata kritik değil, devam et
-            } else {
-                console.log('Task assignments başarıyla iptal edildi');
             }
 
             alert('✅ Görev başarıyla iptal edildi!');
