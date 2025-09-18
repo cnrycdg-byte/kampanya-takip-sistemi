@@ -4007,7 +4007,7 @@ function formatDateForExcel(dateString) {
 
 // ==================== GÖREV SİLME FONKSİYONU ====================
 
-// Görev silme fonksiyonu
+// Görev silme fonksiyonu - Basitleştirilmiş versiyon
 window.deleteTask = async function(taskId) {
     console.log('Görev silme başladı:', taskId);
     
@@ -4043,21 +4043,10 @@ window.deleteTask = async function(taskId) {
             throw new Error('Geçersiz görev ID: ' + taskId);
         }
         
-        // Önce mevcut görevi okuyalım
-        const { data: existingTask, error: readError } = await supabase
-            .from('tasks')
-            .select('*')
-            .eq('id', taskIdInt)
-            .single();
-            
-        if (readError) {
-            console.error('Görev okuma hatası:', readError);
-            throw readError;
-        }
+        // Basit güncelleme denemesi
+        console.log('Görev güncelleniyor, taskId:', taskIdInt);
         
-        console.log('Mevcut görev:', existingTask);
-        
-        // Soft delete: Görev durumunu "cancelled" yap
+        // Önce sadece status güncellemesi deneyelim
         const { error: updateError } = await supabase
             .from('tasks')
             .update({ status: 'cancelled' })
@@ -4066,26 +4055,23 @@ window.deleteTask = async function(taskId) {
         if (updateError) {
             console.error('Görev güncelleme hatası:', updateError);
             console.error('Hata detayları:', JSON.stringify(updateError, null, 2));
-            throw updateError;
-        }
-        
-        console.log('Görev başarıyla iptal edildi');
-        showAlert('Görev başarıyla iptal edildi!', 'success');
-        
-        // Task assignments'ları da iptal et (opsiyonel)
-        try {
-            const { error: assignmentsError } = await supabase
-                .from('task_assignments')
-                .update({ status: 'cancelled' })
-                .eq('task_id', taskIdInt);
-
-            if (assignmentsError) {
-                console.warn('Task assignments güncellenemedi:', assignmentsError);
+            
+            // Alternatif olarak sadece görevi gizle (soft delete)
+            const { error: hideError } = await supabase
+                .from('tasks')
+                .update({ is_active: false })
+                .eq('id', taskIdInt);
+                
+            if (hideError) {
+                console.error('Görev gizleme hatası:', hideError);
+                throw updateError; // İlk hatayı fırlat
             } else {
-                console.log('Task assignments başarıyla iptal edildi');
+                console.log('Görev başarıyla gizlendi');
+                showAlert('Görev başarıyla gizlendi!', 'success');
             }
-        } catch (assignmentsError) {
-            console.warn('Task assignments güncellenirken hata:', assignmentsError);
+        } else {
+            console.log('Görev başarıyla iptal edildi');
+            showAlert('Görev başarıyla iptal edildi!', 'success');
         }
         
         // Görev listesini yenile
