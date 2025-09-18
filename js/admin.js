@@ -4007,7 +4007,7 @@ function formatDateForExcel(dateString) {
 
 // ==================== GÖREV SİLME FONKSİYONU ====================
 
-// Görev silme fonksiyonu - Basitleştirilmiş versiyon
+// Görev silme fonksiyonu - Tamamen yeniden yazılmış versiyon
 window.deleteTask = async function(taskId) {
     console.log('Görev silme başladı:', taskId);
     
@@ -4021,31 +4021,32 @@ window.deleteTask = async function(taskId) {
         return;
     }
     
+    // Önce kullanıcı oturumunu kontrol et
+    const user = checkUserSession();
+    if (!user) {
+        showAlert('Oturum süreniz dolmuş! Lütfen tekrar giriş yapın.', 'danger');
+        return;
+    }
+    
+    // Yetki kontrolü: Sadece admin ve manager'lar görev silebilir
+    if (user.role !== 'admin' && user.role !== 'manager') {
+        showAlert('Görev silme yetkiniz yok! Sadece yöneticiler görev silebilir.', 'danger');
+        return;
+    }
+    
+    console.log('Kullanıcı oturumu:', user);
+    
+    // taskId'yi integer'a çevir
+    const taskIdInt = parseInt(taskId);
+    if (isNaN(taskIdInt)) {
+        showAlert('Geçersiz görev ID!', 'danger');
+        return;
+    }
+    
+    console.log('Görev güncelleniyor, taskId:', taskIdInt);
+    
+    // Basit güncelleme denemesi - Try-catch ile
     try {
-        // Önce kullanıcı oturumunu kontrol et
-        const user = checkUserSession();
-        if (!user) {
-            showAlert('Oturum süreniz dolmuş! Lütfen tekrar giriş yapın.', 'danger');
-            return;
-        }
-        
-        // Yetki kontrolü: Sadece admin ve manager'lar görev silebilir
-        if (user.role !== 'admin' && user.role !== 'manager') {
-            showAlert('Görev silme yetkiniz yok! Sadece yöneticiler görev silebilir.', 'danger');
-            return;
-        }
-        
-        console.log('Kullanıcı oturumu:', user);
-        
-        // taskId'yi integer'a çevir
-        const taskIdInt = parseInt(taskId);
-        if (isNaN(taskIdInt)) {
-            throw new Error('Geçersiz görev ID: ' + taskId);
-        }
-        
-        // Basit güncelleme denemesi
-        console.log('Görev güncelleniyor, taskId:', taskIdInt);
-        
         // Önce sadece status güncellemesi deneyelim
         const { error: updateError } = await supabase
             .from('tasks')
@@ -4064,20 +4065,19 @@ window.deleteTask = async function(taskId) {
                 
             if (hideError) {
                 console.error('Görev gizleme hatası:', hideError);
-                throw updateError; // İlk hatayı fırlat
+                showAlert('Görev silinirken hata oluştu: ' + hideError.message, 'danger');
             } else {
                 console.log('Görev başarıyla gizlendi');
                 showAlert('Görev başarıyla gizlendi!', 'success');
+                loadTasksList();
+                loadDashboardData();
             }
         } else {
             console.log('Görev başarıyla iptal edildi');
             showAlert('Görev başarıyla iptal edildi!', 'success');
+            loadTasksList();
+            loadDashboardData();
         }
-        
-        // Görev listesini yenile
-        loadTasksList();
-        loadDashboardData();
-        
     } catch (error) {
         console.error('Görev silme hatası:', error);
         console.error('Hata detayları:', JSON.stringify(error, null, 2));
