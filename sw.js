@@ -3,3 +3,5 @@
 
 console.log('Service Worker yüklendi ama tamamen devre dışı');
 
+// Hiçbir event listener yok - tüm istekler olduğu gibi geçiriliyor
+

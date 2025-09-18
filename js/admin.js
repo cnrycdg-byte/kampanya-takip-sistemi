@@ -4007,7 +4007,7 @@ function formatDateForExcel(dateString) {
 
 // ==================== GÖREV SİLME FONKSİYONU ====================
 
-// Görev silme fonksiyonu - Tamamen yeniden yazılmış versiyon
+// Görev silme fonksiyonu - En basit versiyon
 window.deleteTask = function(taskId) {
     console.log('Görev silme başladı:', taskId);
     
