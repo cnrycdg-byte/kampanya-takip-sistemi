@@ -4045,47 +4045,80 @@ window.deleteTask = function(taskId) {
     
     console.log('Görev güncelleniyor, taskId:', taskIdInt);
     
-    // En basit güncelleme denemesi - Farklı status değerleri ile
-    const statusOptions = ['cancelled', 'inactive', 'deleted', 'archived'];
-    let updateSuccess = false;
-    
-    // Her status değerini sırayla dene
-    const tryUpdate = (index) => {
-        if (index >= statusOptions.length) {
-            if (!updateSuccess) {
-                console.error('Hiçbir status değeri çalışmadı');
-                showAlert('Görev silinirken hata oluştu!', 'danger');
-            }
+    // Önce Supabase oturumunu kontrol et
+    supabase.auth.getUser().then(({ data: { user: supabaseUser }, error: sessionError }) => {
+        console.log('Supabase kullanıcısı:', supabaseUser);
+        console.log('Session error:', sessionError);
+        
+        if (sessionError || !supabaseUser) {
+            console.error('Supabase oturumu bulunamadı');
+            showAlert('Oturum hatası! Lütfen tekrar giriş yapın.', 'danger');
             return;
         }
         
-        const status = statusOptions[index];
-        console.log(`${status} status ile güncelleme deneniyor...`);
-        
+        // RLS politikalarını test et
+        console.log('RLS politikalarını test ediyoruz...');
         supabase
             .from('tasks')
-            .update({ status: status })
-            .eq('id', taskIdInt)
-            .then(({ error }) => {
-                if (error) {
-                    console.log(`${status} status ile güncelleme başarısız:`, error.message);
-                    tryUpdate(index + 1); // Sonraki status'u dene
-                } else {
-                    console.log(`${status} status ile güncelleme başarılı!`);
-                    updateSuccess = true;
-                    showAlert('Görev başarıyla iptal edildi!', 'success');
-                    loadTasksList();
-                    loadDashboardData();
+            .select('id, status')
+            .limit(1)
+            .then(({ data: testData, error: testError }) => {
+                console.log('RLS test sonucu:', { testData, testError });
+                
+                if (testError) {
+                    console.error('RLS politikası hatası:', testError);
+                    showAlert('Veritabanı erişim hatası! Lütfen yönetici ile iletişime geçin.', 'danger');
+                    return;
                 }
+                
+                // En basit güncelleme denemesi - Farklı status değerleri ile
+                const statusOptions = ['cancelled', 'inactive', 'deleted', 'archived'];
+                let updateSuccess = false;
+                
+                // Her status değerini sırayla dene
+                const tryUpdate = (index) => {
+                    if (index >= statusOptions.length) {
+                        if (!updateSuccess) {
+                            console.error('Hiçbir status değeri çalışmadı');
+                            showAlert('Görev silinirken hata oluştu! Lütfen yönetici ile iletişime geçin.', 'danger');
+                        }
+                        return;
+                    }
+                    
+                    const status = statusOptions[index];
+                    console.log(`${status} status ile güncelleme deneniyor...`);
+                    
+                    supabase
+                        .from('tasks')
+                        .update({ status: status })
+                        .eq('id', taskIdInt)
+                        .then(({ error }) => {
+                            if (error) {
+                                console.log(`${status} status ile güncelleme başarısız:`, error.message);
+                                console.log('Hata detayları:', JSON.stringify(error, null, 2));
+                                tryUpdate(index + 1); // Sonraki status'u dene
+                            } else {
+                                console.log(`${status} status ile güncelleme başarılı!`);
+                                updateSuccess = true;
+                                showAlert('Görev başarıyla iptal edildi!', 'success');
+                                loadTasksList();
+                                loadDashboardData();
+                            }
+                        })
+                        .catch((error) => {
+                            console.log(`${status} status ile güncelleme catch hatası:`, error.message);
+                            tryUpdate(index + 1); // Sonraki status'u dene
+                        });
+                };
+                
+                // İlk status'u dene
+                tryUpdate(0);
             })
             .catch((error) => {
-                console.log(`${status} status ile güncelleme catch hatası:`, error.message);
-                tryUpdate(index + 1); // Sonraki status'u dene
+                console.error('RLS test catch hatası:', error);
+                showAlert('Veritabanı bağlantı hatası!', 'danger');
             });
-    };
-    
-    // İlk status'u dene
-    tryUpdate(0);
+    });
 }
 
 // ==================== KAMPANYA KAPATMA FONKSİYONU ====================

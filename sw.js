@@ -1,5 +1,5 @@
-// Service Worker - Tamamen devre dışı bırakıldı
-// Bu dosya artık hiçbir işlem yapmıyor
+// Service Worker - Tamamen kaldırıldı
+// Bu dosya artık hiçbir işlem yapmıyor ve hiçbir event listener yok
 
-console.log('Service Worker yüklendi ama devre dışı');
+console.log('Service Worker yüklendi ama tamamen devre dışı');
 
