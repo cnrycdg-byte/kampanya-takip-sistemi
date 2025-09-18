@@ -2861,116 +2861,7 @@ function getTaskAssignmentStatusBadge(status) {
 }
 
 
-async function deleteTask(taskId) {
-    console.log('deleteTask çağrıldı, taskId:', taskId);
-    
-    if (confirm('Bu görevi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
-        try {
-            console.log('Soft delete başlatılıyor...');
-            
-            // Soft delete: Görev durumunu "cancelled" yap
-            console.log('Task güncelleniyor, taskId:', taskId, 'type:', typeof taskId);
-            
-            // taskId'yi integer'a çevir
-            const taskIdInt = parseInt(taskId);
-            console.log('Task ID integer:', taskIdInt);
-            
-            if (isNaN(taskIdInt)) {
-                throw new Error('Geçersiz görev ID: ' + taskId);
-            }
-            
-            // Önce mevcut görevi okuyalım
-            const { data: existingTask, error: readError } = await supabase
-                .from('tasks')
-                .select('*')
-                .eq('id', taskIdInt)
-                .single();
-                
-            if (readError) {
-                console.error('Görev okuma hatası:', readError);
-                throw readError;
-            }
-            
-            console.log('Mevcut görev:', existingTask);
-            
-            // RLS politikası is_active sütunu arıyor, o yüzden is_active: false ekleyelim
-            let updateData = { 
-                status: 'cancelled',
-                is_active: false
-            };
-            let { error: taskError } = await supabase
-                .from('tasks')
-                .update(updateData)
-                .eq('id', taskIdInt);
-                
-            // Eğer is_active sütunu yoksa sadece status ile deneyelim
-            if (taskError && taskError.message && taskError.message.includes('is_active')) {
-                console.log('is_active sütunu bulunamadı, sadece status ile deneyelim...');
-                
-                // Farklı status değerleri deneyelim
-                const statusOptions = ['cancelled', 'inactive', 'deleted', 'archived'];
-                let success = false;
-                
-                for (const status of statusOptions) {
-                    console.log(`${status} status deneyelim...`);
-                    const { error: statusError } = await supabase
-                        .from('tasks')
-                        .update({ status: status })
-                        .eq('id', taskIdInt);
-                        
-                    if (!statusError) {
-                        console.log(`${status} status başarılı!`);
-                        taskError = null;
-                        success = true;
-                        break;
-                    } else {
-                        console.log(`${status} status başarısız:`, statusError.message);
-                    }
-                }
-                
-                if (!success) {
-                    taskError = { message: 'Hiçbir status değeri çalışmadı' };
-                }
-            }
-
-            if (taskError) {
-                console.error('Task güncelleme hatası:', taskError);
-                console.error('Hata detayları:', JSON.stringify(taskError, null, 2));
-                console.error('Task ID:', taskIdInt, 'Type:', typeof taskIdInt);
-                throw taskError;
-            }
-
-            console.log('Task başarıyla iptal edildi');
-
-            // Task assignments'ları da iptal et (opsiyonel)
-            try {
-                const { error: assignmentsError } = await supabase
-                    .from('task_assignments')
-                    .update({ 
-                        status: 'cancelled'
-                    })
-                    .eq('task_id', taskIdInt);
-
-                if (assignmentsError) {
-                    console.warn('Task assignments güncellenemedi:', assignmentsError);
-                } else {
-                    console.log('Task assignments başarıyla iptal edildi');
-                }
-            } catch (assignmentsError) {
-                console.warn('Task assignments güncellenirken hata:', assignmentsError);
-                // Bu hata kritik değil, devam et
-            }
-
-            alert('✅ Görev başarıyla iptal edildi!');
-            loadTasksList(); // Listeyi yenile
-
-        } catch (error) {
-            console.error('Görev silme hatası:', error);
-            console.error('Hata detayları:', JSON.stringify(error, null, 2));
-            alert('❌ Görev iptal edilirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
-        }
-    }
-}
+// Eski deleteTask fonksiyonu kaldırıldı - window.deleteTask kullanılıyor
 
 // Event listener'ları ekle
 document.addEventListener('DOMContentLoaded', function() {
@@ -4117,7 +4008,7 @@ function formatDateForExcel(dateString) {
 // ==================== GÖREV SİLME FONKSİYONU ====================
 
 // Görev silme fonksiyonu
-window.deleteTask = function(taskId) {
+window.deleteTask = async function(taskId) {
     console.log('Görev silme başladı:', taskId);
     
     if (!taskId) {
@@ -4146,33 +4037,65 @@ window.deleteTask = function(taskId) {
         
         console.log('Kullanıcı oturumu:', user);
         
-        // Gerçek görev için veritabanı silme işlemi
-        // Önce görevi 'cancelled' olarak güncelle (soft delete)
-        supabase
+        // taskId'yi integer'a çevir
+        const taskIdInt = parseInt(taskId);
+        if (isNaN(taskIdInt)) {
+            throw new Error('Geçersiz görev ID: ' + taskId);
+        }
+        
+        // Önce mevcut görevi okuyalım
+        const { data: existingTask, error: readError } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('id', taskIdInt)
+            .single();
+            
+        if (readError) {
+            console.error('Görev okuma hatası:', readError);
+            throw readError;
+        }
+        
+        console.log('Mevcut görev:', existingTask);
+        
+        // Soft delete: Görev durumunu "cancelled" yap
+        const { error: updateError } = await supabase
             .from('tasks')
             .update({ status: 'cancelled' })
-            .eq('id', taskId)
-            .then(({ error: updateError }) => {
-                if (updateError) {
-                    console.error('Görev güncelleme hatası:', updateError);
-                    showAlert('Görev güncellenirken hata oluştu: ' + updateError.message, 'danger');
-                    return;
-                }
-                
-                console.log('Görev başarıyla iptal edildi');
-                showAlert('Görev başarıyla iptal edildi!', 'success');
-                
-                // Görev listesini yenile
-                loadTasksList();
-                loadDashboardData();
-            })
-            .catch((error) => {
-                console.error('Görev güncelleme catch hatası:', error);
-                showAlert('Görev güncellenirken beklenmeyen hata: ' + error.message, 'danger');
-            });
+            .eq('id', taskIdInt);
+            
+        if (updateError) {
+            console.error('Görev güncelleme hatası:', updateError);
+            console.error('Hata detayları:', JSON.stringify(updateError, null, 2));
+            throw updateError;
+        }
+        
+        console.log('Görev başarıyla iptal edildi');
+        showAlert('Görev başarıyla iptal edildi!', 'success');
+        
+        // Task assignments'ları da iptal et (opsiyonel)
+        try {
+            const { error: assignmentsError } = await supabase
+                .from('task_assignments')
+                .update({ status: 'cancelled' })
+                .eq('task_id', taskIdInt);
+
+            if (assignmentsError) {
+                console.warn('Task assignments güncellenemedi:', assignmentsError);
+            } else {
+                console.log('Task assignments başarıyla iptal edildi');
+            }
+        } catch (assignmentsError) {
+            console.warn('Task assignments güncellenirken hata:', assignmentsError);
+        }
+        
+        // Görev listesini yenile
+        loadTasksList();
+        loadDashboardData();
+        
     } catch (error) {
-        console.error('Görev silme try-catch hatası:', error);
-        showAlert('Görev silinirken hata oluştu!', 'danger');
+        console.error('Görev silme hatası:', error);
+        console.error('Hata detayları:', JSON.stringify(error, null, 2));
+        showAlert('Görev silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
     }
 }
 

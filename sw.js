@@ -38,7 +38,15 @@ self.addEventListener('fetch', function(event) {
         if (response) {
           return response;
         }
-        return fetch(event.request);
+        // Fetch işlemini try-catch ile sarmalayalım
+        return fetch(event.request).catch(function(error) {
+          console.error('Fetch hatası:', error);
+          // Eğer fetch başarısız olursa, basit bir response döndür
+          return new Response('Network error', {
+            status: 503,
+            statusText: 'Service Unavailable'
+          });
+        });
       }
     )
   );
