@@ -1073,7 +1073,7 @@ async function loadUsersList() {
         }
         
         // Tarih alanlarını otomatik doldur
-        setDefaultTaskDates();
+        // setDefaultTaskDates(); // Bu fonksiyon şu anda kullanılmıyor
         
     } catch (error) {
         console.error('Kullanıcı listesi yükleme hatası:', error);
@@ -4784,8 +4784,8 @@ window.showGamePlanSummary = function(title, type, startDate = '', endDate = '')
                     <div style="max-height: 200px; overflow-y: auto;">
                         ${selectedStores.length > 0 ? 
                             selectedStores.map((store, index) => {
-                                console.log(\`Mağaza \${index + 1} HTML oluşturuluyor:\`, store);
-                                return \`<div style="padding: 5px 0; border-bottom: 1px solid #eee;">\${store || 'Mağaza adı yok'}</div>\`;
+                                console.log(`Mağaza ${index + 1} HTML oluşturuluyor:`, store);
+                                return `<div style="padding: 5px 0; border-bottom: 1px solid #eee;">${store || 'Mağaza adı yok'}</div>`;
                             }).join('') :
                             `<div style="padding: 10px; color: #6c757d; text-align: center;">Hiç mağaza seçilmedi</div>`
                         }
