@@ -2893,22 +2893,44 @@ async function deleteTask(taskId) {
             
             console.log('Mevcut görev:', existingTask);
             
-            // Önce 'cancelled' deneyelim, olmazsa 'inactive' deneyelim
-            let updateData = { status: 'cancelled' };
+            // RLS politikası is_active sütunu arıyor, o yüzden is_active: false ekleyelim
+            let updateData = { 
+                status: 'cancelled',
+                is_active: false
+            };
             let { error: taskError } = await supabase
                 .from('tasks')
                 .update(updateData)
                 .eq('id', taskIdInt);
                 
-            // Eğer cancelled çalışmazsa inactive deneyelim
-            if (taskError && taskError.message && taskError.message.includes('cancelled')) {
-                console.log('cancelled status çalışmadı, inactive deneyelim...');
-                updateData = { status: 'inactive' };
-                const { error: taskError2 } = await supabase
-                    .from('tasks')
-                    .update(updateData)
-                    .eq('id', taskIdInt);
-                taskError = taskError2;
+            // Eğer is_active sütunu yoksa sadece status ile deneyelim
+            if (taskError && taskError.message && taskError.message.includes('is_active')) {
+                console.log('is_active sütunu bulunamadı, sadece status ile deneyelim...');
+                
+                // Farklı status değerleri deneyelim
+                const statusOptions = ['cancelled', 'inactive', 'deleted', 'archived'];
+                let success = false;
+                
+                for (const status of statusOptions) {
+                    console.log(`${status} status deneyelim...`);
+                    const { error: statusError } = await supabase
+                        .from('tasks')
+                        .update({ status: status })
+                        .eq('id', taskIdInt);
+                        
+                    if (!statusError) {
+                        console.log(`${status} status başarılı!`);
+                        taskError = null;
+                        success = true;
+                        break;
+                    } else {
+                        console.log(`${status} status başarısız:`, statusError.message);
+                    }
+                }
+                
+                if (!success) {
+                    taskError = { message: 'Hiçbir status değeri çalışmadı' };
+                }
             }
 
             if (taskError) {
