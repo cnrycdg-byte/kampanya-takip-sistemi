@@ -4,7 +4,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Kampanya Takip Sistemi yüklendi');
     
-    // PWA Service Worker'ı kaydet
+    // PWA Service Worker'ı kaydet - DEVRE DIŞI
+    // Service Worker sorunlara neden olduğu için kaldırıldı
+    /*
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js')
             .then(function(registration) {
@@ -13,6 +15,17 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(function(error) {
                 console.log('Service Worker kaydı başarısız:', error);
             });
+    }
+    */
+    
+    // Mevcut Service Worker'ı temizle
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+                console.log('Service Worker kaldırıldı:', registration);
+            }
+        });
     }
     
     // Giriş formunu dinle
