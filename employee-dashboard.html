@@ -186,36 +186,33 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/app.js?v=2.0"></script>
-    <script src="js/employee.js?v=1.1"></script>
+    <script src="js/app.js?v=3.0"></script>
+    <script src="js/employee.js?v=1.2"></script>
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration - DEVRE DIŞI -->
     <script>
+        // Service Worker'ı tamamen devre dışı bırak
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Önce eski service worker'ları kaldır
+                // Tüm service worker'ları kaldır
                 navigator.serviceWorker.getRegistrations().then(registrations => {
                     registrations.forEach(registration => {
                         registration.unregister();
+                        console.log('Service Worker kaldırıldı:', registration);
                     });
                 });
                 
-                // Yeni service worker'ı kaydet
-                navigator.serviceWorker.register('./sw.js?v=3')
-                    .then(registration => {
-                        console.log('Service Worker registered successfully:', registration);
-                        // Cache'i temizle
-                        if ('caches' in window) {
-                            caches.keys().then(cacheNames => {
-                                cacheNames.forEach(cacheName => {
-                                    caches.delete(cacheName);
-                                });
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.log('Service Worker registration failed:', error);
+                // Tüm cache'leri temizle
+                if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                        cacheNames.forEach(cacheName => {
+                            caches.delete(cacheName);
+                            console.log('Cache temizlendi:', cacheName);
+                        });
                     });
+                }
+                
+                console.log('Service Worker tamamen devre dışı bırakıldı');
             });
         }
     </script>

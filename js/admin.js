@@ -7485,3 +7485,6 @@ function setDefaultTaskDates() {
     }
 }
 
+// setDefaultTaskDates fonksiyonunu window objesine de ekle
+window.setDefaultTaskDates = setDefaultTaskDates;
+

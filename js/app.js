@@ -68,10 +68,17 @@ document.addEventListener('DOMContentLoaded', function() {
         forgotPasswordLink.addEventListener('click', handleForgotPassword);
     }
     
-    // Sayfa yüklendiğinde kayıtlı bilgileri kontrol et (kısa bir gecikme ile)
+    // Sayfa yüklendiğinde kayıtlı bilgileri kontrol et (daha uzun gecikme ile)
     setTimeout(() => {
         loadRememberedCredentials();
-    }, 100);
+    }, 500);
+    
+    // Alternatif olarak DOMContentLoaded event'ini de dinle
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            loadRememberedCredentials();
+        }, 1000);
+    });
 });
 
 // Giriş işlemini yöneten fonksiyon
@@ -370,38 +377,52 @@ function loadRememberedCredentials() {
         // Elementler yoksa fonksiyonu sonlandır
         if (!emailElement || !roleElement || !rememberMeElement) {
             console.log('Form elementleri henüz yüklenmemiş, loadRememberedCredentials atlanıyor');
-            return;
+            return false;
+        }
+        
+        // Elementlerin DOM'da tam olarak yüklendiğinden emin ol
+        if (!emailElement.offsetParent && !roleElement.offsetParent && !rememberMeElement.offsetParent) {
+            console.log('Form elementleri görünür değil, loadRememberedCredentials atlanıyor');
+            return false;
         }
         
         const remembered = getFromStorage('rememberedCredentials');
         if (remembered && remembered.rememberMe) {
             // Güvenli değer atama
             try {
-                if (emailElement && typeof emailElement.value !== 'undefined') {
+                if (emailElement && typeof emailElement.value !== 'undefined' && emailElement.tagName === 'INPUT') {
                     emailElement.value = remembered.email || '';
+                    console.log('Email değeri yüklendi:', remembered.email);
                 }
             } catch (e) {
                 console.warn('Email element değer atama hatası:', e);
             }
             
             try {
-                if (roleElement && typeof roleElement.value !== 'undefined') {
+                if (roleElement && typeof roleElement.value !== 'undefined' && roleElement.tagName === 'SELECT') {
                     roleElement.value = remembered.role || '';
+                    console.log('Role değeri yüklendi:', remembered.role);
                 }
             } catch (e) {
                 console.warn('Role element değer atama hatası:', e);
             }
             
             try {
-                if (rememberMeElement && typeof rememberMeElement.checked !== 'undefined') {
+                if (rememberMeElement && typeof rememberMeElement.checked !== 'undefined' && rememberMeElement.tagName === 'INPUT') {
                     rememberMeElement.checked = true;
+                    console.log('RememberMe değeri yüklendi: true');
                 }
             } catch (e) {
                 console.warn('RememberMe element değer atama hatası:', e);
             }
+            
+            return true;
         }
+        
+        return false;
     } catch (error) {
         console.error('Kayıtlı bilgiler yüklenirken hata:', error);
+        return false;
     }
 }
 
