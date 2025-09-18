@@ -362,15 +362,43 @@ function logout() {
 // Kayıtlı bilgileri yükleme fonksiyonu
 function loadRememberedCredentials() {
     try {
+        // Elementlerin yüklenmesini bekle
+        const emailElement = document.getElementById('email');
+        const roleElement = document.getElementById('role');
+        const rememberMeElement = document.getElementById('rememberMe');
+        
+        // Elementler yoksa fonksiyonu sonlandır
+        if (!emailElement || !roleElement || !rememberMeElement) {
+            console.log('Form elementleri henüz yüklenmemiş, loadRememberedCredentials atlanıyor');
+            return;
+        }
+        
         const remembered = getFromStorage('rememberedCredentials');
         if (remembered && remembered.rememberMe) {
-            const emailElement = document.getElementById('email');
-            const roleElement = document.getElementById('role');
-            const rememberMeElement = document.getElementById('rememberMe');
+            // Güvenli değer atama
+            try {
+                if (emailElement && typeof emailElement.value !== 'undefined') {
+                    emailElement.value = remembered.email || '';
+                }
+            } catch (e) {
+                console.warn('Email element değer atama hatası:', e);
+            }
             
-            if (emailElement) emailElement.value = remembered.email || '';
-            if (roleElement) roleElement.value = remembered.role || '';
-            if (rememberMeElement) rememberMeElement.checked = true;
+            try {
+                if (roleElement && typeof roleElement.value !== 'undefined') {
+                    roleElement.value = remembered.role || '';
+                }
+            } catch (e) {
+                console.warn('Role element değer atama hatası:', e);
+            }
+            
+            try {
+                if (rememberMeElement && typeof rememberMeElement.checked !== 'undefined') {
+                    rememberMeElement.checked = true;
+                }
+            } catch (e) {
+                console.warn('RememberMe element değer atama hatası:', e);
+            }
         }
     } catch (error) {
         console.error('Kayıtlı bilgiler yüklenirken hata:', error);
