@@ -312,8 +312,8 @@ async function loadTaskDetailStats(tasks) {
                                     <button class="btn btn-sm btn-outline-warning" onclick="deleteTask(${task.id})" title="Kapat">
                                         <i class="fas fa-times me-1"></i>Kapat
                                     </button>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="archiveTask(${task.id})" title="Arşivle">
-                                        <i class="fas fa-archive me-1"></i>Arşivle
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTaskPermanent(${task.id})" title="Sil">
+                                        <i class="fas fa-trash me-1"></i>Sil
                                     </button>
                                 </div>` : ''
                             }
@@ -430,8 +430,8 @@ function loadRecentTasks(tasks = []) {
                             <button class="btn btn-sm btn-warning" onclick="deleteTask(${task.id})" title="Kapat">
                                 <i class="fas fa-times"></i>
                             </button>
-                            <button class="btn btn-sm btn-secondary" onclick="archiveTask(${task.id})" title="Arşivle">
-                                <i class="fas fa-archive"></i>
+                            <button class="btn btn-sm btn-danger" onclick="deleteTaskPermanent(${task.id})" title="Sil">
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>` : ''
                     }
@@ -1301,7 +1301,6 @@ async function loadChannelsList() {
         const { data: channels, error } = await supabase
             .from('channels')
             .select('*')
-            .eq('status', 'active')
             .order('created_at', { ascending: false });
         
         if (error) {
@@ -2032,7 +2031,6 @@ async function loadRegionFilterOptions() {
         const { data: regions, error } = await supabase
             .from('regions')
             .select('id, name')
-            .eq('status', 'active')
             .order('name');
         
         if (error) throw error;
@@ -2065,7 +2063,6 @@ async function loadStoreFilterOptions() {
         const { data: channels, error: channelError } = await supabase
             .from('channels')
             .select('id, name')
-            .eq('status', 'active')
             .order('name');
         
         if (channelError) throw channelError;
@@ -2090,7 +2087,6 @@ async function loadStoreFilterOptions() {
         const { data: regions, error: regionError } = await supabase
             .from('regions')
             .select('id, name')
-            .eq('status', 'active')
             .order('name');
         
         if (regionError) throw regionError;
@@ -2315,7 +2311,6 @@ async function loadTaskFormDropdowns() {
         const { data: channels, error: channelError } = await supabase
             .from('channels')
             .select('id, name')
-            .eq('status', 'active')
             .order('name');
         
         if (channelError) throw channelError;
@@ -2639,8 +2634,8 @@ function displayTasksList(tasks) {
                                 <button class="btn btn-outline-warning" onclick="deleteTask(${task.id})" title="Kapat">
                                     <i class="fas fa-times"></i>
                                 </button>
-                                <button class="btn btn-outline-secondary" onclick="archiveTask(${task.id})" title="Arşivle">
-                                    <i class="fas fa-archive"></i>
+                                <button class="btn btn-outline-danger" onclick="deleteTaskPermanent(${task.id})" title="Sil">
+                                    <i class="fas fa-trash"></i>
                                 </button>
                             </div>` : ''
                         }
@@ -2865,7 +2860,7 @@ async function viewTask(taskId) {
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
                             <div class="btn-group" role="group">
                                 <button type="button" class="btn btn-warning" onclick="deleteTask(${task.id}); $('#taskViewModal').modal('hide');">Kapat</button>
-                                <button type="button" class="btn btn-secondary" onclick="archiveTask(${task.id}); $('#taskViewModal').modal('hide');">Arşivle</button>
+                                <button type="button" class="btn btn-danger" onclick="deleteTaskPermanent(${task.id}); $('#taskViewModal').modal('hide');">Sil</button>
                             </div>
                         </div>
                     </div>
@@ -4168,16 +4163,17 @@ window.deleteTask = async function(taskId) {
             return;
         }
         
-        // Görev zaten kapalıysa uyarı ver
-        if (existingTask.status === 'closed') {
-            showAlert('Bu görev zaten kapalı!', 'warning');
+        // Görev zaten iptal edilmişse uyarı ver
+        if (existingTask.status === 'cancelled') {
+            showAlert('Bu görev zaten iptal edilmiş!', 'warning');
             return;
         }
         
         const { error: updateError } = await supabase
             .from('tasks')
             .update({ 
-                status: 'closed'
+                status: 'cancelled',
+                is_active: false
             })
             .eq('id', taskIdInt);
             
@@ -4196,16 +4192,129 @@ window.deleteTask = async function(taskId) {
             
             showAlert('Görev kapatılırken hata oluştu: ' + updateError.message, 'danger');
         } else {
-            console.log('Görev başarıyla kapatıldı');
-            showAlert('Görev başarıyla kapatıldı! Employee dashboard\'da görünmeyecektir.', 'success');
+            console.log('Görev başarıyla iptal edildi');
+            showAlert('Görev başarıyla iptal edildi! Employee dashboard\'da görünmeyecektir.', 'success');
+            // Sadece görevler listesini yenile
             loadTasksList();
-            loadDashboardData();
         }
         
     } catch (error) {
         console.error('Görev kapatma catch hatası:', error);
         console.error('Hata detayları:', JSON.stringify(error, null, 2));
         showAlert('Görev kapatılırken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
+    }
+}
+
+// Görev silme fonksiyonu - Gerçek silme işlemi
+window.deleteTaskPermanent = async function(taskId) {
+    console.log('Görev silme başladı:', taskId);
+    
+    if (!taskId) {
+        console.error('Görev ID bulunamadı');
+        showAlert('Görev ID bulunamadı!', 'danger');
+        return;
+    }
+    
+    // Supabase cache'ini temizle (async olarak arka planda)
+    clearSupabaseCache().catch(err => console.warn('Cache temizleme hatası:', err));
+    
+    if (!confirm('Bu görevi SİLMEK istediğinizden emin misiniz? Bu işlem geri alınamaz ve görev tamamen silinecektir!')) {
+        return;
+    }
+    
+    // Önce kullanıcı oturumunu kontrol et
+    const user = checkUserSession();
+    if (!user) {
+        showAlert('Oturum süreniz dolmuş! Lütfen tekrar giriş yapın.', 'danger');
+        return;
+    }
+    
+    // Yetki kontrolü: Sadece admin ve manager'lar görev silebilir
+    if (user.role !== 'admin' && user.role !== 'manager') {
+        showAlert('Görev silme yetkiniz yok! Sadece yöneticiler görev silebilir.', 'danger');
+        return;
+    }
+    
+    console.log('Kullanıcı oturumu:', user);
+    
+    // taskId'yi integer'a çevir
+    const taskIdInt = parseInt(taskId);
+    if (isNaN(taskIdInt)) {
+        showAlert('Geçersiz görev ID!', 'danger');
+        return;
+    }
+    
+    console.log('Görev siliniyor, taskId:', taskIdInt);
+    
+    try {
+        // Önce görevin var olup olmadığını kontrol et
+        const { data: existingTask, error: fetchError } = await supabase
+            .from('tasks')
+            .select('id, title')
+            .eq('id', taskIdInt)
+            .single();
+            
+        if (fetchError) {
+            console.error('Görev bulunamadı:', fetchError);
+            showAlert('Görev bulunamadı!', 'danger');
+            return;
+        }
+        
+        if (!existingTask) {
+            showAlert('Görev bulunamadı!', 'danger');
+            return;
+        }
+        
+        console.log('Görev siliniyor:', existingTask.title);
+        
+        // Önce task_assignments tablosundaki ilgili kayıtları sil
+        console.log('Task assignments siliniyor...');
+        const { error: deleteAssignmentsError } = await supabase
+            .from('task_assignments')
+            .delete()
+            .eq('task_id', taskIdInt);
+            
+        if (deleteAssignmentsError) {
+            console.error('Task assignments silme hatası:', deleteAssignmentsError);
+            showAlert('Görev atamaları silinirken hata oluştu: ' + deleteAssignmentsError.message, 'danger');
+            return;
+        }
+        
+        // Task photos tablosundaki ilgili kayıtları sil
+        console.log('Task photos siliniyor...');
+        const { error: deletePhotosError } = await supabase
+            .from('task_photos')
+            .delete()
+            .eq('task_id', taskIdInt);
+            
+        if (deletePhotosError) {
+            console.error('Task photos silme hatası:', deletePhotosError);
+            showAlert('Görev fotoğrafları silinirken hata oluştu: ' + deletePhotosError.message, 'danger');
+            return;
+        }
+        
+        // Şimdi görevi sil
+        console.log('Görev siliniyor...');
+        const { error: deleteError } = await supabase
+            .from('tasks')
+            .delete()
+            .eq('id', taskIdInt);
+            
+        if (deleteError) {
+            console.error('Görev silme hatası:', deleteError);
+            console.error('Hata detayları:', JSON.stringify(deleteError, null, 2));
+            showAlert('Görev silinirken hata oluştu: ' + deleteError.message, 'danger');
+        } else {
+            console.log('Görev ve ilgili kayıtlar başarıyla silindi');
+            showAlert('Görev ve tüm ilgili kayıtlar başarıyla silindi!', 'success');
+            // Sadece görevler listesini yenile
+            loadTasksList();
+        }
+        
+    } catch (error) {
+        console.error('Görev silme catch hatası:', error);
+        console.error('Hata detayları:', JSON.stringify(error, null, 2));
+        showAlert('Görev silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
     }
 }
 
@@ -6549,7 +6658,6 @@ async function loadChannelsForGamePlan(selectId) {
             const { data: channels, error } = await supabase
                 .from('channels')
                 .select('id, name')
-                .eq('status', 'active')
                 .order('name');
             
             if (error) {
