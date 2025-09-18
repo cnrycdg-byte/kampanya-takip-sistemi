@@ -2869,13 +2869,22 @@ async function deleteTask(taskId) {
             console.log('Soft delete başlatılıyor...');
             
             // Soft delete: Görev durumunu "cancelled" yap
-            console.log('Task güncelleniyor, taskId:', taskId);
+            console.log('Task güncelleniyor, taskId:', taskId, 'type:', typeof taskId);
+            
+            // taskId'yi integer'a çevir
+            const taskIdInt = parseInt(taskId);
+            console.log('Task ID integer:', taskIdInt);
+            
+            if (isNaN(taskIdInt)) {
+                throw new Error('Geçersiz görev ID: ' + taskId);
+            }
+            
             const { error: taskError } = await supabase
                 .from('tasks')
                 .update({ 
                     status: 'cancelled'
                 })
-                .eq('id', taskId);
+                .eq('id', taskIdInt);
 
             if (taskError) {
                 console.error('Task güncelleme hatası:', taskError);
@@ -2891,7 +2900,7 @@ async function deleteTask(taskId) {
                     .update({ 
                         status: 'cancelled'
                     })
-                    .eq('task_id', taskId);
+                    .eq('task_id', taskIdInt);
 
                 if (assignmentsError) {
                     console.warn('Task assignments güncellenemedi:', assignmentsError);
