@@ -4007,8 +4007,8 @@ function formatDateForExcel(dateString) {
 
 // ==================== GÖREV SİLME FONKSİYONU ====================
 
-// Görev silme fonksiyonu - En basit versiyon
-window.deleteTask = function(taskId) {
+// Görev silme fonksiyonu - Tamamen yeniden yazılmış versiyon
+window.deleteTask = async function(taskId) {
     console.log('Görev silme başladı:', taskId);
     
     if (!taskId) {
@@ -4045,28 +4045,55 @@ window.deleteTask = function(taskId) {
     
     console.log('Görev güncelleniyor, taskId:', taskIdInt);
     
-    // En basit güncelleme denemesi - Sadece status ile
-    console.log('Görev güncelleme işlemi başlatılıyor...');
-    supabase
-        .from('tasks')
-        .update({ status: 'cancelled' })
-        .eq('id', taskIdInt)
-        .then(({ error }) => {
-            if (error) {
-                console.error('Görev güncelleme hatası:', error);
-                console.error('Hata detayları:', JSON.stringify(error, null, 2));
-                showAlert('Görev silinirken hata oluştu: ' + error.message, 'danger');
-            } else {
-                console.log('Görev başarıyla iptal edildi');
-                showAlert('Görev başarıyla iptal edildi!', 'success');
-                loadTasksList();
-                loadDashboardData();
-            }
-        })
-        .catch((error) => {
-            console.error('Görev silme catch hatası:', error);
-            showAlert('Görev silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
-        });
+    try {
+        // Önce Supabase oturumunu kontrol et
+        const { data: { user: supabaseUser }, error: sessionError } = await supabase.auth.getUser();
+        console.log('Supabase kullanıcısı:', supabaseUser);
+        console.log('Session error:', sessionError);
+        
+        if (sessionError || !supabaseUser) {
+            console.error('Supabase oturumu bulunamadı');
+            showAlert('Oturum hatası! Lütfen tekrar giriş yapın.', 'danger');
+            return;
+        }
+        
+        // RLS politikalarını test et
+        console.log('RLS politikalarını test ediyoruz...');
+        const { data: testData, error: testError } = await supabase
+            .from('tasks')
+            .select('id, status')
+            .limit(1);
+        console.log('RLS test sonucu:', { testData, testError });
+        
+        if (testError) {
+            console.error('RLS politikası hatası:', testError);
+            showAlert('Veritabanı erişim hatası! Lütfen yönetici ile iletişime geçin.', 'danger');
+            return;
+        }
+        
+        // En basit güncelleme denemesi - Sadece status ile
+        console.log('Görev güncelleme işlemi başlatılıyor...');
+        const { error: updateError } = await supabase
+            .from('tasks')
+            .update({ status: 'cancelled' })
+            .eq('id', taskIdInt);
+            
+        if (updateError) {
+            console.error('Görev güncelleme hatası:', updateError);
+            console.error('Hata detayları:', JSON.stringify(updateError, null, 2));
+            showAlert('Görev silinirken hata oluştu: ' + updateError.message, 'danger');
+        } else {
+            console.log('Görev başarıyla iptal edildi');
+            showAlert('Görev başarıyla iptal edildi!', 'success');
+            loadTasksList();
+            loadDashboardData();
+        }
+        
+    } catch (error) {
+        console.error('Görev silme catch hatası:', error);
+        console.error('Hata detayları:', JSON.stringify(error, null, 2));
+        showAlert('Görev silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
+    }
 }
 
 // ==================== KAMPANYA KAPATMA FONKSİYONU ====================
