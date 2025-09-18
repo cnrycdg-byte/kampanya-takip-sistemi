@@ -4007,8 +4007,8 @@ function formatDateForExcel(dateString) {
 
 // ==================== GÖREV SİLME FONKSİYONU ====================
 
-// Görev silme fonksiyonu - Tamamen yeniden yazılmış versiyon
-window.deleteTask = async function(taskId) {
+// Görev silme fonksiyonu - En basit versiyon
+window.deleteTask = function(taskId) {
     console.log('Görev silme başladı:', taskId);
     
     if (!taskId) {
@@ -4045,44 +4045,47 @@ window.deleteTask = async function(taskId) {
     
     console.log('Görev güncelleniyor, taskId:', taskIdInt);
     
-    // Basit güncelleme denemesi - Try-catch ile
-    try {
-        // Önce sadece status güncellemesi deneyelim
-        const { error: updateError } = await supabase
-            .from('tasks')
-            .update({ status: 'cancelled' })
-            .eq('id', taskIdInt);
-            
-        if (updateError) {
-            console.error('Görev güncelleme hatası:', updateError);
-            console.error('Hata detayları:', JSON.stringify(updateError, null, 2));
-            
-            // Alternatif olarak sadece görevi gizle (soft delete)
-            const { error: hideError } = await supabase
-                .from('tasks')
-                .update({ is_active: false })
-                .eq('id', taskIdInt);
-                
-            if (hideError) {
-                console.error('Görev gizleme hatası:', hideError);
-                showAlert('Görev silinirken hata oluştu: ' + hideError.message, 'danger');
-            } else {
-                console.log('Görev başarıyla gizlendi');
-                showAlert('Görev başarıyla gizlendi!', 'success');
-                loadTasksList();
-                loadDashboardData();
+    // En basit güncelleme denemesi - Farklı status değerleri ile
+    const statusOptions = ['cancelled', 'inactive', 'deleted', 'archived'];
+    let updateSuccess = false;
+    
+    // Her status değerini sırayla dene
+    const tryUpdate = (index) => {
+        if (index >= statusOptions.length) {
+            if (!updateSuccess) {
+                console.error('Hiçbir status değeri çalışmadı');
+                showAlert('Görev silinirken hata oluştu!', 'danger');
             }
-        } else {
-            console.log('Görev başarıyla iptal edildi');
-            showAlert('Görev başarıyla iptal edildi!', 'success');
-            loadTasksList();
-            loadDashboardData();
+            return;
         }
-    } catch (error) {
-        console.error('Görev silme hatası:', error);
-        console.error('Hata detayları:', JSON.stringify(error, null, 2));
-        showAlert('Görev silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
-    }
+        
+        const status = statusOptions[index];
+        console.log(`${status} status ile güncelleme deneniyor...`);
+        
+        supabase
+            .from('tasks')
+            .update({ status: status })
+            .eq('id', taskIdInt)
+            .then(({ error }) => {
+                if (error) {
+                    console.log(`${status} status ile güncelleme başarısız:`, error.message);
+                    tryUpdate(index + 1); // Sonraki status'u dene
+                } else {
+                    console.log(`${status} status ile güncelleme başarılı!`);
+                    updateSuccess = true;
+                    showAlert('Görev başarıyla iptal edildi!', 'success');
+                    loadTasksList();
+                    loadDashboardData();
+                }
+            })
+            .catch((error) => {
+                console.log(`${status} status ile güncelleme catch hatası:`, error.message);
+                tryUpdate(index + 1); // Sonraki status'u dene
+            });
+    };
+    
+    // İlk status'u dene
+    tryUpdate(0);
 }
 
 // ==================== KAMPANYA KAPATMA FONKSİYONU ====================
