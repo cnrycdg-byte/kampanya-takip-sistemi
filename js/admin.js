@@ -4066,11 +4066,27 @@ function formatDateForExcel(dateString) {
 // Supabase cache'ini temizle
 async function clearSupabaseCache() {
     try {
-        // Supabase client'ı yeniden başlat
         if (window.supabase) {
-            // Cache'i temizlemek için basit bir sorgu yap
+            // Önce basit bir sorgu yaparak cache'i temizle
             await window.supabase.from('tasks').select('id').limit(1);
-            console.log('Supabase cache temizlendi');
+            
+            // Supabase client'ı yeniden başlat
+            if (window.supabase.realtime) {
+                window.supabase.realtime.disconnect();
+            }
+            
+            // Yeni bir Supabase client oluştur
+            const { createClient } = window.supabase;
+            if (createClient) {
+                // Mevcut client'ı yeni client ile değiştir
+                const newClient = createClient(
+                    window.supabase.supabaseUrl,
+                    window.supabase.supabaseKey
+                );
+                window.supabase = newClient;
+            }
+            
+            console.log('Supabase cache ve client temizlendi');
         }
     } catch (error) {
         console.error('Cache temizleme hatası:', error);
@@ -4083,14 +4099,14 @@ async function clearSupabaseCache() {
 window.deleteTask = async function(taskId) {
     console.log('Görev kapatma başladı:', taskId);
     
-    // Supabase cache'ini temizle
-    await clearSupabaseCache();
-    
     if (!taskId) {
         console.error('Görev ID bulunamadı');
         showAlert('Görev ID bulunamadı!', 'danger');
         return;
     }
+    
+    // Supabase cache'ini temizle (async olarak arka planda)
+    clearSupabaseCache().catch(err => console.warn('Cache temizleme hatası:', err));
     
     if (!confirm('Bu görevi kapatmak istediğinizden emin misiniz? Kapatılan görevler employee dashboard\'da görünmeyecektir.')) {
         return;
@@ -4159,6 +4175,16 @@ window.deleteTask = async function(taskId) {
         if (updateError) {
             console.error('Görev kapatma hatası:', updateError);
             console.error('Hata detayları:', JSON.stringify(updateError, null, 2));
+            
+            // is_active hatası için özel mesaj
+            if (updateError.message && updateError.message.includes('is_active')) {
+                console.warn('is_active sütunu hatası tespit edildi, cache temizleniyor...');
+                // Cache'i tekrar temizle
+                await clearSupabaseCache();
+                showAlert('Cache temizlendi, lütfen tekrar deneyin.', 'warning');
+                return;
+            }
+            
             showAlert('Görev kapatılırken hata oluştu: ' + updateError.message, 'danger');
         } else {
             console.log('Görev başarıyla kapatıldı');
@@ -4180,14 +4206,14 @@ window.deleteTask = async function(taskId) {
 window.archiveTask = async function(taskId) {
     console.log('Görev arşivleme başladı:', taskId);
     
-    // Supabase cache'ini temizle
-    await clearSupabaseCache();
-    
     if (!taskId) {
         console.error('Görev ID bulunamadı');
         showAlert('Görev ID bulunamadı!', 'danger');
         return;
     }
+    
+    // Supabase cache'ini temizle (async olarak arka planda)
+    clearSupabaseCache().catch(err => console.warn('Cache temizleme hatası:', err));
     
     if (!confirm('Bu görevi arşivlemek istediğinizden emin misiniz? Arşivlenen görevler employee dashboard\'da görünmeyecektir.')) {
         return;
@@ -4256,6 +4282,16 @@ window.archiveTask = async function(taskId) {
         if (updateError) {
             console.error('Görev arşivleme hatası:', updateError);
             console.error('Hata detayları:', JSON.stringify(updateError, null, 2));
+            
+            // is_active hatası için özel mesaj
+            if (updateError.message && updateError.message.includes('is_active')) {
+                console.warn('is_active sütunu hatası tespit edildi, cache temizleniyor...');
+                // Cache'i tekrar temizle
+                await clearSupabaseCache();
+                showAlert('Cache temizlendi, lütfen tekrar deneyin.', 'warning');
+                return;
+            }
+            
             showAlert('Görev arşivlenirken hata oluştu: ' + updateError.message, 'danger');
         } else {
             console.log('Görev başarıyla arşivlendi');
