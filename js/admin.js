@@ -40,14 +40,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Service Worker temizleme
+    // Service Worker temizleme - AGGRESSIVE
     if ('serviceWorker' in navigator) {
+        // Önce mevcut Service Worker'ları kaldır
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
             for(let registration of registrations) {
                 registration.unregister();
                 console.log('Service Worker kaldırıldı:', registration);
             }
         });
+        
+        // Service Worker'ı tamamen devre dışı bırak
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({action: 'SKIP_WAITING'});
+        }
+        
+        // Service Worker'ı tekrar kontrol et ve kaldır
+        setTimeout(function() {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('Service Worker tekrar kaldırıldı:', registration);
+                }
+            });
+        }, 1000);
     }
     
     

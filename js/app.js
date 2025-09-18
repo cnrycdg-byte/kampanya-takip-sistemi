@@ -18,14 +18,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     */
     
-    // Mevcut Service Worker'ı temizle
+    // Mevcut Service Worker'ı temizle - AGGRESSIVE
     if ('serviceWorker' in navigator) {
+        // Önce mevcut Service Worker'ları kaldır
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
             for(let registration of registrations) {
                 registration.unregister();
                 console.log('Service Worker kaldırıldı:', registration);
             }
         });
+        
+        // Service Worker'ı tamamen devre dışı bırak
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({action: 'SKIP_WAITING'});
+        }
         
         // Cache'i de temizle
         if ('caches' in window) {
@@ -38,6 +44,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
             });
         }
+        
+        // Service Worker'ı tekrar kontrol et ve kaldır
+        setTimeout(function() {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('Service Worker tekrar kaldırıldı:', registration);
+                }
+            });
+        }, 1000);
     }
     
     // Giriş formunu dinle
@@ -345,9 +361,13 @@ function logout() {
 function loadRememberedCredentials() {
     const remembered = getFromStorage('rememberedCredentials');
     if (remembered && remembered.rememberMe) {
-        document.getElementById('email').value = remembered.email;
-        document.getElementById('role').value = remembered.role;
-        document.getElementById('rememberMe').checked = true;
+        const emailElement = document.getElementById('email');
+        const roleElement = document.getElementById('role');
+        const rememberMeElement = document.getElementById('rememberMe');
+        
+        if (emailElement) emailElement.value = remembered.email;
+        if (roleElement) roleElement.value = remembered.role;
+        if (rememberMeElement) rememberMeElement.checked = true;
     }
 }
 
