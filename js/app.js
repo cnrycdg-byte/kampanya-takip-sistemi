@@ -68,8 +68,10 @@ document.addEventListener('DOMContentLoaded', function() {
         forgotPasswordLink.addEventListener('click', handleForgotPassword);
     }
     
-    // Sayfa yüklendiğinde kayıtlı bilgileri kontrol et
-    loadRememberedCredentials();
+    // Sayfa yüklendiğinde kayıtlı bilgileri kontrol et (kısa bir gecikme ile)
+    setTimeout(() => {
+        loadRememberedCredentials();
+    }, 100);
 });
 
 // Giriş işlemini yöneten fonksiyon
@@ -359,15 +361,19 @@ function logout() {
 
 // Kayıtlı bilgileri yükleme fonksiyonu
 function loadRememberedCredentials() {
-    const remembered = getFromStorage('rememberedCredentials');
-    if (remembered && remembered.rememberMe) {
-        const emailElement = document.getElementById('email');
-        const roleElement = document.getElementById('role');
-        const rememberMeElement = document.getElementById('rememberMe');
-        
-        if (emailElement) emailElement.value = remembered.email;
-        if (roleElement) roleElement.value = remembered.role;
-        if (rememberMeElement) rememberMeElement.checked = true;
+    try {
+        const remembered = getFromStorage('rememberedCredentials');
+        if (remembered && remembered.rememberMe) {
+            const emailElement = document.getElementById('email');
+            const roleElement = document.getElementById('role');
+            const rememberMeElement = document.getElementById('rememberMe');
+            
+            if (emailElement) emailElement.value = remembered.email || '';
+            if (roleElement) roleElement.value = remembered.role || '';
+            if (rememberMeElement) rememberMeElement.checked = true;
+        }
+    } catch (error) {
+        console.error('Kayıtlı bilgiler yüklenirken hata:', error);
     }
 }
 

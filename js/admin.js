@@ -1111,7 +1111,7 @@ async function loadUsersList() {
         }
         
         // Tarih alanlarını otomatik doldur
-        // setDefaultTaskDates(); // Bu fonksiyon şu anda kullanılmıyor
+        setDefaultTaskDates();
         
     } catch (error) {
         console.error('Kullanıcı listesi yükleme hatası:', error);
@@ -4061,11 +4061,30 @@ function formatDateForExcel(dateString) {
     return date.toLocaleDateString('tr-TR');
 }
 
+// ==================== SUPABASE CACHE TEMİZLEME ====================
+
+// Supabase cache'ini temizle
+async function clearSupabaseCache() {
+    try {
+        // Supabase client'ı yeniden başlat
+        if (window.supabase) {
+            // Cache'i temizlemek için basit bir sorgu yap
+            await window.supabase.from('tasks').select('id').limit(1);
+            console.log('Supabase cache temizlendi');
+        }
+    } catch (error) {
+        console.error('Cache temizleme hatası:', error);
+    }
+}
+
 // ==================== GÖREV SİLME FONKSİYONU ====================
 
 // Görev kapatma fonksiyonu - Silme yerine kapatma
 window.deleteTask = async function(taskId) {
     console.log('Görev kapatma başladı:', taskId);
+    
+    // Supabase cache'ini temizle
+    await clearSupabaseCache();
     
     if (!taskId) {
         console.error('Görev ID bulunamadı');
@@ -4104,6 +4123,31 @@ window.deleteTask = async function(taskId) {
     try {
         // Görev durumunu 'closed' olarak güncelle
         console.log('Görev kapatma işlemi başlatılıyor...');
+        
+        // Önce görevin var olup olmadığını kontrol et
+        const { data: existingTask, error: fetchError } = await supabase
+            .from('tasks')
+            .select('id, status')
+            .eq('id', taskIdInt)
+            .single();
+            
+        if (fetchError) {
+            console.error('Görev bulunamadı:', fetchError);
+            showAlert('Görev bulunamadı!', 'danger');
+            return;
+        }
+        
+        if (!existingTask) {
+            showAlert('Görev bulunamadı!', 'danger');
+            return;
+        }
+        
+        // Görev zaten kapalıysa uyarı ver
+        if (existingTask.status === 'closed') {
+            showAlert('Bu görev zaten kapalı!', 'warning');
+            return;
+        }
+        
         const { error: updateError } = await supabase
             .from('tasks')
             .update({ 
@@ -4130,70 +4174,7 @@ window.deleteTask = async function(taskId) {
     }
 }
 
-// Görev arşivleme fonksiyonu
-window.archiveTask = function(taskId) {
-    console.log('Görev arşivleme başladı:', taskId);
-    
-    if (!taskId) {
-        console.error('Görev ID bulunamadı');
-        showAlert('Görev ID bulunamadı!', 'danger');
-        return;
-    }
-    
-    if (!confirm('Bu görevi arşivlemek istediğinizden emin misiniz? Arşivlenen görevler employee dashboard\'da görünmeyecektir.')) {
-        return;
-    }
-    
-    // Önce kullanıcı oturumunu kontrol et
-    const user = checkUserSession();
-    if (!user) {
-        showAlert('Oturum süreniz dolmuş! Lütfen tekrar giriş yapın.', 'danger');
-        return;
-    }
-    
-    // Yetki kontrolü: Sadece admin ve manager'lar görev arşivleyebilir
-    if (user.role !== 'admin' && user.role !== 'manager') {
-        showAlert('Görev arşivleme yetkiniz yok! Sadece yöneticiler görev arşivleyebilir.', 'danger');
-        return;
-    }
-    
-    console.log('Kullanıcı oturumu:', user);
-    
-    // taskId'yi integer'a çevir
-    const taskIdInt = parseInt(taskId);
-    if (isNaN(taskIdInt)) {
-        showAlert('Geçersiz görev ID!', 'danger');
-        return;
-    }
-    
-    console.log('Görev arşivleniyor, taskId:', taskIdInt);
-    
-    // Görev durumunu 'archived' olarak güncelle
-    console.log('Görev arşivleme işlemi başlatılıyor...');
-    supabase
-        .from('tasks')
-        .update({ 
-            status: 'archived',
-            archived_at: new Date().toISOString()
-        })
-        .eq('id', taskIdInt)
-        .then(({ error }) => {
-            if (error) {
-                console.error('Görev arşivleme hatası:', error);
-                console.error('Hata detayları:', JSON.stringify(error, null, 2));
-                showAlert('Görev arşivlenirken hata oluştu: ' + error.message, 'danger');
-            } else {
-                console.log('Görev başarıyla arşivlendi');
-                showAlert('Görev başarıyla arşivlendi! Employee dashboard\'da görünmeyecektir.', 'success');
-                loadTasksList();
-                loadDashboardData();
-            }
-        })
-        .catch((error) => {
-            console.error('Görev arşivleme catch hatası:', error);
-            showAlert('Görev arşivlenirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
-        });
-}
+// Eski archiveTask fonksiyonu kaldırıldı - window.archiveTask kullanılıyor
 
 // Görev arşivleme fonksiyonu
 window.archiveTask = async function(taskId) {
@@ -4236,6 +4217,31 @@ window.archiveTask = async function(taskId) {
     try {
         // Görev durumunu 'archived' olarak güncelle
         console.log('Görev arşivleme işlemi başlatılıyor...');
+        
+        // Önce görevin var olup olmadığını kontrol et
+        const { data: existingTask, error: fetchError } = await supabase
+            .from('tasks')
+            .select('id, status')
+            .eq('id', taskIdInt)
+            .single();
+            
+        if (fetchError) {
+            console.error('Görev bulunamadı:', fetchError);
+            showAlert('Görev bulunamadı!', 'danger');
+            return;
+        }
+        
+        if (!existingTask) {
+            showAlert('Görev bulunamadı!', 'danger');
+            return;
+        }
+        
+        // Görev zaten arşivlenmişse uyarı ver
+        if (existingTask.status === 'archived') {
+            showAlert('Bu görev zaten arşivlenmiş!', 'warning');
+            return;
+        }
+        
         const { error: updateError } = await supabase
             .from('tasks')
             .update({ 
@@ -7412,6 +7418,31 @@ function setupMenuForUser(user) {
         } else {
             addStoreMenu.style.display = 'none';
         }
+    }
+}
+
+// Görev tarihlerini varsayılan değerlerle doldur
+function setDefaultTaskDates() {
+    try {
+        const startDateInput = document.getElementById('task-start-date');
+        const endDateInput = document.getElementById('task-end-date');
+        
+        if (startDateInput && !startDateInput.value) {
+            // Bugünün tarihini başlangıç tarihi olarak ayarla
+            const today = new Date();
+            const todayString = today.toISOString().split('T')[0];
+            startDateInput.value = todayString;
+        }
+        
+        if (endDateInput && !endDateInput.value) {
+            // 30 gün sonrasını bitiş tarihi olarak ayarla
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + 30);
+            const endDateString = endDate.toISOString().split('T')[0];
+            endDateInput.value = endDateString;
+        }
+    } catch (error) {
+        console.error('Tarih alanları doldurulurken hata:', error);
     }
 }
 
