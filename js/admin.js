@@ -2862,8 +2862,12 @@ function getTaskAssignmentStatusBadge(status) {
 
 
 async function deleteTask(taskId) {
+    console.log('deleteTask çağrıldı, taskId:', taskId);
+    
     if (confirm('Bu görevi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
         try {
+            console.log('Soft delete başlatılıyor...');
+            
             // Soft delete: Görev durumunu "cancelled" yap
             const { error: taskError } = await supabase
                 .from('tasks')
@@ -2873,7 +2877,12 @@ async function deleteTask(taskId) {
                 })
                 .eq('id', taskId);
 
-            if (taskError) throw taskError;
+            if (taskError) {
+                console.error('Task güncelleme hatası:', taskError);
+                throw taskError;
+            }
+
+            console.log('Task başarıyla iptal edildi');
 
             // Task assignments'ları da iptal et
             const { error: assignmentsError } = await supabase
@@ -2887,6 +2896,8 @@ async function deleteTask(taskId) {
             if (assignmentsError) {
                 console.warn('Task assignments güncellenemedi:', assignmentsError);
                 // Bu hata kritik değil, devam et
+            } else {
+                console.log('Task assignments başarıyla iptal edildi');
             }
 
             alert('✅ Görev başarıyla iptal edildi!');
@@ -2894,6 +2905,7 @@ async function deleteTask(taskId) {
 
         } catch (error) {
             console.error('Görev silme hatası:', error);
+            console.error('Hata detayları:', JSON.stringify(error, null, 2));
             alert('❌ Görev iptal edilirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
         }
     }
