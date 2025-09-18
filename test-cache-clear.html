@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache Temizleme Testi</title>
+</head>
+<body>
+    <h1>Cache Temizleme Testi</h1>
+    <button onclick="clearAllCaches()">Tüm Cache'leri Temizle</button>
+    <button onclick="clearServiceWorkers()">Service Worker'ları Temizle</button>
+    <button onclick="reloadPage()">Sayfayı Yenile</button>
+    
+    <div id="status"></div>
+
+    <script>
+        function clearAllCaches() {
+            if ('caches' in window) {
+                caches.keys().then(function(cacheNames) {
+                    return Promise.all(
+                        cacheNames.map(function(cacheName) {
+                            console.log('Cache temizleniyor:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                }).then(function() {
+                    document.getElementById('status').innerHTML = '<p style="color: green;">Tüm cache\'ler temizlendi!</p>';
+                });
+            }
+        }
+        
+        function clearServiceWorkers() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                        console.log('Service Worker kaldırıldı:', registration);
+                    }
+                    document.getElementById('status').innerHTML = '<p style="color: green;">Service Worker\'lar kaldırıldı!</p>';
+                });
+            }
+        }
+        
+        function reloadPage() {
+            window.location.reload(true);
+        }
+        
+        // Sayfa yüklendiğinde otomatik temizle
+        window.addEventListener('load', function() {
+            clearAllCaches();
+            clearServiceWorkers();
+        });
+    </script>
+</body>
+</html>

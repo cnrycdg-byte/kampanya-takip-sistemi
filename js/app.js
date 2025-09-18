@@ -26,6 +26,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Service Worker kaldırıldı:', registration);
             }
         });
+        
+        // Cache'i de temizle
+        if ('caches' in window) {
+            caches.keys().then(function(cacheNames) {
+                return Promise.all(
+                    cacheNames.map(function(cacheName) {
+                        console.log('Cache temizleniyor:', cacheName);
+                        return caches.delete(cacheName);
+                    })
+                );
+            });
+        }
     }
     
     // Giriş formunu dinle

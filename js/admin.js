@@ -26,7 +26,29 @@ document.addEventListener('click', function(event) {
 
 // Sayfa yüklendiğinde çalışacak kod
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Admin panel yüklendi');
+    console.log('Admin panel yüklendi - v2.5');
+    
+    // Cache temizleme
+    if ('caches' in window) {
+        caches.keys().then(function(cacheNames) {
+            return Promise.all(
+                cacheNames.map(function(cacheName) {
+                    console.log('Cache temizleniyor:', cacheName);
+                    return caches.delete(cacheName);
+                })
+            );
+        });
+    }
+    
+    // Service Worker temizleme
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+                console.log('Service Worker kaldırıldı:', registration);
+            }
+        });
+    }
     
     
     // Kullanıcı oturumunu kontrol et
