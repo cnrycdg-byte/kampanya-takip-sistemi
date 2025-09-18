@@ -2879,15 +2879,42 @@ async function deleteTask(taskId) {
                 throw new Error('Geçersiz görev ID: ' + taskId);
             }
             
-            const { error: taskError } = await supabase
+            // Önce mevcut görevi okuyalım
+            const { data: existingTask, error: readError } = await supabase
                 .from('tasks')
-                .update({ 
-                    status: 'cancelled'
-                })
+                .select('*')
+                .eq('id', taskIdInt)
+                .single();
+                
+            if (readError) {
+                console.error('Görev okuma hatası:', readError);
+                throw readError;
+            }
+            
+            console.log('Mevcut görev:', existingTask);
+            
+            // Önce 'cancelled' deneyelim, olmazsa 'inactive' deneyelim
+            let updateData = { status: 'cancelled' };
+            let { error: taskError } = await supabase
+                .from('tasks')
+                .update(updateData)
                 .eq('id', taskIdInt);
+                
+            // Eğer cancelled çalışmazsa inactive deneyelim
+            if (taskError && taskError.message && taskError.message.includes('cancelled')) {
+                console.log('cancelled status çalışmadı, inactive deneyelim...');
+                updateData = { status: 'inactive' };
+                const { error: taskError2 } = await supabase
+                    .from('tasks')
+                    .update(updateData)
+                    .eq('id', taskIdInt);
+                taskError = taskError2;
+            }
 
             if (taskError) {
                 console.error('Task güncelleme hatası:', taskError);
+                console.error('Hata detayları:', JSON.stringify(taskError, null, 2));
+                console.error('Task ID:', taskIdInt, 'Type:', typeof taskIdInt);
                 throw taskError;
             }
 
