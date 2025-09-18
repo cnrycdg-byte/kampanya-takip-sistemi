@@ -4180,6 +4180,9 @@ window.deleteTask = async function(taskId) {
 window.archiveTask = async function(taskId) {
     console.log('Görev arşivleme başladı:', taskId);
     
+    // Supabase cache'ini temizle
+    await clearSupabaseCache();
+    
     if (!taskId) {
         console.error('Görev ID bulunamadı');
         showAlert('Görev ID bulunamadı!', 'danger');
