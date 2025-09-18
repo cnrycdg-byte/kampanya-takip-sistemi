@@ -1065,14 +1065,14 @@ async function loadUsersList() {
                 email,
                 password,
                 role,
-                status,
+                is_active,
                 created_at,
                 regions (
                     id,
                     name
                 )
             `)
-            .eq('status', 'active')
+            .eq('is_active', true)
             .order('created_at', { ascending: false });
         
         console.log('Supabase response:', { data: users, error });
@@ -1210,7 +1210,7 @@ async function loadStoresList() {
                 channel_id,
                 region_id,
                 manager_id,
-                status,
+                is_active,
                 created_at,
                 channels (
                     id,
@@ -1221,7 +1221,7 @@ async function loadStoresList() {
                     name
                 )
             `)
-            .eq('status', 'active')
+            .eq('is_active', true)
             .order('created_at', { ascending: false });
         
         if (error) {
@@ -2974,7 +2974,7 @@ function exportUsersToExcel() {
             'Şifre': user.password || '',
             'Rol': getRoleDisplayName(user.role),
             'Bölge': user.regions?.name || (user.role === 'admin' ? 'Tüm Bölgeler' : 'Belirtilmemiş'),
-            'Durum': user.status === 'active' ? 'Aktif' : 'Pasif',
+            'Durum': user.is_active ? 'Aktif' : 'Pasif',
             'Oluşturulma Tarihi': user.created_at ? new Date(user.created_at).toLocaleDateString('tr-TR') : ''
         }));
         
@@ -3006,7 +3006,7 @@ function exportStoresToExcel() {
             'Kanal': store.channels?.name || 'Bilinmiyor',
             'Bölge': store.regions?.name || 'Bilinmiyor',
             'Yönetici': store.manager_name || 'Atanmamış',
-            'Durum': store.status === 'active' ? 'Aktif' : 'Pasif',
+            'Durum': store.is_active ? 'Aktif' : 'Pasif',
             'Oluşturulma Tarihi': store.created_at ? new Date(store.created_at).toLocaleDateString('tr-TR') : ''
         }));
         
@@ -4177,8 +4177,7 @@ window.deleteTask = async function(taskId) {
         const { error: updateError } = await supabase
             .from('tasks')
             .update({ 
-                status: 'closed',
-                closed_at: new Date().toISOString()
+                status: 'closed'
             })
             .eq('id', taskIdInt);
             
@@ -4346,7 +4345,7 @@ window.closeCampaign = function(campaignId) {
         // Supabase'den kampanyayı kapat (status = 'closed')
         supabase
             .from('campaigns')
-            .update({ status: 'closed', closed_at: new Date().toISOString() })
+            .update({ status: 'closed' })
             .eq('id', campaignId)
             .then(({ error }) => {
                 if (error) {
