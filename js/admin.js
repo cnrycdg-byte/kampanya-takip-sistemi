@@ -4093,6 +4093,71 @@ window.deleteTask = async function(taskId) {
 }
 
 // Görev arşivleme fonksiyonu
+window.archiveTask = function(taskId) {
+    console.log('Görev arşivleme başladı:', taskId);
+    
+    if (!taskId) {
+        console.error('Görev ID bulunamadı');
+        showAlert('Görev ID bulunamadı!', 'danger');
+        return;
+    }
+    
+    if (!confirm('Bu görevi arşivlemek istediğinizden emin misiniz? Arşivlenen görevler employee dashboard\'da görünmeyecektir.')) {
+        return;
+    }
+    
+    // Önce kullanıcı oturumunu kontrol et
+    const user = checkUserSession();
+    if (!user) {
+        showAlert('Oturum süreniz dolmuş! Lütfen tekrar giriş yapın.', 'danger');
+        return;
+    }
+    
+    // Yetki kontrolü: Sadece admin ve manager'lar görev arşivleyebilir
+    if (user.role !== 'admin' && user.role !== 'manager') {
+        showAlert('Görev arşivleme yetkiniz yok! Sadece yöneticiler görev arşivleyebilir.', 'danger');
+        return;
+    }
+    
+    console.log('Kullanıcı oturumu:', user);
+    
+    // taskId'yi integer'a çevir
+    const taskIdInt = parseInt(taskId);
+    if (isNaN(taskIdInt)) {
+        showAlert('Geçersiz görev ID!', 'danger');
+        return;
+    }
+    
+    console.log('Görev arşivleniyor, taskId:', taskIdInt);
+    
+    // Görev durumunu 'archived' olarak güncelle
+    console.log('Görev arşivleme işlemi başlatılıyor...');
+    supabase
+        .from('tasks')
+        .update({ 
+            status: 'archived',
+            archived_at: new Date().toISOString()
+        })
+        .eq('id', taskIdInt)
+        .then(({ error }) => {
+            if (error) {
+                console.error('Görev arşivleme hatası:', error);
+                console.error('Hata detayları:', JSON.stringify(error, null, 2));
+                showAlert('Görev arşivlenirken hata oluştu: ' + error.message, 'danger');
+            } else {
+                console.log('Görev başarıyla arşivlendi');
+                showAlert('Görev başarıyla arşivlendi! Employee dashboard\'da görünmeyecektir.', 'success');
+                loadTasksList();
+                loadDashboardData();
+            }
+        })
+        .catch((error) => {
+            console.error('Görev arşivleme catch hatası:', error);
+            showAlert('Görev arşivlenirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
+        });
+}
+
+// Görev arşivleme fonksiyonu
 window.archiveTask = async function(taskId) {
     console.log('Görev arşivleme başladı:', taskId);
     
