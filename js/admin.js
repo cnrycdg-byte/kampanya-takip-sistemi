@@ -647,7 +647,7 @@ async function loadManagerData(user) {
                 regions(name)
             `)
             .eq('region_id', user.region_id)
-            .eq('is_active', true);
+            .eq('status', 'active');
         
         if (error) {
             throw error;
@@ -1017,7 +1017,7 @@ async function loadUsersList() {
                 email,
                 password,
                 role,
-                is_active,
+                status,
                 created_at,
                 regions (
                     id,
@@ -1152,7 +1152,7 @@ async function loadStoresList() {
                 channel_id,
                 region_id,
                 manager_id,
-                is_active,
+                status,
                 created_at,
                 channels (
                     id,
@@ -1318,7 +1318,7 @@ async function loadRegionsList() {
                 name,
                 description,
                 manager_name,
-                is_active,
+                status,
                 created_at
             `)
             .eq('is_active', true)
@@ -1521,7 +1521,7 @@ async function deleteUser(userId) {
         try {
             const { error } = await supabase
                 .from('users')
-                .update({ is_active: false })
+                .update({ status: 'inactive' })
                 .eq('id', userId);
             
             if (error) throw error;
@@ -1637,7 +1637,7 @@ async function deleteStore(storeId) {
         try {
             const { error } = await supabase
                 .from('stores')
-                .update({ is_active: false })
+                .update({ status: 'inactive' })
                 .eq('id', storeId);
             
             if (error) throw error;
@@ -1737,7 +1737,7 @@ async function deleteChannel(channelId) {
         try {
             const { error } = await supabase
                 .from('channels')
-                .update({ is_active: false })
+                .update({ status: 'inactive' })
                 .eq('id', channelId);
             
             if (error) throw error;
@@ -1828,7 +1828,7 @@ async function deleteRegion(regionId) {
         try {
             const { error } = await supabase
                 .from('regions')
-                .update({ is_active: false })
+                .update({ status: 'inactive' })
                 .eq('id', regionId);
             
             if (error) throw error;
@@ -2138,7 +2138,7 @@ async function handleCreateTask(event) {
                 .from('stores')
                 .select('id')
                 .eq('channel_id', formData.channel_id)
-                .eq('is_active', true);
+                .eq('status', 'active');
             
             if (storesError) throw storesError;
             
@@ -2297,7 +2297,7 @@ async function handleAddChannel(event) {
                 {
                     name: name,
                     description: description,
-                    is_active: true,
+                    status: 'active',
                     created_at: new Date().toISOString()
                 }
             ]);
@@ -2353,7 +2353,7 @@ async function handleAddRegion(event) {
                     name: name,
                     description: description,
                     manager_name: managerName,
-                    is_active: true,
+                    status: 'active',
                     created_at: new Date().toISOString()
                 }
             ])
@@ -2908,7 +2908,7 @@ function exportUsersToExcel() {
             'Şifre': user.password || '',
             'Rol': getRoleDisplayName(user.role),
             'Bölge': user.regions?.name || (user.role === 'admin' ? 'Tüm Bölgeler' : 'Belirtilmemiş'),
-            'Durum': user.is_active ? 'Aktif' : 'Pasif',
+            'Durum': user.status === 'active' ? 'Aktif' : 'Pasif',
             'Oluşturulma Tarihi': user.created_at ? new Date(user.created_at).toLocaleDateString('tr-TR') : ''
         }));
         
@@ -2940,7 +2940,7 @@ function exportStoresToExcel() {
             'Kanal': store.channels?.name || 'Bilinmiyor',
             'Bölge': store.regions?.name || 'Bilinmiyor',
             'Yönetici': store.manager_name || 'Atanmamış',
-            'Durum': store.is_active ? 'Aktif' : 'Pasif',
+            'Durum': store.status === 'active' ? 'Aktif' : 'Pasif',
             'Oluşturulma Tarihi': store.created_at ? new Date(store.created_at).toLocaleDateString('tr-TR') : ''
         }));
         
@@ -3824,7 +3824,7 @@ async function generatePasswordsForExistingUsers() {
         const { data: allUsers, error } = await supabase
             .from('users')
             .select('id, name, email, password')
-            .eq('is_active', true);
+            .eq('status', 'active');
 
         if (error) throw error;
 
@@ -4071,48 +4071,28 @@ window.deleteTask = function(taskId) {
                     return;
                 }
                 
-                // En basit güncelleme denemesi - Farklı status değerleri ile
-                const statusOptions = ['cancelled', 'inactive', 'deleted', 'archived'];
-                let updateSuccess = false;
-                
-                // Her status değerini sırayla dene
-                const tryUpdate = (index) => {
-                    if (index >= statusOptions.length) {
-                        if (!updateSuccess) {
-                            console.error('Hiçbir status değeri çalışmadı');
-                            showAlert('Görev silinirken hata oluştu! Lütfen yönetici ile iletişime geçin.', 'danger');
+                // En basit güncelleme denemesi - Sadece status ile
+                console.log('Görev güncelleme işlemi başlatılıyor...');
+                supabase
+                    .from('tasks')
+                    .update({ status: 'cancelled' })
+                    .eq('id', taskIdInt)
+                    .then(({ error }) => {
+                        if (error) {
+                            console.error('Görev güncelleme hatası:', error);
+                            console.error('Hata detayları:', JSON.stringify(error, null, 2));
+                            showAlert('Görev silinirken hata oluştu: ' + error.message, 'danger');
+                        } else {
+                            console.log('Görev başarıyla iptal edildi');
+                            showAlert('Görev başarıyla iptal edildi!', 'success');
+                            loadTasksList();
+                            loadDashboardData();
                         }
-                        return;
-                    }
-                    
-                    const status = statusOptions[index];
-                    console.log(`${status} status ile güncelleme deneniyor...`);
-                    
-                    supabase
-                        .from('tasks')
-                        .update({ status: status })
-                        .eq('id', taskIdInt)
-                        .then(({ error }) => {
-                            if (error) {
-                                console.log(`${status} status ile güncelleme başarısız:`, error.message);
-                                console.log('Hata detayları:', JSON.stringify(error, null, 2));
-                                tryUpdate(index + 1); // Sonraki status'u dene
-                            } else {
-                                console.log(`${status} status ile güncelleme başarılı!`);
-                                updateSuccess = true;
-                                showAlert('Görev başarıyla iptal edildi!', 'success');
-                                loadTasksList();
-                                loadDashboardData();
-                            }
-                        })
-                        .catch((error) => {
-                            console.log(`${status} status ile güncelleme catch hatası:`, error.message);
-                            tryUpdate(index + 1); // Sonraki status'u dene
-                        });
-                };
-                
-                // İlk status'u dene
-                tryUpdate(0);
+                    })
+                    .catch((error) => {
+                        console.error('Görev silme catch hatası:', error);
+                        showAlert('Görev silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
+                    });
             })
             .catch((error) => {
                 console.error('RLS test catch hatası:', error);
@@ -5372,7 +5352,7 @@ async function loadStoresForSpift() {
                 channels(name),
                 regions(name)
             `)
-            .eq('is_active', true);
+            .eq('status', 'active');
         
         // Kanal filtresi
         if (channelId) {
@@ -6429,7 +6409,7 @@ async function loadStoresForGamePlan() {
                 channels(name),
                 regions(name)
             `)
-            .eq('is_active', true);
+            .eq('status', 'active');
         
         // Kanal filtresi
         if (channelId) {
@@ -7084,7 +7064,7 @@ async function loadStoresForProduct() {
                 channels(name),
                 regions(name)
             `)
-            .eq('is_active', true);
+            .eq('status', 'active');
         
         // Kanal filtresi - sadece kanal seçilmişse uygula
         if (channelId && channelId !== '') {
