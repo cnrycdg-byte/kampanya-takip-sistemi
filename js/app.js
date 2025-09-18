@@ -366,63 +366,73 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-// Kayıtlı bilgileri yükleme fonksiyonu
+// Kayıtlı bilgileri yükleme fonksiyonu - Güvenli versiyon
 function loadRememberedCredentials() {
+    // Fonksiyonu tamamen güvenli hale getir
     try {
-        // Elementlerin yüklenmesini bekle
-        const emailElement = document.getElementById('email');
-        const roleElement = document.getElementById('role');
-        const rememberMeElement = document.getElementById('rememberMe');
+        // Önce elementlerin varlığını kontrol et
+        const emailElement = document.querySelector('#email');
+        const roleElement = document.querySelector('#role');
+        const rememberMeElement = document.querySelector('#rememberMe');
         
-        // Elementler yoksa fonksiyonu sonlandır
+        // Elementler yoksa hiçbir şey yapma
         if (!emailElement || !roleElement || !rememberMeElement) {
-            console.log('Form elementleri henüz yüklenmemiş, loadRememberedCredentials atlanıyor');
-            return false;
+            console.log('Form elementleri bulunamadı, loadRememberedCredentials atlanıyor');
+            return;
         }
         
         // Elementlerin DOM'da tam olarak yüklendiğinden emin ol
         if (!emailElement.offsetParent && !roleElement.offsetParent && !rememberMeElement.offsetParent) {
             console.log('Form elementleri görünür değil, loadRememberedCredentials atlanıyor');
-            return false;
+            return;
         }
         
-        const remembered = getFromStorage('rememberedCredentials');
-        if (remembered && remembered.rememberMe) {
-            // Güvenli değer atama
-            try {
-                if (emailElement && typeof emailElement.value !== 'undefined' && emailElement.tagName === 'INPUT') {
-                    emailElement.value = remembered.email || '';
+        // Local storage'dan veri al
+        let remembered = null;
+        try {
+            const stored = localStorage.getItem('rememberedCredentials');
+            if (stored) {
+                remembered = JSON.parse(stored);
+            }
+        } catch (e) {
+            console.warn('Local storage okuma hatası:', e);
+            return;
+        }
+        
+        // Veri varsa ve rememberMe true ise değerleri ata
+        if (remembered && remembered.rememberMe === true) {
+            // Email değerini ata
+            if (remembered.email && emailElement.tagName === 'INPUT') {
+                try {
+                    emailElement.value = remembered.email;
                     console.log('Email değeri yüklendi:', remembered.email);
+                } catch (e) {
+                    console.warn('Email değer atama hatası:', e);
                 }
-            } catch (e) {
-                console.warn('Email element değer atama hatası:', e);
             }
             
-            try {
-                if (roleElement && typeof roleElement.value !== 'undefined' && roleElement.tagName === 'SELECT') {
-                    roleElement.value = remembered.role || '';
+            // Role değerini ata
+            if (remembered.role && roleElement.tagName === 'SELECT') {
+                try {
+                    roleElement.value = remembered.role;
                     console.log('Role değeri yüklendi:', remembered.role);
+                } catch (e) {
+                    console.warn('Role değer atama hatası:', e);
                 }
-            } catch (e) {
-                console.warn('Role element değer atama hatası:', e);
             }
             
-            try {
-                if (rememberMeElement && typeof rememberMeElement.checked !== 'undefined' && rememberMeElement.tagName === 'INPUT') {
+            // RememberMe checkbox'ını işaretle
+            if (rememberMeElement.tagName === 'INPUT' && rememberMeElement.type === 'checkbox') {
+                try {
                     rememberMeElement.checked = true;
-                    console.log('RememberMe değeri yüklendi: true');
+                    console.log('RememberMe checkbox işaretlendi');
+                } catch (e) {
+                    console.warn('RememberMe checkbox hatası:', e);
                 }
-            } catch (e) {
-                console.warn('RememberMe element değer atama hatası:', e);
             }
-            
-            return true;
         }
-        
-        return false;
     } catch (error) {
-        console.error('Kayıtlı bilgiler yüklenirken hata:', error);
-        return false;
+        console.error('loadRememberedCredentials genel hatası:', error);
     }
 }
 

@@ -1110,8 +1110,18 @@ async function loadUsersList() {
             photoLimitDiv.parentElement.style.display = 'none';
         }
         
-        // Tarih alanlarını otomatik doldur
-        setDefaultTaskDates();
+        // Tarih alanlarını otomatik doldur (güvenli çağrı)
+        try {
+            if (typeof setDefaultTaskDates === 'function') {
+                setDefaultTaskDates();
+            } else if (typeof window.setDefaultTaskDates === 'function') {
+                window.setDefaultTaskDates();
+            } else {
+                console.warn('setDefaultTaskDates fonksiyonu bulunamadı');
+            }
+        } catch (error) {
+            console.error('setDefaultTaskDates çağrı hatası:', error);
+        }
         
     } catch (error) {
         console.error('Kullanıcı listesi yükleme hatası:', error);
