@@ -120,9 +120,14 @@ async function loadTasks() {
 
         console.log('Görev atamaları yüklendi:', taskAssignments);
 
-        // Görevleri işle
+        // Görevleri işle - Kapanmış ve arşivlenmiş görevleri filtrele
         const tasks = taskAssignments
             .filter(assignment => assignment.tasks) // Görev silinmemiş olanları filtrele
+            .filter(assignment => {
+                const task = assignment.tasks;
+                // Kapanmış ve arşivlenmiş görevleri filtrele
+                return task.status !== 'closed' && task.status !== 'archived';
+            })
             .map(assignment => {
                 const task = assignment.tasks;
                 const daysLeft = calculateDaysLeft(task.end_date);
