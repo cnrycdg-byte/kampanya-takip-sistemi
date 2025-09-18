@@ -82,62 +82,90 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/app.js?v=4.0"></script>
     
-    <!-- Service Worker Registration - DEVRE DIŞI -->
+    <!-- Service Worker Registration - TAMAMEN DEVRE DIŞI -->
     <script>
-        // Service Worker'ı tamamen devre dışı bırak - Agresif temizleme
+        // Service Worker'ı tamamen devre dışı bırak - Güvenli versiyon
         (function() {
-            // Hemen çalıştır
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(registration => {
-                        registration.unregister();
-                        console.log('Service Worker kaldırıldı:', registration);
-                    });
-                });
+            // Sadece HTTP/HTTPS protokollerinde çalıştır
+            if (location.protocol === 'file:') {
+                console.log('File protokolü tespit edildi, Service Worker devre dışı');
+                return;
             }
             
-            // Cache'leri temizle
-            if ('caches' in window) {
-                caches.keys().then(cacheNames => {
-                    cacheNames.forEach(cacheName => {
-                        caches.delete(cacheName);
-                        console.log('Cache temizlendi:', cacheName);
-                    });
-                });
-            }
-            
-            // Local storage'dan service worker verilerini temizle
+            // Service Worker kontrollerini güvenli şekilde yap
             try {
-                localStorage.removeItem('sw-cache');
-                localStorage.removeItem('service-worker-cache');
-                sessionStorage.clear();
-                console.log('Local storage temizlendi');
-            } catch (e) {
-                console.warn('Local storage temizleme hatası:', e);
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(registration => {
+                            registration.unregister();
+                            console.log('Service Worker kaldırıldı:', registration);
+                        });
+                    }).catch(error => {
+                        console.warn('Service Worker kaldırma hatası:', error);
+                    });
+                }
+                
+                // Cache'leri temizle
+                if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                        cacheNames.forEach(cacheName => {
+                            caches.delete(cacheName);
+                            console.log('Cache temizlendi:', cacheName);
+                        });
+                    }).catch(error => {
+                        console.warn('Cache temizleme hatası:', error);
+                    });
+                }
+                
+                // Local storage'dan service worker verilerini temizle
+                try {
+                    localStorage.removeItem('sw-cache');
+                    localStorage.removeItem('service-worker-cache');
+                    sessionStorage.clear();
+                    console.log('Local storage temizlendi');
+                } catch (e) {
+                    console.warn('Local storage temizleme hatası:', e);
+                }
+            } catch (error) {
+                console.warn('Service Worker işlemleri hatası:', error);
             }
         })();
         
-        // Sayfa yüklendiğinde tekrar temizle
+        // Sayfa yüklendiğinde tekrar temizle - Güvenli versiyon
         window.addEventListener('load', () => {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(registration => {
-                        registration.unregister();
-                        console.log('Service Worker kaldırıldı (load):', registration);
-                    });
-                });
+            // Sadece HTTP/HTTPS protokollerinde çalıştır
+            if (location.protocol === 'file:') {
+                console.log('File protokolü tespit edildi, Service Worker işlemleri atlandı');
+                return;
             }
             
-            if ('caches' in window) {
-                caches.keys().then(cacheNames => {
-                    cacheNames.forEach(cacheName => {
-                        caches.delete(cacheName);
-                        console.log('Cache temizlendi (load):', cacheName);
+            try {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(registration => {
+                            registration.unregister();
+                            console.log('Service Worker kaldırıldı (load):', registration);
+                        });
+                    }).catch(error => {
+                        console.warn('Service Worker kaldırma hatası (load):', error);
                     });
-                });
+                }
+                
+                if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                        cacheNames.forEach(cacheName => {
+                            caches.delete(cacheName);
+                            console.log('Cache temizlendi (load):', cacheName);
+                        });
+                    }).catch(error => {
+                        console.warn('Cache temizleme hatası (load):', error);
+                    });
+                }
+                
+                console.log('Service Worker tamamen devre dışı bırakıldı');
+            } catch (error) {
+                console.warn('Service Worker işlemleri hatası (load):', error);
             }
-            
-            console.log('Service Worker tamamen devre dışı bırakıldı');
         });
     </script>
 </body>

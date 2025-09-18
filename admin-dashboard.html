@@ -42,22 +42,22 @@
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="#dashboard" onclick="showSection('dashboard')">
+                            <a class="nav-link active" href="#dashboard" onclick="console.log('Dashboard tıklandı'); showSection('dashboard')">
                                 <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#tasks" onclick="showSection('tasks')">
+                            <a class="nav-link" href="#tasks" onclick="console.log('Görevler tıklandı'); showSection('tasks')">
                                 <i class="fas fa-tasks me-2"></i>Görevler
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#create-task" onclick="showSection('create-task')">
+                            <a class="nav-link" href="#create-task" onclick="console.log('Görev Oluştur tıklandı'); showSection('create-task')">
                                 <i class="fas fa-plus me-2"></i>Görev Oluştur
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#stores" onclick="showSection('stores')">
+                            <a class="nav-link" href="#stores" onclick="console.log('Mağazalar tıklandı'); showSection('stores')">
                                 <i class="fas fa-store me-2"></i>Mağazalar
                             </a>
                         </li>
@@ -1174,64 +1174,153 @@
     <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/app.js?v=4.0"></script>
-    <script src="js/admin.js?v=3.2"></script>
+    <script src="js/admin.js?v=3.9"></script>
     
-    <!-- Service Worker Registration - DEVRE DIŞI -->
+    <!-- JavaScript Yükleme Kontrolü -->
     <script>
-        // Service Worker'ı tamamen devre dışı bırak - Agresif temizleme
+        // showSection fonksiyonu için basit fallback
+        if (typeof window.showSection === 'undefined') {
+            window.showSection = function(sectionName) {
+                console.warn('showSection henüz yüklenmedi, lütfen bekleyin...');
+            };
+        }
+        
+        // Tüm JavaScript dosyalarının yüklendiğinden emin ol
+        window.addEventListener('load', function() {
+            console.log('=== SAYFA TAMAMEN YÜKLENDİ ===');
+            console.log('Supabase config yüklendi mi?', typeof window.supabase);
+            console.log('App.js yüklendi mi?', typeof window.showSection);
+            console.log('Admin.js yüklendi mi?', typeof window.loadTaskFormDropdowns);
+            
+            // Eğer showSection yüklenmemişse, tekrar dene
+            if (typeof window.showSection !== 'function') {
+                console.error('showSection fonksiyonu yüklenmedi!');
+                setTimeout(function() {
+                    console.log('showSection tekrar kontrol ediliyor...', typeof window.showSection);
+                }, 1000);
+            } else {
+                console.log('✅ Tüm JavaScript dosyaları başarıyla yüklendi');
+            }
+        });
+    </script>
+    
+    <!-- Debug Script - EN BAŞTA -->
+    <script>
+        console.log('=== DEBUG BAŞLADI ===');
+        console.log('Admin dashboard yüklendi');
+        console.log('Document ready state:', document.readyState);
+        
+        // JavaScript dosyalarının yüklenip yüklenmediğini kontrol et
+        console.log('Supabase config yüklendi mi?', typeof window.supabase);
+        console.log('App.js yüklendi mi?', typeof window.showSection);
+        
+        // Sayfa yüklendiğinde otomatik test
+        window.addEventListener('load', function() {
+            console.log('Sayfa tamamen yüklendi, showSection test ediliyor...');
+            setTimeout(function() {
+                if (typeof window.showSection === 'function') {
+                    console.log('showSection fonksiyonu mevcut, test ediliyor...');
+                    // Test için create-task section'ını kontrol et
+                    const createTaskSection = document.getElementById('create-task-section');
+                    if (createTaskSection) {
+                        console.log('create-task-section bulundu:', createTaskSection);
+                        console.log('create-task-section display:', createTaskSection.style.display);
+                    } else {
+                        console.error('create-task-section bulunamadı!');
+                    }
+                } else {
+                    console.error('showSection fonksiyonu bulunamadı!');
+                }
+            }, 1000);
+        });
+        
+        // Test mesajı kaldırıldı
+    </script>
+    
+    <!-- Service Worker Registration - TAMAMEN DEVRE DIŞI -->
+    <script>
+        // Service Worker'ı tamamen devre dışı bırak - Güvenli versiyon
         (function() {
-            // Hemen çalıştır
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(registration => {
-                        registration.unregister();
-                        console.log('Service Worker kaldırıldı:', registration);
-                    });
-                });
+            // Sadece HTTP/HTTPS protokollerinde çalıştır
+            if (location.protocol === 'file:') {
+                console.log('File protokolü tespit edildi, Service Worker devre dışı');
+                return;
             }
             
-            // Cache'leri temizle
-            if ('caches' in window) {
-                caches.keys().then(cacheNames => {
-                    cacheNames.forEach(cacheName => {
-                        caches.delete(cacheName);
-                        console.log('Cache temizlendi:', cacheName);
-                    });
-                });
-            }
-            
-            // Local storage'dan service worker verilerini temizle
+            // Service Worker kontrollerini güvenli şekilde yap
             try {
-                localStorage.removeItem('sw-cache');
-                localStorage.removeItem('service-worker-cache');
-                sessionStorage.clear();
-                console.log('Local storage temizlendi');
-            } catch (e) {
-                console.warn('Local storage temizleme hatası:', e);
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(registration => {
+                            registration.unregister();
+                            console.log('Service Worker kaldırıldı:', registration);
+                        });
+                    }).catch(error => {
+                        console.warn('Service Worker kaldırma hatası:', error);
+                    });
+                }
+                
+                // Cache'leri temizle
+                if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                        cacheNames.forEach(cacheName => {
+                            caches.delete(cacheName);
+                            console.log('Cache temizlendi:', cacheName);
+                        });
+                    }).catch(error => {
+                        console.warn('Cache temizleme hatası:', error);
+                    });
+                }
+                
+                // Local storage'dan service worker verilerini temizle
+                try {
+                    localStorage.removeItem('sw-cache');
+                    localStorage.removeItem('service-worker-cache');
+                    sessionStorage.clear();
+                    console.log('Local storage temizlendi');
+                } catch (e) {
+                    console.warn('Local storage temizleme hatası:', e);
+                }
+            } catch (error) {
+                console.warn('Service Worker işlemleri hatası:', error);
             }
         })();
         
-        // Sayfa yüklendiğinde tekrar temizle
+        // Sayfa yüklendiğinde tekrar temizle - Güvenli versiyon
         window.addEventListener('load', () => {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(registration => {
-                        registration.unregister();
-                        console.log('Service Worker kaldırıldı (load):', registration);
-                    });
-                });
+            // Sadece HTTP/HTTPS protokollerinde çalıştır
+            if (location.protocol === 'file:') {
+                console.log('File protokolü tespit edildi, Service Worker işlemleri atlandı');
+                return;
             }
             
-            if ('caches' in window) {
-                caches.keys().then(cacheNames => {
-                    cacheNames.forEach(cacheName => {
-                        caches.delete(cacheName);
-                        console.log('Cache temizlendi (load):', cacheName);
+            try {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(registration => {
+                            registration.unregister();
+                            console.log('Service Worker kaldırıldı (load):', registration);
+                        });
+                    }).catch(error => {
+                        console.warn('Service Worker kaldırma hatası (load):', error);
                     });
-                });
+                }
+                
+                if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                        cacheNames.forEach(cacheName => {
+                            caches.delete(cacheName);
+                            console.log('Cache temizlendi (load):', cacheName);
+                        });
+                    }).catch(error => {
+                        console.warn('Cache temizleme hatası (load):', error);
+                    });
+                }
+                
+                console.log('Service Worker tamamen devre dışı bırakıldı');
+            } catch (error) {
+                console.warn('Service Worker işlemleri hatası (load):', error);
             }
-            
-            console.log('Service Worker tamamen devre dışı bırakıldı');
         });
     </script>
 </body>

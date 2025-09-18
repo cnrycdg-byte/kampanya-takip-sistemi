@@ -593,6 +593,7 @@ function editTask(taskId) {
 // Bölümleri gösteren fonksiyon
 function showSection(sectionName) {
     console.log('showSection çağrıldı:', sectionName);
+    console.log('showSection - sectionName:', sectionName);
     
     // Tüm bölümleri gizle
     const sections = document.querySelectorAll('.content-section');
@@ -657,26 +658,122 @@ function showSection(sectionName) {
         case 'tasks':
             loadTasksList();
             break;
+        case 'create-task':
+            console.log('create-task case\'i çalıştı');
+            console.log('create-task-section element:', document.getElementById('create-task-section'));
+            // Görev oluşturma formu için dropdown'ları yükle
+            loadTaskFormDropdowns();
+            // Bölümü manuel olarak göster
+            const createTaskSection = document.getElementById('create-task-section');
+            if (createTaskSection) {
+                createTaskSection.style.display = 'block';
+                console.log('create-task-section gösterildi');
+            } else {
+                console.error('create-task-section bulunamadı!');
+            }
+            break;
         case 'stores':
+            console.log('Mağazalar section\'ı seçildi, loadStoresList çağrılıyor...');
             loadStoresList();
+            // Bölümü manuel olarak göster
+            const storesSection = document.getElementById('stores-section');
+            if (storesSection) {
+                storesSection.style.display = 'block';
+                console.log('stores-section gösterildi');
+            }
             break;
         case 'users':
+            console.log('Kullanıcılar section\'ı seçildi, loadUsersList çağrılıyor...');
             loadUsersList();
+            // Bölümü manuel olarak göster
+            const usersSection = document.getElementById('users-section');
+            if (usersSection) {
+                usersSection.style.display = 'block';
+                console.log('users-section gösterildi');
+            }
             break;
         case 'channels':
+            console.log('Kanallar section\'ı seçildi, loadChannelsList çağrılıyor...');
             loadChannelsList();
+            // Bölümü manuel olarak göster
+            const channelsSection = document.getElementById('channels-section');
+            if (channelsSection) {
+                channelsSection.style.display = 'block';
+                console.log('channels-section gösterildi');
+            }
             break;
         case 'regions':
+            console.log('Bölgeler section\'ı seçildi, loadRegionsList çağrılıyor...');
             loadRegionsList();
+            // Bölümü manuel olarak göster
+            const regionsSection = document.getElementById('regions-section');
+            if (regionsSection) {
+                regionsSection.style.display = 'block';
+                console.log('regions-section gösterildi');
+            }
+            break;
+        case 'add-user':
+            console.log('add-user case\'i çalıştı');
+            loadRegionsForUserForm();
+            // Bölümü manuel olarak göster
+            const addUserSection = document.getElementById('add-user-section');
+            if (addUserSection) {
+                addUserSection.style.display = 'block';
+                console.log('add-user-section gösterildi');
+            }
+            break;
+        case 'add-store':
+            console.log('add-store case\'i çalıştı');
+            loadChannelsForStoreForm();
+            loadRegionsForStoreForm();
+            loadManagersForStoreForm();
+            // Bölümü manuel olarak göster
+            const addStoreSection = document.getElementById('add-store-section');
+            if (addStoreSection) {
+                addStoreSection.style.display = 'block';
+                console.log('add-store-section gösterildi');
+            }
+            break;
+        case 'add-channel':
+            console.log('add-channel case\'i çalıştı');
+            // Bölümü manuel olarak göster
+            const addChannelSection = document.getElementById('add-channel-section');
+            if (addChannelSection) {
+                addChannelSection.style.display = 'block';
+                console.log('add-channel-section gösterildi');
+            }
+            break;
+        case 'add-region':
+            console.log('add-region case\'i çalıştı');
+            // Bölümü manuel olarak göster
+            const addRegionSection = document.getElementById('add-region-section');
+            if (addRegionSection) {
+                addRegionSection.style.display = 'block';
+                console.log('add-region-section gösterildi');
+            }
             break;
         case 'game-plans':
             loadGamePlansList();
+            // Bölümü manuel olarak göster
+            const gamePlansSection = document.getElementById('game-plans-section');
+            if (gamePlansSection) {
+                gamePlansSection.style.display = 'block';
+                console.log('game-plans-section gösterildi');
+            }
             break;
         case 'game-plan-create':
-            // Oyun planı oluşturma sayfası - özel işlem gerekmez
+            // Bölümü manuel olarak göster
+            const gamePlanCreateSection = document.getElementById('game-plan-create-section');
+            if (gamePlanCreateSection) {
+                gamePlanCreateSection.style.display = 'block';
+                console.log('game-plan-create-section gösterildi');
+            }
             break;
     }
 }
+
+// showSection fonksiyonunu global olarak tanımla
+window.showSection = showSection;
 
 // Diğer bölümler için veri yükleme fonksiyonları
 // Bu fonksiyonlar artık doğru fonksiyonları çağırıyor
@@ -1694,7 +1791,7 @@ async function deleteStore(storeId) {
         try {
             const { error } = await supabase
                 .from('stores')
-                .update({ status: 'inactive' })
+                .update({ is_active: false })
                 .eq('id', storeId);
             
             if (error) throw error;
@@ -2192,7 +2289,7 @@ async function handleCreateTask(event) {
                 .from('stores')
                 .select('id')
                 .eq('channel_id', formData.channel_id)
-                .eq('status', 'active');
+                .eq('is_active', true);
             
             if (storesError) throw storesError;
             
@@ -2254,7 +2351,7 @@ async function updateTaskStores() {
             .from('stores')
             .select('id, name')
             .eq('channel_id', channelId)
-            .eq('status', 'active')
+            .eq('is_active', true)
             .order('name');
         
         if (error) throw error;
@@ -2331,8 +2428,162 @@ async function loadTaskFormDropdowns() {
             });
         }
         
+        // Mağaza dropdown'ını doldur
+        const { data: stores, error: storeError } = await supabase
+            .from('stores')
+            .select('id, name, channels(name)')
+            .eq('is_active', true)
+            .order('name');
+        
+        if (storeError) throw storeError;
+        
+        const storeSelect = document.getElementById('task-stores');
+        if (storeSelect) {
+            // Mevcut seçenekleri temizle (ilk seçenek hariç)
+            while (storeSelect.children.length > 1) {
+                storeSelect.removeChild(storeSelect.lastChild);
+            }
+            
+            // Yeni seçenekleri ekle
+            stores.forEach(store => {
+                const option = document.createElement('option');
+                option.value = store.id;
+                option.textContent = `${store.name} (${store.channels?.name || 'Bilinmeyen Kanal'})`;
+                storeSelect.appendChild(option);
+            });
+        }
+        
+        // Kanal değişikliğini dinle
+        if (channelSelect) {
+            channelSelect.addEventListener('change', updateTaskStores);
+        }
+        
     } catch (error) {
         console.error('Görev formu dropdown\'ları yüklenirken hata:', error);
+    }
+}
+
+// Kullanıcı ekleme formu için bölgeleri yükleyen fonksiyon
+async function loadRegionsForUserForm() {
+    try {
+        const { data: regions, error } = await supabase
+            .from('regions')
+            .select('id, name')
+            .eq('status', 'active')
+            .order('name');
+        
+        if (error) throw error;
+        
+        const regionSelect = document.getElementById('user-region');
+        if (regionSelect) {
+            // Mevcut seçenekleri temizle (ilk seçenek hariç)
+            while (regionSelect.children.length > 1) {
+                regionSelect.removeChild(regionSelect.lastChild);
+            }
+            
+            // Yeni seçenekleri ekle
+            regions.forEach(region => {
+                const option = document.createElement('option');
+                option.value = region.id;
+                option.textContent = region.name;
+                regionSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Kullanıcı formu bölgeleri yüklenirken hata:', error);
+    }
+}
+
+// Mağaza ekleme formu için kanalları yükleyen fonksiyon
+async function loadChannelsForStoreForm() {
+    try {
+        const { data: channels, error } = await supabase
+            .from('channels')
+            .select('id, name')
+            .order('name');
+        
+        if (error) throw error;
+        
+        const channelSelect = document.getElementById('store-channel');
+        if (channelSelect) {
+            // Mevcut seçenekleri temizle (ilk seçenek hariç)
+            while (channelSelect.children.length > 1) {
+                channelSelect.removeChild(channelSelect.lastChild);
+            }
+            
+            // Yeni seçenekleri ekle
+            channels.forEach(channel => {
+                const option = document.createElement('option');
+                option.value = channel.id;
+                option.textContent = channel.name;
+                channelSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Mağaza formu kanalları yüklenirken hata:', error);
+    }
+}
+
+// Mağaza ekleme formu için bölgeleri yükleyen fonksiyon
+async function loadRegionsForStoreForm() {
+    try {
+        const { data: regions, error } = await supabase
+            .from('regions')
+            .select('id, name')
+            .eq('status', 'active')
+            .order('name');
+        
+        if (error) throw error;
+        
+        const regionSelect = document.getElementById('store-region');
+        if (regionSelect) {
+            // Mevcut seçenekleri temizle (ilk seçenek hariç)
+            while (regionSelect.children.length > 1) {
+                regionSelect.removeChild(regionSelect.lastChild);
+            }
+            
+            // Yeni seçenekleri ekle
+            regions.forEach(region => {
+                const option = document.createElement('option');
+                option.value = region.id;
+                option.textContent = region.name;
+                regionSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Mağaza formu bölgeleri yüklenirken hata:', error);
+    }
+}
+
+// Mağaza ekleme formu için yöneticileri yükleyen fonksiyon
+async function loadManagersForStoreForm() {
+    try {
+        const { data: managers, error } = await supabase
+            .from('users')
+            .select('id, name')
+            .eq('role', 'manager')
+            .eq('is_active', true)
+            .order('name');
+        
+        if (error) throw error;
+        
+        const managerSelect = document.getElementById('store-manager');
+        if (managerSelect) {
+            // Mevcut seçenekleri temizle (ilk seçenek hariç)
+            while (managerSelect.children.length > 1) {
+                managerSelect.removeChild(managerSelect.lastChild);
+            }
+            
+            // Yeni seçenekleri ekle
+            managers.forEach(manager => {
+                const option = document.createElement('option');
+                option.value = manager.id;
+                option.textContent = manager.name;
+                managerSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Mağaza formu yöneticileri yüklenirken hata:', error);
     }
 }
 
@@ -2436,55 +2687,6 @@ async function handleAddRegion(event) {
     }
 }
 
-// Section gösterim fonksiyonu
-function showSection(sectionName) {
-    console.log('showSection çağrıldı:', sectionName);
-    
-    // Tüm section'ları gizle
-    const sections = document.querySelectorAll('.content-section');
-    console.log('Bulunan section sayısı:', sections.length);
-    sections.forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    // Seçilen section'ı göster
-    const targetSection = document.getElementById(sectionName + '-section');
-    console.log('Aranan section ID:', sectionName + '-section');
-    console.log('Bulunan section:', targetSection);
-    
-    if (targetSection) {
-        targetSection.style.display = 'block';
-        console.log('Section gösterildi:', sectionName);
-        
-        // Kullanıcılar section'ı ise listeyi yükle
-        if (sectionName === 'users') {
-            console.log('Kullanıcılar section\'ı seçildi, loadUsersList çağrılıyor...');
-            loadUsersList();
-        }
-        // Mağazalar section'ı ise listeyi yükle
-        else if (sectionName === 'stores') {
-            console.log('Mağazalar section\'ı seçildi, loadStoresList çağrılıyor...');
-            loadStoresList();
-        }
-        // Kanallar section'ı ise listeyi yükle
-        else if (sectionName === 'channels') {
-            console.log('Kanallar section\'ı seçildi, loadChannelsList çağrılıyor...');
-            loadChannelsList();
-        }
-        // Bölgeler section'ı ise listeyi yükle
-        else if (sectionName === 'regions') {
-            console.log('Bölgeler section\'ı seçildi, loadRegionsList çağrılıyor...');
-            loadRegionsList();
-        }
-        // Görevler section'ı ise listeyi yükle
-        else if (sectionName === 'tasks') {
-            console.log('Görevler section\'ı seçildi, loadTasksList çağrılıyor...');
-            loadTasksList();
-        }
-    } else {
-        console.error('Section bulunamadı:', sectionName);
-    }
-}
 
 // Görevleri yükle
 async function loadTasksList() {
@@ -4480,26 +4682,7 @@ window.closeCampaign = function(campaignId) {
 
 // ==================== OYUN PLANLARI MODÜLÜ ====================
 
-// showSection fonksiyonu - Global
-window.showSection = function(sectionName) {
-    console.log('showSection çağrıldı:', sectionName);
-    
-    if (sectionName === 'game-plans') {
-        showGamePlansSection();
-        return;
-    }
-    
-    // Diğer bölümler için normal işlem
-    const sections = document.querySelectorAll('.content-section');
-    sections.forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    const targetSection = document.getElementById(sectionName);
-    if (targetSection) {
-        targetSection.style.display = 'block';
-    }
-}
+// showSection fonksiyonu - Global (KALDIRILDI - admin.js'deki normal fonksiyon kullanılıyor)
 
 // Oyun planları bölümünü göster - Global fonksiyon
 window.showGamePlansSection = function() {
@@ -6683,7 +6866,7 @@ async function loadManagersForGamePlan(selectId) {
             const { data: stores, error } = await supabase
                 .from('stores')
                 .select('manager, regions(name)')
-                .eq('status', 'active')
+                .eq('is_active', true)
                 .not('manager', 'is', null);
             
             if (error) {
@@ -6732,7 +6915,7 @@ async function loadStoresForGamePlan() {
                 channels(name),
                 regions(name)
             `)
-            .eq('status', 'active');
+            .eq('is_active', true);
         
         // Kanal filtresi
         if (channelId) {
@@ -6836,7 +7019,7 @@ async function searchAllStores() {
                 channels(name),
                 regions(name)
             `)
-            .eq('status', 'active')
+            .eq('is_active', true)
             .order('name');
         
         if (error) {
@@ -7317,7 +7500,7 @@ async function loadAllStoresForProduct() {
                 channels(name),
                 regions(name)
             `)
-            .eq('status', 'active')
+            .eq('is_active', true)
             .order('name');
         
         if (error) {
@@ -7387,7 +7570,7 @@ async function loadStoresForProduct() {
                 channels(name),
                 regions(name)
             `)
-            .eq('status', 'active');
+            .eq('is_active', true);
         
         // Kanal filtresi - sadece kanal seçilmişse uygula
         if (channelId && channelId !== '') {
