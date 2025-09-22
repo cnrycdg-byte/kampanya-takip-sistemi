@@ -1323,5 +1323,82 @@
             }
         });
     </script>
+    <script>
+        // Fotoğraf URL'lerini düzelten script
+        async function fixPhotoUrls() {
+            try {
+                console.log('🔧 Fotoğraf URL\'leri düzeltiliyor...');
+                
+                // Tüm task_assignments'ları al
+                const { data: assignments, error } = await supabase
+                    .from('task_assignments')
+                    .select('id, photo_urls, stores(name)')
+                    .not('photo_urls', 'is', null);
+                
+                if (error) {
+                    console.error('❌ Veri çekme hatası:', error);
+                    return;
+                }
+                
+                console.log(`📊 ${assignments.length} atama bulundu`);
+                
+                let fixedCount = 0;
+                let totalUrls = 0;
+                
+                for (const assignment of assignments) {
+                    if (assignment.photo_urls && Array.isArray(assignment.photo_urls)) {
+                        totalUrls += assignment.photo_urls.length;
+                        
+                        const fixedUrls = assignment.photo_urls.map(url => {
+                            // Eğer URL'de çift task-photos/ varsa düzelt
+                            if (url.includes('/task-photos/task-photos/')) {
+                                const fixedUrl = url.replace('/task-photos/task-photos/', '/task-photos/');
+                                console.log(`🔧 Düzeltiliyor: ${url} -> ${fixedUrl}`);
+                                return fixedUrl;
+                            }
+                            return url;
+                        });
+                        
+                        // Eğer URL'ler değiştiyse güncelle
+                        if (JSON.stringify(fixedUrls) !== JSON.stringify(assignment.photo_urls)) {
+                            console.log(`📝 Assignment ${assignment.id} (${assignment.stores?.name}) güncelleniyor...`);
+                            
+                            const { error: updateError } = await supabase
+                                .from('task_assignments')
+                                .update({ photo_urls: fixedUrls })
+                                .eq('id', assignment.id);
+                            
+                            if (updateError) {
+                                console.error(`❌ Assignment ${assignment.id} güncellenemedi:`, updateError);
+                            } else {
+                                console.log(`✅ Assignment ${assignment.id} düzeltildi`);
+                                fixedCount++;
+                            }
+                        }
+                    }
+                }
+                
+                console.log(`🎉 ${fixedCount} assignment düzeltildi (${totalUrls} toplam URL)`);
+                
+                if (fixedCount > 0) {
+                    alert(`✅ ${fixedCount} assignment düzeltildi!\n${totalUrls} toplam URL işlendi.\n\nSayfa yeniden yüklenecek...`);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    console.log('ℹ️ Düzeltilecek URL bulunamadı');
+                }
+                
+            } catch (error) {
+                console.error('❌ URL düzeltme hatası:', error);
+                alert('❌ URL düzeltme hatası: ' + error.message);
+            }
+        }
+        
+        // Sayfa yüklendiğinde çalıştır
+        window.addEventListener('load', () => {
+            setTimeout(fixPhotoUrls, 3000);
+        });
+    </script>
 </body>
 </html>

@@ -2997,15 +2997,9 @@ async function viewTask(taskId) {
                                 console.log('Photo URLs:', assignment.photo_urls);
                                 console.log('Store name:', assignment.stores?.name);
                                 
-                                // Test için örnek fotoğraf URL'leri (gerçek fotoğraf yoksa)
-                                const testPhotos = [
-                                    'https://via.placeholder.com/300x200/28a745/ffffff?text=Mağaza+1',
-                                    'https://via.placeholder.com/300x200/007bff/ffffff?text=Mağaza+2',
-                                    'https://via.placeholder.com/300x200/dc3545/ffffff?text=Mağaza+3'
-                                ];
-                                
+                                // Gerçek fotoğraf URL'lerini kullan
                                 const hasPhotos = assignment.photo_urls && assignment.photo_urls.length > 0;
-                                const photoUrl = hasPhotos ? assignment.photo_urls[0] : testPhotos[index % testPhotos.length];
+                                const photoUrl = hasPhotos ? assignment.photo_urls[0] : null;
                                 
                                 return `
                                 <div class="col-md-3 col-sm-4 col-6 mb-3">
@@ -3017,18 +3011,26 @@ async function viewTask(taskId) {
                                          data-assignment-index="${index}">
                                         <div class="card-body text-center d-flex flex-column justify-content-center">
                                             <div class="mb-3">
-                                                <img src="${photoUrl}" 
-                                                     class="img-fluid rounded" 
-                                                     style="height: 120px; width: 100%; object-fit: cover;"
-                                                     alt="Kapak fotoğrafı"
-                                                     onerror="console.error('Fotoğraf yüklenemedi:', this.src); this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                                <div class="d-flex align-items-center justify-content-center" style="height: 120px; background: linear-gradient(45deg, #f8f9fa, #e9ecef); border-radius: 8px; display: none;">
-                                                    <div class="text-center">
-                                                        <i class="fas fa-store fa-3x text-muted mb-2"></i>
-                                                        <div class="text-muted small">Fotoğraf yok</div>
+                                                ${hasPhotos ? `
+                                                    <img src="${photoUrl}" 
+                                                         class="img-fluid rounded" 
+                                                         style="height: 120px; width: 100%; object-fit: cover;"
+                                                         alt="Kapak fotoğrafı"
+                                                         onerror="console.error('Fotoğraf yüklenemedi:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                    <div class="d-flex align-items-center justify-content-center" style="height: 120px; background: linear-gradient(45deg, #f8f9fa, #e9ecef); border-radius: 8px; display: none;">
+                                                        <div class="text-center">
+                                                            <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                                            <div class="text-muted small">Fotoğraf yüklenemedi</div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                ${!hasPhotos ? '<div class="badge bg-warning position-absolute" style="top: 10px; right: 10px;">Test</div>' : ''}
+                                                ` : `
+                                                    <div class="d-flex align-items-center justify-content-center" style="height: 120px; background: linear-gradient(45deg, #f8f9fa, #e9ecef); border-radius: 8px;">
+                                                        <div class="text-center">
+                                                            <i class="fas fa-camera fa-3x text-muted mb-2"></i>
+                                                            <div class="text-muted small">Fotoğraf yok</div>
+                                                        </div>
+                                                    </div>
+                                                `}
                                             </div>
                                             <h6 class="card-title mb-2">${assignment.stores?.name || 'Bilinmiyor'}</h6>
                                             <div class="mb-1">

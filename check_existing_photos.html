@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mevcut Fotoğrafları Kontrol Et</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+</head>
+<body>
+    <h1>Mevcut Fotoğrafları Kontrol Et</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function checkExistingPhotos() {
+            try {
+                console.log('🔍 Mevcut fotoğraflar kontrol ediliyor...');
+                
+                // Veritabanından fotoğraf URL'lerini al
+                const { data: assignments, error } = await supabase
+                    .from('task_assignments')
+                    .select('id, photo_urls, stores(name)')
+                    .not('photo_urls', 'is', null);
+                
+                if (error) {
+                    console.error('❌ Veri çekme hatası:', error);
+                    document.getElementById('results').innerHTML = '<p style="color: red;">❌ Veri çekme hatası: ' + error.message + '</p>';
+                    return;
+                }
+                
+                console.log(`📊 ${assignments.length} assignment bulundu`);
+                
+                let html = '<h2>Mevcut Fotoğraf Analizi</h2>';
+                html += `<p><strong>Toplam assignment:</strong> ${assignments.length}</p>`;
+                
+                let totalPhotos = 0;
+                let existingPhotos = 0;
+                let missingPhotos = 0;
+                
+                // Her assignment için fotoğrafları kontrol et
+                for (const assignment of assignments) {
+                    if (assignment.photo_urls && Array.isArray(assignment.photo_urls)) {
+                        html += `<div style="margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px;">`;
+                        html += `<h3>Assignment ${assignment.id} - ${assignment.stores?.name || 'Bilinmiyor'}</h3>`;
+                        html += `<p><strong>Fotoğraf sayısı:</strong> ${assignment.photo_urls.length}</p>`;
+                        
+                        totalPhotos += assignment.photo_urls.length;
+                        
+                        for (let i = 0; i < assignment.photo_urls.length; i++) {
+                            const url = assignment.photo_urls[i];
+                            const fileName = url.split('/').pop();
+                            
+                            html += `<div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 3px;">`;
+                            html += `<p><strong>Fotoğraf ${i + 1}:</strong> ${fileName}</p>`;
+                            html += `<p><strong>URL:</strong> <a href="${url}" target="_blank">${url}</a></p>`;
+                            
+                            // Dosyanın var olup olmadığını kontrol et
+                            try {
+                                const { data: fileData, error: fileError } = await supabase.storage
+                                    .from('task-photos')
+                                    .download(fileName);
+                                
+                                if (fileError) {
+                                    html += `<p style="color: red;">❌ Dosya bulunamadı: ${fileError.message}</p>`;
+                                    missingPhotos++;
+                                } else {
+                                    html += `<p style="color: green;">✅ Dosya mevcut (${fileData.size} bytes)</p>`;
+                                    existingPhotos++;
+                                }
+                            } catch (e) {
+                                html += `<p style="color: orange;">⚠️ Dosya kontrolü başarısız: ${e.message}</p>`;
+                                missingPhotos++;
+                            }
+                            
+                            html += `</div>`;
+                        }
+                        
+                        html += `</div>`;
+                    }
+                }
+                
+                // Özet
+                html += `<h2>Özet</h2>`;
+                html += `<p><strong>Toplam fotoğraf:</strong> ${totalPhotos}</p>`;
+                html += `<p style="color: green;"><strong>Mevcut fotoğraflar:</strong> ${existingPhotos}</p>`;
+                html += `<p style="color: red;"><strong>Eksik fotoğraflar:</strong> ${missingPhotos}</p>`;
+                
+                if (missingPhotos > 0) {
+                    html += `<div style="margin: 20px 0; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">`;
+                    html += `<h3>⚠️ Eksik Fotoğraflar Tespit Edildi!</h3>`;
+                    html += `<p>${missingPhotos} fotoğraf Supabase Storage'da bulunamadı. Bu fotoğraflar silinmiş olabilir.</p>`;
+                    html += `<button onclick="cleanupMissingPhotos()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Eksik Fotoğrafları Temizle</button>`;
+                    html += `</div>`;
+                }
+                
+                document.getElementById('results').innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Kontrol hatası:', error);
+                document.getElementById('results').innerHTML = '<p style="color: red;">❌ Kontrol hatası: ' + error.message + '</p>';
+            }
+        }
+        
+        async function cleanupMissingPhotos() {
+            try {
+                console.log('🧹 Eksik fotoğraflar temizleniyor...');
+                
+                // Tüm task_assignments'ları al
+                const { data: assignments, error } = await supabase
+                    .from('task_assignments')
+                    .select('id, photo_urls, stores(name)')
+                    .not('photo_urls', 'is', null);
+                
+                if (error) {
+                    console.error('❌ Veri çekme hatası:', error);
+                    return;
+                }
+                
+                let cleanedCount = 0;
+                
+                for (const assignment of assignments) {
+                    if (assignment.photo_urls && Array.isArray(assignment.photo_urls)) {
+                        const existingUrls = [];
+                        
+                        for (const url of assignment.photo_urls) {
+                            const fileName = url.split('/').pop();
+                            
+                            try {
+                                const { data: fileData, error: fileError } = await supabase.storage
+                                    .from('task-photos')
+                                    .download(fileName);
+                                
+                                if (!fileError && fileData) {
+                                    existingUrls.push(url);
+                                }
+                            } catch (e) {
+                                console.log(`Dosya bulunamadı: ${fileName}`);
+                            }
+                        }
+                        
+                        // Eğer mevcut URL'ler farklıysa güncelle
+                        if (existingUrls.length !== assignment.photo_urls.length) {
+                            const { error: updateError } = await supabase
+                                .from('task_assignments')
+                                .update({ 
+                                    photo_urls: existingUrls.length > 0 ? existingUrls : null 
+                                })
+                                .eq('id', assignment.id);
+                            
+                            if (updateError) {
+                                console.error(`Assignment ${assignment.id} güncellenemedi:`, updateError);
+                            } else {
+                                console.log(`Assignment ${assignment.id} temizlendi`);
+                                cleanedCount++;
+                            }
+                        }
+                    }
+                }
+                
+                alert(`✅ ${cleanedCount} assignment temizlendi!`);
+                location.reload();
+                
+            } catch (error) {
+                console.error('❌ Temizleme hatası:', error);
+                alert('❌ Temizleme hatası: ' + error.message);
+            }
+        }
+        
+        // Sayfa yüklendiğinde çalıştır
+        window.addEventListener('load', () => {
+            setTimeout(checkExistingPhotos, 2000);
+        });
+    </script>
+</body>
+</html>

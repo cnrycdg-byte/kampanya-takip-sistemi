@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Görev Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+</head>
+<body>
+    <h1>Görev Debug Sayfası</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function debugTasks() {
+            try {
+                console.log('🔍 Görev debug başlatılıyor...');
+                
+                // 1. Supabase bağlantısını kontrol et
+                console.log('1. Supabase bağlantısı kontrol ediliyor...');
+                console.log('Supabase URL:', supabase.supabaseUrl);
+                console.log('Supabase Key:', supabase.supabaseKey.substring(0, 20) + '...');
+                
+                // 2. Tüm görevleri al
+                console.log('2. Tüm görevler alınıyor...');
+                const { data: allTasks, error: allTasksError } = await supabase
+                    .from('tasks')
+                    .select('*')
+                    .eq('is_active', true);
+                
+                if (allTasksError) {
+                    console.error('❌ Tüm görevler alınamadı:', allTasksError);
+                    document.getElementById('results').innerHTML = '<p style="color: red;">❌ Tüm görevler alınamadı: ' + allTasksError.message + '</p>';
+                    return;
+                }
+                
+                console.log('✅ Tüm görevler:', allTasks);
+                
+                // 3. Mağaza atamalarını kontrol et
+                console.log('3. Mağaza atamaları kontrol ediliyor...');
+                const { data: assignments, error: assignmentsError } = await supabase
+                    .from('task_assignments')
+                    .select('*');
+                
+                if (assignmentsError) {
+                    console.error('❌ Atamalar alınamadı:', assignmentsError);
+                } else {
+                    console.log('✅ Atamalar:', assignments);
+                }
+                
+                // 4. Test mağaza ID'si için görevleri kontrol et
+                console.log('4. Test mağaza ID (1) için görevler kontrol ediliyor...');
+                const { data: testTasks, error: testTasksError } = await supabase
+                    .from('tasks')
+                    .select(`
+                        *,
+                        channels(name),
+                        task_assignments(
+                            id,
+                            store_id,
+                            photo_urls,
+                            status,
+                            stores(name)
+                        )
+                    `)
+                    .eq('is_active', true)
+                    .eq('task_assignments.store_id', 1);
+                
+                if (testTasksError) {
+                    console.error('❌ Test görevleri alınamadı:', testTasksError);
+                } else {
+                    console.log('✅ Test görevleri:', testTasks);
+                }
+                
+                // 5. Sonuçları göster
+                let html = '<h2>Debug Sonuçları</h2>';
+                
+                html += '<h3>1. Supabase Bağlantısı</h3>';
+                html += '<p>✅ Supabase bağlantısı kuruldu</p>';
+                
+                html += '<h3>2. Tüm Görevler</h3>';
+                html += `<p><strong>Toplam görev sayısı:</strong> ${allTasks.length}</p>`;
+                if (allTasks.length > 0) {
+                    html += '<ul>';
+                    allTasks.forEach(task => {
+                        html += `<li>ID: ${task.id}, Başlık: ${task.title}, Aktif: ${task.is_active}</li>`;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p style="color: orange;">⚠️ Hiç görev bulunamadı!</p>';
+                }
+                
+                html += '<h3>3. Mağaza Atamaları</h3>';
+                html += `<p><strong>Toplam atama sayısı:</strong> ${assignments ? assignments.length : 0}</p>`;
+                if (assignments && assignments.length > 0) {
+                    html += '<ul>';
+                    assignments.forEach(assignment => {
+                        html += `<li>Görev ID: ${assignment.task_id}, Mağaza ID: ${assignment.store_id}, Durum: ${assignment.status}</li>`;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p style="color: orange;">⚠️ Hiç atama bulunamadı!</p>';
+                }
+                
+                html += '<h3>4. Test Mağaza (ID: 1) Görevleri</h3>';
+                html += `<p><strong>Test mağaza görev sayısı:</strong> ${testTasks ? testTasks.length : 0}</p>`;
+                if (testTasks && testTasks.length > 0) {
+                    html += '<ul>';
+                    testTasks.forEach(task => {
+                        html += `<li>ID: ${task.id}, Başlık: ${task.title}, Atama sayısı: ${task.task_assignments ? task.task_assignments.length : 0}</li>`;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p style="color: red;">❌ Test mağaza için görev bulunamadı!</p>';
+                }
+                
+                // 6. Çözüm önerileri
+                html += '<h3>5. Çözüm Önerileri</h3>';
+                if (allTasks.length === 0) {
+                    html += '<p style="color: red;">❌ Hiç görev yok! Admin panelinden görev oluşturun.</p>';
+                } else if (!assignments || assignments.length === 0) {
+                    html += '<p style="color: red;">❌ Hiç atama yok! Görevler oluşturulmuş ama mağazalara atanmamış.</p>';
+                } else if (!testTasks || testTasks.length === 0) {
+                    html += '<p style="color: red;">❌ Test mağaza (ID: 1) için atama yok! Farklı mağaza ID\'si deneyin.</p>';
+                    html += '<p><strong>Mevcut mağaza ID\'leri:</strong></p>';
+                    const storeIds = [...new Set(assignments.map(a => a.store_id))];
+                    html += '<ul>';
+                    storeIds.forEach(id => {
+                        html += `<li>Mağaza ID: ${id}</li>`;
+                    });
+                    html += '</ul>';
+                }
+                
+                document.getElementById('results').innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Debug hatası:', error);
+                document.getElementById('results').innerHTML = '<p style="color: red;">❌ Debug hatası: ' + error.message + '</p>';
+            }
+        }
+        
+        // Sayfa yüklendiğinde çalıştır
+        window.addEventListener('load', () => {
+            setTimeout(debugTasks, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fotoğraf URL Kontrolü</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+</head>
+<body>
+    <h1>Fotoğraf URL Kontrolü</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function checkPhotoUrls() {
+            try {
+                console.log('Veritabanındaki fotoğraf URL\'leri kontrol ediliyor...');
+                
+                // Tüm task_assignments'ları al
+                const { data: assignments, error } = await supabase
+                    .from('task_assignments')
+                    .select('id, photo_urls, status, stores(name)')
+                    .not('photo_urls', 'is', null);
+                
+                if (error) {
+                    console.error('Veri çekme hatası:', error);
+                    document.getElementById('results').innerHTML = '<p style="color: red;">Veri çekme hatası: ' + error.message + '</p>';
+                    return;
+                }
+                
+                console.log(`${assignments.length} atama bulundu`);
+                
+                let html = '<h2>Fotoğraf URL Analizi</h2>';
+                html += `<p><strong>Toplam atama:</strong> ${assignments.length}</p>`;
+                
+                let wrongUrls = 0;
+                let correctUrls = 0;
+                
+                assignments.forEach(assignment => {
+                    if (assignment.photo_urls && Array.isArray(assignment.photo_urls)) {
+                        assignment.photo_urls.forEach((url, index) => {
+                            const isWrong = url.includes('/task-photos/task-photos/');
+                            if (isWrong) wrongUrls++;
+                            else correctUrls++;
+                            
+                            html += `<div style="margin: 10px 0; padding: 10px; border: 1px solid ${isWrong ? 'red' : 'green'};">
+                                <strong>Assignment ID:</strong> ${assignment.id}<br>
+                                <strong>Mağaza:</strong> ${assignment.stores?.name || 'Bilinmiyor'}<br>
+                                <strong>Durum:</strong> ${assignment.status}<br>
+                                <strong>Fotoğraf ${index + 1}:</strong> <a href="${url}" target="_blank">${url}</a><br>
+                                <strong>Durum:</strong> <span style="color: ${isWrong ? 'red' : 'green'}">${isWrong ? 'YANLIŞ PATH' : 'DOĞRU PATH'}</span>
+                            </div>`;
+                        });
+                    }
+                });
+                
+                html += `<h3>Özet:</h3>`;
+                html += `<p><strong>Yanlış URL'ler:</strong> ${wrongUrls}</p>`;
+                html += `<p><strong>Doğru URL'ler:</strong> ${correctUrls}</p>`;
+                
+                document.getElementById('results').innerHTML = html;
+                
+                // Eğer yanlış URL'ler varsa düzelt
+                if (wrongUrls > 0) {
+                    const fixButton = document.createElement('button');
+                    fixButton.textContent = 'Yanlış URL\'leri Düzelt';
+                    fixButton.style.margin = '20px 0';
+                    fixButton.style.padding = '10px 20px';
+                    fixButton.style.backgroundColor = '#007bff';
+                    fixButton.style.color = 'white';
+                    fixButton.style.border = 'none';
+                    fixButton.style.borderRadius = '5px';
+                    fixButton.style.cursor = 'pointer';
+                    
+                    fixButton.onclick = async () => {
+                        await fixWrongUrls(assignments);
+                    };
+                    
+                    document.getElementById('results').appendChild(fixButton);
+                }
+                
+            } catch (error) {
+                console.error('Kontrol hatası:', error);
+                document.getElementById('results').innerHTML = '<p style="color: red;">Kontrol hatası: ' + error.message + '</p>';
+            }
+        }
+        
+        async function fixWrongUrls(assignments) {
+            try {
+                console.log('Yanlış URL\'ler düzeltiliyor...');
+                
+                let fixedCount = 0;
+                
+                for (const assignment of assignments) {
+                    if (assignment.photo_urls && Array.isArray(assignment.photo_urls)) {
+                        const fixedUrls = assignment.photo_urls.map(url => {
+                            if (url.includes('/task-photos/task-photos/')) {
+                                return url.replace('/task-photos/task-photos/', '/task-photos/');
+                            }
+                            return url;
+                        });
+                        
+                        if (JSON.stringify(fixedUrls) !== JSON.stringify(assignment.photo_urls)) {
+                            const { error: updateError } = await supabase
+                                .from('task_assignments')
+                                .update({ photo_urls: fixedUrls })
+                                .eq('id', assignment.id);
+                            
+                            if (updateError) {
+                                console.error(`Assignment ${assignment.id} güncellenemedi:`, updateError);
+                            } else {
+                                console.log(`Assignment ${assignment.id} düzeltildi`);
+                                fixedCount++;
+                            }
+                        }
+                    }
+                }
+                
+                alert(`✅ ${fixedCount} fotoğraf URL'si düzeltildi!`);
+                location.reload();
+                
+            } catch (error) {
+                console.error('URL düzeltme hatası:', error);
+                alert('❌ URL düzeltme hatası: ' + error.message);
+            }
+        }
+        
+        // Sayfa yüklendiğinde çalıştır
+        window.addEventListener('load', () => {
+            setTimeout(checkPhotoUrls, 2000);
+        });
+    </script>
+</body>
+</html>

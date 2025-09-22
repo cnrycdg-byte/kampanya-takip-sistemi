@@ -405,7 +405,7 @@ function openGallery() {
 // Kamera ile fotoğraf yükleme (kaldırıldı)
 
 // Galeri ile fotoğraf yükleme
-function handleGalleryUpload(event) {
+async function handleGalleryUpload(event) {
     console.log('Galeri fotoğraf yükleme başladı');
     const files = Array.from(event.target.files);
     console.log('Seçilen dosyalar:', files.length);
@@ -421,19 +421,20 @@ function handleGalleryUpload(event) {
         return;
     }
     
-    // Her dosyayı işle
-    files.forEach((file, index) => {
+    // Her dosyayı işle (async olarak)
+    for (let index = 0; index < files.length; index++) {
+        const file = files[index];
         console.log(`Dosya ${index + 1} işleniyor:`, file.name, file.size);
         
         // Dosya boyutunu kontrol et
         if (!validateImageSize(file)) {
-            return;
+            continue;
         }
         
         // Fotoğrafı sıkıştır
         try {
             console.log('Fotoğraf sıkıştırılıyor...');
-            const compressedFile = compressImage(file);
+            const compressedFile = await compressImage(file);
             console.log('Sıkıştırma tamamlandı:', compressedFile.size);
             
             selectedPhotos.push(compressedFile);
@@ -447,7 +448,7 @@ function handleGalleryUpload(event) {
             selectedPhotos.push(file);
             console.log('Toplam fotoğraf sayısı (orijinal):', selectedPhotos.length);
         }
-    });
+    }
     
     // Tüm fotoğraflar işlendikten sonra önizlemeleri oluştur
     updatePhotoPreviews();
@@ -458,6 +459,12 @@ function handleGalleryUpload(event) {
 
 // Fotoğraf önizlemesi oluşturan fonksiyon
 function createPhotoPreview(file, index) {
+    // File objesinin geçerli olduğunu kontrol et
+    if (!file || !(file instanceof File || file instanceof Blob)) {
+        console.error('Geçersiz file objesi:', file);
+        return;
+    }
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         const previewContainer = document.getElementById('photo-preview');
@@ -472,6 +479,9 @@ function createPhotoPreview(file, index) {
             </div>
         `;
         previewContainer.appendChild(col);
+    };
+    reader.onerror = function(error) {
+        console.error('FileReader hatası:', error);
     };
     reader.readAsDataURL(file);
 }
@@ -585,7 +595,7 @@ async function uploadPhotos(photos, taskId) {
     for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
         const fileName = `task_${taskId}_${Date.now()}_${i}.jpg`;
-        const filePath = `task-photos/${fileName}`;
+        const filePath = fileName;
         
         try {
             const { data, error } = await supabase.storage

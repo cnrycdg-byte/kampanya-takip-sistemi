@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kampanya Takip Sistemi - Saha Satış Uzmanı</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <!-- Giriş Sayfası -->
+    <div id="login-page" class="min-vh-100 d-flex align-items-center">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-user-tie fa-3x text-primary mb-3"></i>
+                                <h3 class="card-title">Saha Satış Uzmanı</h3>
+                                <p class="text-muted">Kampanya Takip Sistemi</p>
+                            </div>
+                            
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">E-posta Adresi</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        <input type="email" class="form-control" id="email" placeholder="ornek@email.com" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Şifre</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input type="password" class="form-control" id="password" placeholder="Şifrenizi girin" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="remember">
+                                    <label class="form-check-label" for="remember">
+                                        Beni hatırla
+                                    </label>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="button" class="btn btn-primary btn-lg" onclick="login()">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <div class="text-center mt-4">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Test için: test@example.com / 123456
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ana Sayfa (Giriş yapana kadar gizli) -->
+    <div id="main-page" style="display: none;">
+        <!-- Üst Menü -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="fas fa-user-tie me-2"></i>
+                    Saha Satış Uzmanı
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <span class="navbar-text me-3">
+                        <i class="fas fa-user me-1"></i>
+                        <span id="user-name">Kullanıcı</span>
+                    </span>
+                    <a class="nav-link" href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i>Çıkış
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid mt-4">
+            <!-- Hoş Geldin Mesajı -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert alert-success">
+                        <h5><i class="fas fa-check-circle me-2"></i>Giriş Başarılı!</h5>
+                        <p class="mb-0">Hoş geldiniz <strong id="welcome-name">Kullanıcı</strong>! Görevlerinizi aşağıdan görüntüleyebilirsiniz.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Görevler -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tasks me-2"></i>Görevlerim
+                            </h5>
+                            <button class="btn btn-sm btn-primary" onclick="loadTasks()">
+                                <i class="fas fa-sync-alt me-1"></i>Yenile
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="tasks-container">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Yükleniyor...</span>
+                                    </div>
+                                    <p class="mt-2">Görevler yükleniyor...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kullanıcı Bilgileri -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Kullanıcı Bilgileri
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Ad Soyad:</strong> <span id="detail-name">-</span></p>
+                                    <p><strong>E-posta:</strong> <span id="detail-email">-</span></p>
+                                    <p><strong>Rol:</strong> <span id="detail-role">-</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Mağaza:</strong> <span id="detail-store">-</span></p>
+                                    <p><strong>Mağaza ID:</strong> <span id="detail-store-id">-</span></p>
+                                    <p><strong>Giriş Zamanı:</strong> <span id="login-time">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Görev Detay Modal -->
+    <div class="modal fade" id="taskModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="taskModalTitle">Görev Detayları</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Görev Bilgileri</h6>
+                            <p><strong>Kategori:</strong> <span id="modal-category">-</span></p>
+                            <p><strong>Başlangıç:</strong> <span id="modal-start-date">-</span></p>
+                            <p><strong>Bitiş:</strong> <span id="modal-end-date">-</span></p>
+                            <p><strong>Durum:</strong> <span id="modal-status">-</span></p>
+                            <p><strong>Açıklama:</strong> <span id="modal-description">-</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Örnek Fotoğraf</h6>
+                            <div id="example-photo-section" style="display: none;">
+                                <img id="modal-example-photo" class="img-fluid rounded" style="max-height: 200px;" alt="Örnek fotoğraf">
+                            </div>
+                            <div id="no-example-photo" class="text-muted text-center">
+                                <i class="fas fa-image fa-3x mb-2"></i>
+                                <p>Örnek fotoğraf yok</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <h6>Fotoğraf Yükleme</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Fotoğraf Seçin (1-5 adet)</label>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openGallery()">
+                                        <i class="fas fa-images me-1"></i>Galeriden Fotoğraf Seç
+                                    </button>
+                                </div>
+                                <input type="file" class="form-control d-none" id="gallery-upload" multiple accept="image/*,image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                                <div class="form-text">Maksimum 5 fotoğraf yükleyebilirsiniz. Her fotoğraf maksimum 20MB olmalıdır.</div>
+                            </div>
+                            
+                            <div id="photo-preview" class="row">
+                                <!-- Fotoğraf önizlemeleri buraya eklenecek -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Yorum</h6>
+                            <textarea class="form-control" id="task-comment" rows="3" placeholder="Görev hakkında yorum yazın..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-success" onclick="completeTask()">
+                        <i class="fas fa-check me-1"></i>Görevi Tamamla
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/employee.js"></script>
+    
+    <script>
+        // Giriş fonksiyonu
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember').checked;
+            
+            if (!email || !password) {
+                showAlert('Lütfen e-posta ve şifre girin!', 'warning');
+                return;
+            }
+            
+            try {
+                console.log('🔐 Giriş yapılıyor...', email);
+                showAlert('Giriş yapılıyor...', 'info');
+                
+                // Supabase ile giriş yap
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    console.error('❌ Giriş hatası:', error);
+                    showAlert('Giriş başarısız: ' + error.message, 'danger');
+                    return;
+                }
+                
+                console.log('✅ Giriş başarılı:', data);
+                
+                // Kullanıcı bilgilerini al
+                const user = data.user;
+                console.log('👤 Kullanıcı bilgileri:', user);
+                
+                // Kullanıcı detaylarını veritabanından al
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('*, stores(name)')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (userError) {
+                    console.error('❌ Kullanıcı detayları alınamadı:', userError);
+                    showAlert('Kullanıcı bilgileri alınamadı!', 'danger');
+                    return;
+                }
+                
+                console.log('✅ Kullanıcı detayları:', userData);
+                
+                // Kullanıcı oturumunu kaydet
+                const sessionData = {
+                    id: user.id,
+                    email: user.email,
+                    name: userData.name || user.email,
+                    role: userData.role || 'employee',
+                    storeId: userData.store_id,
+                    storeName: userData.stores?.name || 'Bilinmeyen Mağaza',
+                    loginTime: new Date().toLocaleString('tr-TR')
+                };
+                
+                if (remember) {
+                    localStorage.setItem('user', JSON.stringify(sessionData));
+                } else {
+                    sessionStorage.setItem('user', JSON.stringify(sessionData));
+                }
+                
+                console.log('✅ Oturum kaydedildi:', sessionData);
+                
+                // Kullanıcı bilgilerini göster
+                updateUserInfo(sessionData);
+                
+                // Sayfaları değiştir
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('main-page').style.display = 'block';
+                
+                // Görevleri yükle
+                setTimeout(() => {
+                    loadTasks();
+                }, 1000);
+                
+                showAlert('Giriş başarılı! Hoş geldiniz ' + sessionData.name, 'success');
+                
+            } catch (error) {
+                console.error('❌ Genel giriş hatası:', error);
+                showAlert('Giriş sırasında hata oluştu: ' + error.message, 'danger');
+            }
+        }
+        
+        // Kullanıcı bilgilerini güncelle
+        function updateUserInfo(user) {
+            document.getElementById('user-name').textContent = user.name;
+            document.getElementById('welcome-name').textContent = user.name;
+            document.getElementById('detail-name').textContent = user.name;
+            document.getElementById('detail-email').textContent = user.email;
+            document.getElementById('detail-role').textContent = user.role;
+            document.getElementById('detail-store').textContent = user.storeName;
+            document.getElementById('detail-store-id').textContent = user.storeId;
+            document.getElementById('login-time').textContent = user.loginTime;
+        }
+        
+        // Çıkış fonksiyonu
+        function logout() {
+            console.log('🚪 Çıkış yapılıyor...');
+            
+            // Oturumu temizle
+            localStorage.removeItem('user');
+            sessionStorage.removeItem('user');
+            
+            // Supabase oturumunu kapat
+            supabase.auth.signOut();
+            
+            // Sayfaları değiştir
+            document.getElementById('main-page').style.display = 'none';
+            document.getElementById('login-page').style.display = 'block';
+            
+            // Form'u temizle
+            document.getElementById('loginForm').reset();
+            
+            showAlert('Çıkış yapıldı!', 'info');
+        }
+        
+        // Sayfa yüklendiğinde kontrol et
+        window.addEventListener('load', () => {
+            console.log('🚀 Sayfa yüklendi');
+            
+            // Kayıtlı oturum var mı kontrol et
+            const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    console.log('✅ Kayıtlı oturum bulundu:', user);
+                    
+                    // Kullanıcı bilgilerini göster
+                    updateUserInfo(user);
+                    
+                    // Ana sayfayı göster
+                    document.getElementById('login-page').style.display = 'none';
+                    document.getElementById('main-page').style.display = 'block';
+                    
+                    // Görevleri yükle
+                    setTimeout(() => {
+                        loadTasks();
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('❌ Kayıtlı oturum okunamadı:', error);
+                }
+            }
+        });
+        
+        // Enter tuşu ile giriş
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && document.getElementById('login-page').style.display !== 'none') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>

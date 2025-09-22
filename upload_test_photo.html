@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fotoğraf Yükleme</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+</head>
+<body>
+    <h1>Test Fotoğraf Yükleme</h1>
+    <div id="results"></div>
+    
+    <input type="file" id="photoInput" accept="image/*">
+    <button onclick="uploadTestPhoto()">Test Fotoğrafı Yükle</button>
+    
+    <div id="uploadedPhoto" style="margin-top: 20px;"></div>
+    
+    <script>
+        async function uploadTestPhoto() {
+            const fileInput = document.getElementById('photoInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Lütfen bir fotoğraf seçin!');
+                return;
+            }
+            
+            try {
+                console.log('📸 Test fotoğrafı yükleniyor...');
+                document.getElementById('results').innerHTML = '<p>⏳ Fotoğraf yükleniyor...</p>';
+                
+                // Dosya adı oluştur
+                const fileName = `test_${Date.now()}.jpg`;
+                console.log('📁 Dosya adı:', fileName);
+                
+                // Fotoğrafı yükle
+                const { data, error } = await supabase.storage
+                    .from('task-photos')
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                
+                if (error) {
+                    console.error('❌ Yükleme hatası:', error);
+                    document.getElementById('results').innerHTML = `<p style="color: red;">❌ Yükleme hatası: ${error.message}</p>`;
+                    return;
+                }
+                
+                console.log('✅ Yükleme başarılı:', data);
+                
+                // Public URL'i al
+                const { data: urlData } = supabase.storage
+                    .from('task-photos')
+                    .getPublicUrl(fileName);
+                
+                console.log('🔗 Public URL:', urlData.publicUrl);
+                
+                // Sonuçları göster
+                let html = '<h2>Yükleme Sonuçları</h2>';
+                html += `<p>✅ Dosya başarıyla yüklendi!</p>`;
+                html += `<p><strong>Dosya adı:</strong> ${fileName}</p>`;
+                html += `<p><strong>Public URL:</strong> <a href="${urlData.publicUrl}" target="_blank">${urlData.publicUrl}</a></p>`;
+                html += `<p><strong>Dosya boyutu:</strong> ${file.size} bytes</p>`;
+                html += `<p><strong>Dosya tipi:</strong> ${file.type}</p>`;
+                
+                // Fotoğrafı göster
+                html += '<h3>Yüklenen Fotoğraf:</h3>';
+                html += `<img src="${urlData.publicUrl}" style="max-width: 400px; max-height: 300px; border: 2px solid #007bff;" 
+                             onload="this.style.border='2px solid green'; this.nextElementSibling.innerHTML='✅ Fotoğraf başarıyla yüklendi ve görüntülenebiliyor!';"
+                             onerror="this.style.border='2px solid red'; this.nextElementSibling.innerHTML='❌ Fotoğraf yüklendi ama görüntülenemiyor!';">
+                     <div id="imageStatus">⏳ Yükleniyor...</div>`;
+                
+                document.getElementById('results').innerHTML = html;
+                document.getElementById('uploadedPhoto').innerHTML = `<img src="${urlData.publicUrl}" style="max-width: 200px; max-height: 150px;">`;
+                
+                // URL'yi test et
+                const testImg = new Image();
+                testImg.onload = function() {
+                    console.log('✅ URL testi başarılı');
+                    document.getElementById('imageStatus').innerHTML = '✅ Fotoğraf başarıyla yüklendi ve görüntülenebiliyor!';
+                };
+                testImg.onerror = function() {
+                    console.error('❌ URL testi başarısız');
+                    document.getElementById('imageStatus').innerHTML = '❌ Fotoğraf yüklendi ama görüntülenemiyor!';
+                };
+                testImg.src = urlData.publicUrl;
+                
+            } catch (error) {
+                console.error('❌ Genel hata:', error);
+                document.getElementById('results').innerHTML = `<p style="color: red;">❌ Genel hata: ${error.message}</p>`;
+            }
+        }
+        
+        // Sayfa yüklendiğinde bucket kontrolü yap
+        window.addEventListener('load', async () => {
+            try {
+                console.log('🔍 Bucket kontrolü yapılıyor...');
+                
+                // Bucket'ları listele
+                const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+                
+                if (bucketError) {
+                    console.error('❌ Bucket listesi alınamadı:', bucketError);
+                    document.getElementById('results').innerHTML = `<p style="color: red;">❌ Bucket listesi alınamadı: ${bucketError.message}</p>`;
+                    return;
+                }
+                
+                console.log('📦 Bucket\'lar:', buckets);
+                
+                const taskPhotosBucket = buckets.find(b => b.name === 'task-photos');
+                if (taskPhotosBucket) {
+                    console.log('✅ task-photos bucket bulundu');
+                    document.getElementById('results').innerHTML = '<p>✅ task-photos bucket mevcut. Test fotoğrafı yükleyebilirsiniz.</p>';
+                } else {
+                    console.log('❌ task-photos bucket bulunamadı');
+                    document.getElementById('results').innerHTML = '<p style="color: red;">❌ task-photos bucket bulunamadı!</p>';
+                }
+                
+            } catch (error) {
+                console.error('❌ Bucket kontrolü hatası:', error);
+                document.getElementById('results').innerHTML = `<p style="color: red;">❌ Bucket kontrolü hatası: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

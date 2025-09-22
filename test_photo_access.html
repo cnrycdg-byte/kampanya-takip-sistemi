@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fotoğraf Erişim Testi</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+</head>
+<body>
+    <h1>Fotoğraf Erişim Testi</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testPhotoAccess() {
+            try {
+                console.log('🔍 Supabase Storage erişimi test ediliyor...');
+                
+                // Test URL'leri
+                const testUrls = [
+                    'https://bsalbxbljkhwgemsexpb.supabase.co/storage/v1/object/public/task-photos/task_24_1758534662503_0.jpg',
+                    'https://bsalbxbljkhwgemsexpb.supabase.co/storage/v1/object/public/task-photos/task_24_1758537784617_0.jpg',
+                    'https://bsalbxbljkhwgemsexpb.supabase.co/storage/v1/object/public/task-photos/task_24_1758532801660_0.jpg'
+                ];
+                
+                let html = '<h2>Fotoğraf Erişim Testi</h2>';
+                
+                // 1. Storage bucket'larını kontrol et
+                console.log('📦 Storage bucket\'ları kontrol ediliyor...');
+                const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+                
+                if (bucketError) {
+                    html += `<p style="color: red;">❌ Bucket listesi alınamadı: ${bucketError.message}</p>`;
+                } else {
+                    html += `<p>✅ Bucket'lar yüklendi: ${buckets.length} adet</p>`;
+                    const taskPhotosBucket = buckets.find(b => b.name === 'task-photos');
+                    if (taskPhotosBucket) {
+                        html += `<p>✅ task-photos bucket bulundu</p>`;
+                        html += `<p><strong>Bucket detayları:</strong> ${JSON.stringify(taskPhotosBucket, null, 2)}</p>`;
+                    } else {
+                        html += `<p style="color: red;">❌ task-photos bucket bulunamadı!</p>`;
+                    }
+                }
+                
+                // 2. Bucket içeriğini kontrol et
+                console.log('📁 Bucket içeriği kontrol ediliyor...');
+                const { data: files, error: filesError } = await supabase.storage
+                    .from('task-photos')
+                    .list('', { limit: 10 });
+                
+                if (filesError) {
+                    html += `<p style="color: red;">❌ Bucket içeriği alınamadı: ${filesError.message}</p>`;
+                } else {
+                    html += `<p>✅ Bucket içeriği yüklendi: ${files.length} dosya</p>`;
+                    html += '<h3>İlk 10 dosya:</h3><ul>';
+                    files.forEach(file => {
+                        html += `<li>${file.name} (${file.metadata?.size || 'boyut bilinmiyor'} bytes)</li>`;
+                    });
+                    html += '</ul>';
+                }
+                
+                // 3. Test URL'lerini kontrol et
+                html += '<h3>Test URL\'leri:</h3>';
+                for (let i = 0; i < testUrls.length; i++) {
+                    const url = testUrls[i];
+                    html += `<div style="margin: 10px 0; padding: 10px; border: 1px solid #ccc;">
+                        <strong>Test ${i + 1}:</strong><br>
+                        <a href="${url}" target="_blank">${url}</a><br>
+                        <img src="${url}" style="max-width: 200px; max-height: 150px; border: 1px solid #ddd;" 
+                             onload="this.style.border='2px solid green'; this.nextElementSibling.innerHTML='✅ Yüklendi';"
+                             onerror="this.style.border='2px solid red'; this.nextElementSibling.innerHTML='❌ Yüklenemedi';">
+                        <div id="status-${i}">⏳ Yükleniyor...</div>
+                    </div>`;
+                }
+                
+                // 4. Public URL oluşturma testi
+                html += '<h3>Public URL Oluşturma Testi:</h3>';
+                const testFileName = 'test_file.jpg';
+                const { data: publicUrlData } = supabase.storage
+                    .from('task-photos')
+                    .getPublicUrl(testFileName);
+                
+                html += `<p><strong>Test dosya URL'si:</strong> <a href="${publicUrlData.publicUrl}" target="_blank">${publicUrlData.publicUrl}</a></p>`;
+                
+                // 5. RLS politikalarını kontrol et
+                html += '<h3>RLS Politikaları:</h3>';
+                try {
+                    const { data: policies, error: policyError } = await supabase
+                        .from('pg_policies')
+                        .select('*')
+                        .eq('tablename', 'objects');
+                    
+                    if (policyError) {
+                        html += `<p style="color: orange;">⚠️ RLS politikaları alınamadı: ${policyError.message}</p>`;
+                    } else {
+                        html += `<p>✅ RLS politikaları yüklendi: ${policies.length} adet</p>`;
+                        policies.forEach(policy => {
+                            html += `<p><strong>${policy.policyname}:</strong> ${policy.definition}</p>`;
+                        });
+                    }
+                } catch (e) {
+                    html += `<p style="color: orange;">⚠️ RLS politikaları kontrol edilemedi: ${e.message}</p>`;
+                }
+                
+                document.getElementById('results').innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Test hatası:', error);
+                document.getElementById('results').innerHTML = '<p style="color: red;">❌ Test hatası: ' + error.message + '</p>';
+            }
+        }
+        
+        // Sayfa yüklendiğinde çalıştır
+        window.addEventListener('load', () => {
+            setTimeout(testPhotoAccess, 2000);
+        });
+    </script>
+</body>
+</html>
