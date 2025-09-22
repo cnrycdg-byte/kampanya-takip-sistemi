@@ -65,3 +65,4 @@ if (typeof window !== 'undefined' && window.supabase) {
         setTimeout(fixPhotoUrls, 2000);
     });
 }
+

@@ -1,4 +1,4 @@
-// Mağaza Çalışanı Panel JavaScript Dosyası
+// Saha Satış Uzmanı Panel JavaScript Dosyası
 
 let currentTask = null;
 let selectedPhotos = [];
@@ -39,6 +39,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (galleryUpload) {
         galleryUpload.addEventListener('change', handleGalleryUpload);
     }
+    
+    // Global mağaza güncelleme eventini dinle
+    window.addEventListener('storesUpdated', function() {
+        console.log('Mağaza listesi güncellendi, kullanıcı bilgileri yeniden yükleniyor...');
+        // Kullanıcı oturumunu yeniden kontrol et
+        const user = checkUserSession();
+        if (user) {
+            displayUserInfo(user);
+        }
+    });
 });
 
 // Kullanıcı bilgilerini gösteren fonksiyon
@@ -47,7 +57,7 @@ function displayUserInfo(user) {
     document.getElementById('profile-name').textContent = user.name || '-';
     document.getElementById('profile-email').textContent = user.email || '-';
     document.getElementById('profile-store').textContent = user.store || '-';
-    document.getElementById('profile-role').textContent = 'Mağaza Çalışanı';
+    document.getElementById('profile-role').textContent = 'Saha Satış Uzmanı';
     document.getElementById('profile-date').textContent = user.createdAt ? formatDate(user.createdAt) : '-';
     
     // Mağaza bilgilerini göster

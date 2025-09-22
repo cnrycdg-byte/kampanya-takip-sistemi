@@ -25,6 +25,4 @@ SELECT * FROM tasks ORDER BY id;
 SELECT 'GÖREV YANITLARI' as tablo_adi, count(*) as kayit_sayisi FROM task_responses;
 SELECT * FROM task_responses ORDER BY id;
 
--- 7. Mevcut oyun planlarını göster
-SELECT 'OYUN PLANLARI' as tablo_adi, count(*) as kayit_sayisi FROM game_plans;
-SELECT * FROM game_plans ORDER BY id;
+-- 7. Oyun planları kaldırıldı

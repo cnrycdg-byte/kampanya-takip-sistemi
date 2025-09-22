@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Mağaza verilerini yükle
     loadStores();
+    
+    // Global mağaza güncelleme eventini dinle
+    window.addEventListener('storesUpdated', function() {
+        console.log('Mağaza listesi güncellendi, yeniden yükleniyor...');
+        loadStores();
+    });
 });
 
 // Mağaza verilerini yükleyen fonksiyon

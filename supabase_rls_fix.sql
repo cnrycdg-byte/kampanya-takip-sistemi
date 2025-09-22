@@ -8,7 +8,6 @@ DROP POLICY IF EXISTS "Enable all operations for all users" ON users;
 DROP POLICY IF EXISTS "Enable all operations for all users" ON stores;
 DROP POLICY IF EXISTS "Enable all operations for all users" ON tasks;
 DROP POLICY IF EXISTS "Enable all operations for all users" ON task_responses;
-DROP POLICY IF EXISTS "Enable all operations for all users" ON game_plans;
 
 -- 2. RLS'yi geçici olarak devre dışı bırak
 ALTER TABLE regions DISABLE ROW LEVEL SECURITY;
@@ -17,7 +16,6 @@ ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE stores DISABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks DISABLE ROW LEVEL SECURITY;
 ALTER TABLE task_responses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE game_plans DISABLE ROW LEVEL SECURITY;
 
 -- 3. Eksik tabloları oluştur (eğer yoksa)
 CREATE TABLE IF NOT EXISTS regions (
@@ -93,18 +91,7 @@ CREATE TABLE IF NOT EXISTS task_responses (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS game_plans (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NOT NULL, -- 'free_wkz', 'product_support', 'spift'
-    description TEXT,
-    budget DECIMAL(10,2),
-    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'approved', 'active', 'completed'
-    created_by INTEGER REFERENCES users(id),
-    approved_by INTEGER REFERENCES users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Game plans table removed
 
 -- 4. Örnek veriler ekle (eğer yoksa)
 INSERT INTO regions (name, description, manager_name, status) VALUES
@@ -152,7 +139,6 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task_responses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE game_plans ENABLE ROW LEVEL SECURITY;
 
 -- 6. Basit RLS politikaları oluştur (herkese okuma/yazma izni)
 CREATE POLICY "Enable all operations for all users" ON regions FOR ALL USING (true);
@@ -161,7 +147,6 @@ CREATE POLICY "Enable all operations for all users" ON users FOR ALL USING (true
 CREATE POLICY "Enable all operations for all users" ON stores FOR ALL USING (true);
 CREATE POLICY "Enable all operations for all users" ON tasks FOR ALL USING (true);
 CREATE POLICY "Enable all operations for all users" ON task_responses FOR ALL USING (true);
-CREATE POLICY "Enable all operations for all users" ON game_plans FOR ALL USING (true);
 
 -- 7. Index'ler oluştur (performans için)
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
@@ -189,7 +174,6 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECU
 CREATE TRIGGER update_stores_updated_at BEFORE UPDATE ON stores FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_task_responses_updated_at BEFORE UPDATE ON task_responses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_game_plans_updated_at BEFORE UPDATE ON game_plans FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 9. Veritabanı durumunu kontrol et
 SELECT 

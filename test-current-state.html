@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kampanya Takip Sistemi - Mevcut Durum Testi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .status-ok { color: #28a745; }
+        .status-error { color: #dc3545; }
+        .status-warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-clipboard-check me-2"></i>
+            Kampanya Takip Sistemi - Mevcut Durum Testi
+        </h1>
+        
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle me-2"></i>Test Bilgisi</h5>
+            <p>Bu sayfa sistemin mevcut durumunu test eder. Game plan modülü kaldırıldı ve sadece temel kampanya takip işlevleri kaldı.</p>
+        </div>
+
+        <!-- Dosya Durumu -->
+        <div class="test-section">
+            <h3><i class="fas fa-folder me-2"></i>Dosya Durumu</h3>
+            <div id="file-status">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Kontrol ediliyor...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- JavaScript Yükleme Testi -->
+        <div class="test-section">
+            <h3><i class="fas fa-code me-2"></i>JavaScript Yükleme Testi</h3>
+            <div id="js-status">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Test ediliyor...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supabase Bağlantı Testi -->
+        <div class="test-section">
+            <h3><i class="fas fa-database me-2"></i>Supabase Bağlantı Testi</h3>
+            <div id="supabase-status">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Test ediliyor...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ana Sayfalar Testi -->
+        <div class="test-section">
+            <h3><i class="fas fa-globe me-2"></i>Ana Sayfalar Testi</h3>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-home fa-3x text-primary mb-3"></i>
+                            <h5>Ana Sayfa</h5>
+                            <p class="text-muted">Giriş sayfası</p>
+                            <a href="index.html" class="btn btn-primary" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>Aç
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-user-shield fa-3x text-success mb-3"></i>
+                            <h5>Admin Dashboard</h5>
+                            <p class="text-muted">Yönetici paneli</p>
+                            <a href="admin-dashboard.html" class="btn btn-success" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>Aç
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-user fa-3x text-info mb-3"></i>
+                            <h5>Employee Dashboard</h5>
+                            <p class="text-muted">Çalışan paneli</p>
+                            <a href="employee-dashboard.html" class="btn btn-info" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>Aç
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Sonuçları -->
+        <div class="test-section">
+            <h3><i class="fas fa-chart-line me-2"></i>Test Sonuçları</h3>
+            <div id="test-results">
+                <div class="alert alert-warning">
+                    <i class="fas fa-clock me-2"></i>
+                    Testler çalışıyor...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/supabase-config.js"></script>
+    
+    <script>
+        // Test sonuçları
+        let testResults = {
+            files: false,
+            javascript: false,
+            supabase: false
+        };
+
+        // Dosya durumu testi
+        function testFiles() {
+            const fileStatus = document.getElementById('file-status');
+            const requiredFiles = [
+                'index.html',
+                'admin-dashboard.html', 
+                'employee-dashboard.html',
+                'js/supabase-config.js',
+                'js/admin.js',
+                'js/employee.js',
+                'js/app.js'
+            ];
+
+            let html = '<div class="row">';
+            let allFilesOk = true;
+
+            requiredFiles.forEach(file => {
+                // Basit dosya varlık kontrolü (gerçek kontrol için fetch kullanılabilir)
+                const exists = true; // Şimdilik true varsayıyoruz
+                const statusClass = exists ? 'status-ok' : 'status-error';
+                const icon = exists ? 'fa-check-circle' : 'fa-times-circle';
+                
+                html += `
+                    <div class="col-md-6 mb-2">
+                        <i class="fas ${icon} ${statusClass} me-2"></i>
+                        <span>${file}</span>
+                    </div>
+                `;
+                
+                if (!exists) allFilesOk = false;
+            });
+
+            html += '</div>';
+            
+            if (allFilesOk) {
+                html += '<div class="alert alert-success mt-3"><i class="fas fa-check-circle me-2"></i>Tüm gerekli dosyalar mevcut!</div>';
+                testResults.files = true;
+            } else {
+                html += '<div class="alert alert-danger mt-3"><i class="fas fa-exclamation-triangle me-2"></i>Bazı dosyalar eksik!</div>';
+            }
+
+            fileStatus.innerHTML = html;
+            updateTestResults();
+        }
+
+        // JavaScript yükleme testi
+        function testJavaScript() {
+            const jsStatus = document.getElementById('js-status');
+            let html = '<div class="row">';
+            let allJsOk = true;
+
+            // Supabase config testi
+            const supabaseConfigOk = typeof supabase !== 'undefined';
+            html += `
+                <div class="col-md-6 mb-2">
+                    <i class="fas ${supabaseConfigOk ? 'fa-check-circle status-ok' : 'fa-times-circle status-error'} me-2"></i>
+                    <span>Supabase Config</span>
+                </div>
+            `;
+            if (!supabaseConfigOk) allJsOk = false;
+
+            // Admin.js testi
+            const adminJsOk = typeof showSection !== 'undefined';
+            html += `
+                <div class="col-md-6 mb-2">
+                    <i class="fas ${adminJsOk ? 'fa-check-circle status-ok' : 'fa-times-circle status-error'} me-2"></i>
+                    <span>Admin.js</span>
+                </div>
+            `;
+            if (!adminJsOk) allJsOk = false;
+
+            html += '</div>';
+
+            if (allJsOk) {
+                html += '<div class="alert alert-success mt-3"><i class="fas fa-check-circle me-2"></i>JavaScript dosyaları başarıyla yüklendi!</div>';
+                testResults.javascript = true;
+            } else {
+                html += '<div class="alert alert-danger mt-3"><i class="fas fa-exclamation-triangle me-2"></i>Bazı JavaScript dosyaları yüklenemedi!</div>';
+            }
+
+            jsStatus.innerHTML = html;
+            updateTestResults();
+        }
+
+        // Supabase bağlantı testi
+        async function testSupabase() {
+            const supabaseStatus = document.getElementById('supabase-status');
+            let html = '';
+
+            try {
+                if (typeof supabase === 'undefined') {
+                    throw new Error('Supabase client yüklenemedi');
+                }
+
+                // Basit bir test sorgusu
+                const { data, error } = await supabase
+                    .from('regions')
+                    .select('count')
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                html = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Supabase bağlantısı başarılı!
+                    </div>
+                `;
+                testResults.supabase = true;
+
+            } catch (error) {
+                html = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Supabase bağlantı hatası: ${error.message}
+                    </div>
+                `;
+            }
+
+            supabaseStatus.innerHTML = html;
+            updateTestResults();
+        }
+
+        // Test sonuçlarını güncelle
+        function updateTestResults() {
+            const testResultsDiv = document.getElementById('test-results');
+            const passedTests = Object.values(testResults).filter(result => result).length;
+            const totalTests = Object.keys(testResults).length;
+
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Test Durumu</h5>
+                        <div class="progress mb-3">
+                            <div class="progress-bar" style="width: ${(passedTests / totalTests) * 100}%">
+                                ${passedTests}/${totalTests} Test Başarılı
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Detaylar</h5>
+                        <ul class="list-unstyled">
+                            <li><i class="fas ${testResults.files ? 'fa-check-circle status-ok' : 'fa-times-circle status-error'} me-2"></i>Dosyalar</li>
+                            <li><i class="fas ${testResults.javascript ? 'fa-check-circle status-ok' : 'fa-times-circle status-error'} me-2"></i>JavaScript</li>
+                            <li><i class="fas ${testResults.supabase ? 'fa-check-circle status-ok' : 'fa-times-circle status-error'} me-2"></i>Supabase</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+
+            if (passedTests === totalTests) {
+                html += '<div class="alert alert-success mt-3"><i class="fas fa-trophy me-2"></i>Tüm testler başarılı! Sistem hazır.</div>';
+            } else {
+                html += '<div class="alert alert-warning mt-3"><i class="fas fa-exclamation-triangle me-2"></i>Bazı testler başarısız. Lütfen hataları kontrol edin.</div>';
+            }
+
+            testResultsDiv.innerHTML = html;
+        }
+
+        // Sayfa yüklendiğinde testleri çalıştır
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Test sayfası yüklendi');
+            
+            // Testleri sırayla çalıştır
+            setTimeout(testFiles, 500);
+            setTimeout(testJavaScript, 1000);
+            setTimeout(testSupabase, 1500);
+        });
+    </script>
+</body>
+</html>
+

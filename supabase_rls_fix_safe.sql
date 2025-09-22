@@ -8,7 +8,6 @@ DROP POLICY IF EXISTS "Enable all operations for all users" ON users;
 DROP POLICY IF EXISTS "Enable all operations for all users" ON stores;
 DROP POLICY IF EXISTS "Enable all operations for all users" ON tasks;
 DROP POLICY IF EXISTS "Enable all operations for all users" ON task_responses;
-DROP POLICY IF EXISTS "Enable all operations for all users" ON game_plans;
 
 -- 2. RLS'yi geçici olarak devre dışı bırak (veriler etkilenmez)
 ALTER TABLE regions DISABLE ROW LEVEL SECURITY;
@@ -17,7 +16,6 @@ ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE stores DISABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks DISABLE ROW LEVEL SECURITY;
 ALTER TABLE task_responses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE game_plans DISABLE ROW LEVEL SECURITY;
 
 -- 3. Eksik kolonları ekle (eğer yoksa) - mevcut veriler korunur
 -- regions tablosuna status kolonu ekle (eğer yoksa)
@@ -54,7 +52,6 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task_responses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE game_plans ENABLE ROW LEVEL SECURITY;
 
 -- 5. Basit RLS politikaları oluştur (herkese okuma/yazma izni)
 CREATE POLICY "Enable all operations for all users" ON regions FOR ALL USING (true);
@@ -63,7 +60,6 @@ CREATE POLICY "Enable all operations for all users" ON users FOR ALL USING (true
 CREATE POLICY "Enable all operations for all users" ON stores FOR ALL USING (true);
 CREATE POLICY "Enable all operations for all users" ON tasks FOR ALL USING (true);
 CREATE POLICY "Enable all operations for all users" ON task_responses FOR ALL USING (true);
-CREATE POLICY "Enable all operations for all users" ON game_plans FOR ALL USING (true);
 
 -- 6. Mevcut verilerinizi kontrol edin
 SELECT 'İŞLEM TAMAMLANDI - VERİLERİNİZ KORUNDU' as durum;

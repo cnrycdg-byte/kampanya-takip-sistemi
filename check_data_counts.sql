@@ -21,9 +21,7 @@ SELECT * FROM stores ORDER BY id;
 SELECT 'GÖREVLER' as tablo_adi, count(*) as kayit_sayisi FROM tasks;
 SELECT * FROM tasks ORDER BY id;
 
--- 6. Oyun Planları
-SELECT 'OYUN PLANLARI' as tablo_adi, count(*) as kayit_sayisi FROM game_plans;
-SELECT * FROM game_plans ORDER BY id;
+-- 6. Oyun Planları kaldırıldı
 
 -- 7. Görev Atamaları
 SELECT 'GÖREV ATAMALARI' as tablo_adi, count(*) as kayit_sayisi FROM task_assignments;
