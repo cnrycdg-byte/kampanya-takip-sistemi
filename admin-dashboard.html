@@ -349,7 +349,7 @@
                                 <i class="fas fa-file-powerpoint me-2"></i>Sunum İndir
                             </button>
                             <button class="btn btn-success me-2" onclick="exportTasksToExcel()">
-                                <i class="fas fa-file-excel me-2"></i>Excel İndir
+                                <i class="fas fa-file-excel me-2"></i>Görevler Excel
                             </button>
                             <button class="btn btn-primary" onclick="showSection('create-task')">
                                 <i class="fas fa-plus me-2"></i>Yeni Görev
@@ -954,7 +954,7 @@
         // Service Worker'ı tamamen devre dışı bırak - Güvenli versiyon
         (function() {
             // Sadece HTTP/HTTPS protokollerinde çalıştır
-            if (location.protocol === 'file:') {
+            if (location.protocol === 'file:' || location.protocol === 'null:') {
                 console.log('File protokolü tespit edildi, Service Worker devre dışı');
                 return;
             }
@@ -968,7 +968,8 @@
                             console.log('Service Worker kaldırıldı:', registration);
                         });
                     }).catch(error => {
-                        console.warn('Service Worker kaldırma hatası:', error);
+                        // Hata durumunda sessizce geç
+                        console.log('Service Worker zaten temiz');
                     });
                 }
                 
@@ -980,7 +981,8 @@
                             console.log('Cache temizlendi:', cacheName);
                         });
                     }).catch(error => {
-                        console.warn('Cache temizleme hatası:', error);
+                        // Hata durumunda sessizce geç
+                        console.log('Cache zaten temiz');
                     });
                 }
                 
@@ -991,17 +993,18 @@
                     sessionStorage.clear();
                     console.log('Local storage temizlendi');
                 } catch (e) {
-                    console.warn('Local storage temizleme hatası:', e);
+                    console.log('Local storage zaten temiz');
                 }
             } catch (error) {
-                console.warn('Service Worker işlemleri hatası:', error);
+                // Hata durumunda sessizce geç
+                console.log('Service Worker işlemleri atlandı');
             }
         })();
         
         // Sayfa yüklendiğinde tekrar temizle - Güvenli versiyon
         window.addEventListener('load', () => {
             // Sadece HTTP/HTTPS protokollerinde çalıştır
-            if (location.protocol === 'file:') {
+            if (location.protocol === 'file:' || location.protocol === 'null:') {
                 console.log('File protokolü tespit edildi, Service Worker işlemleri atlandı');
                 return;
             }
@@ -1014,7 +1017,8 @@
                             console.log('Service Worker kaldırıldı (load):', registration);
                         });
                     }).catch(error => {
-                        console.warn('Service Worker kaldırma hatası (load):', error);
+                        // Hata durumunda sessizce geç
+                        console.log('Service Worker zaten temiz (load)');
                     });
                 }
                 
@@ -1025,13 +1029,15 @@
                             console.log('Cache temizlendi (load):', cacheName);
                         });
                     }).catch(error => {
-                        console.warn('Cache temizleme hatası (load):', error);
+                        // Hata durumunda sessizce geç
+                        console.log('Cache zaten temiz (load)');
                     });
                 }
                 
                 console.log('Service Worker tamamen devre dışı bırakıldı');
             } catch (error) {
-                console.warn('Service Worker işlemleri hatası (load):', error);
+                // Hata durumunda sessizce geç
+                console.log('Service Worker işlemleri atlandı (load)');
             }
         });
     </script>

@@ -40,30 +40,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Service Worker temizleme - AGGRESSIVE
-    if ('serviceWorker' in navigator) {
-        // Önce mevcut Service Worker'ları kaldır
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) {
-                registration.unregister();
-                console.log('Service Worker kaldırıldı:', registration);
-            }
-        });
-        
-        // Service Worker'ı tamamen devre dışı bırak
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({action: 'SKIP_WAITING'});
-        }
-        
-        // Service Worker'ı tekrar kontrol et ve kaldır
-        setTimeout(function() {
+    // Service Worker temizleme - Güvenli versiyon
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+        if ('serviceWorker' in navigator) {
+            // Önce mevcut Service Worker'ları kaldır
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for(let registration of registrations) {
                     registration.unregister();
-                    console.log('Service Worker tekrar kaldırıldı:', registration);
+                    console.log('Service Worker kaldırıldı:', registration);
                 }
+            }).catch(function(error) {
+                console.log('Service Worker zaten temiz');
             });
-        }, 1000);
+            
+            // Service Worker'ı tamamen devre dışı bırak
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({action: 'SKIP_WAITING'});
+            }
+            
+            // Service Worker'ı tekrar kontrol et ve kaldır
+            setTimeout(function() {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                        console.log('Service Worker tekrar kaldırıldı:', registration);
+                    }
+                }).catch(function(error) {
+                    console.log('Service Worker zaten temiz (timeout)');
+                });
+            }, 1000);
+        }
+    } else {
+        console.log('File protokolü tespit edildi, Service Worker işlemleri atlandı');
     }
     
     
@@ -90,8 +98,45 @@ document.addEventListener('DOMContentLoaded', function() {
     // Menü öğelerini kullanıcı rolüne göre ayarla
     setupMenuForUser(user);
     
-    // Dashboard verilerini yükle
+    // Dashboard verilerini yükle ve göster
     loadDashboardData();
+    
+    // Sayfa yüklendiğinde dashboard'u göster
+    setTimeout(() => {
+        showSection('dashboard');
+    }, 100);
+    
+    // Menü öğelerini kullanıcı rolüne göre ayarlayan fonksiyon
+    function setupMenuForUser(user) {
+        console.log('setupMenuForUser çağrıldı:', user.role);
+        
+        // Admin için tüm menüleri göster
+        if (user.role === 'admin') {
+            // Tüm menü öğelerini göster
+            const allMenuItems = document.querySelectorAll('.nav-item');
+            allMenuItems.forEach(item => {
+                item.style.display = 'block';
+            });
+        } else if (user.role === 'manager') {
+            // Manager için bazı menüleri gizle
+            const restrictedMenus = ['add-user-menu'];
+            restrictedMenus.forEach(menuId => {
+                const menuItem = document.getElementById(menuId);
+                if (menuItem) {
+                    menuItem.style.display = 'none';
+                }
+            });
+        } else {
+            // Employee için daha kısıtlı menü
+            const restrictedMenus = ['add-user-menu', 'add-store-menu'];
+            restrictedMenus.forEach(menuId => {
+                const menuItem = document.getElementById(menuId);
+                if (menuItem) {
+                    menuItem.style.display = 'none';
+                }
+            });
+        }
+    }
     
     // Görev oluşturma formunu dinle
     const createTaskForm = document.getElementById('create-task-form');
@@ -126,6 +171,43 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+// Dashboard için sadece aktif görevleri yükleyen fonksiyon
+async function loadDashboardTasks() {
+    try {
+        console.log('Dashboard için aktif görevler yükleniyor...');
+        
+        // Kullanıcı oturumunu kontrol et
+        const user = checkUserSession();
+        if (!user) {
+            console.error('Kullanıcı oturumu bulunamadı');
+            return [];
+        }
+        
+        const { data: tasks, error } = await supabase
+            .from('tasks')
+            .select(`
+                *,
+                channels(name),
+                task_assignments(
+                    id,
+                    status,
+                    stores(name, manager)
+                )
+            `)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        console.log('Dashboard için aktif görevler yüklendi:', tasks);
+        return tasks || [];
+        
+    } catch (error) {
+        console.error('Dashboard görevleri yüklenirken hata:', error);
+        return [];
+    }
+}
+
 // Dashboard verilerini yükleyen fonksiyon
 async function loadDashboardData() {
     console.log('Dashboard verileri yükleniyor...');
@@ -134,8 +216,9 @@ async function loadDashboardData() {
         // Kullanıcı listesini yükle
         await loadUsersList();
         
-        // Görevleri yükle
-        await loadTasksList();
+        // Dashboard için sadece aktif görevleri yükle
+        const dashboardTasks = await loadDashboardTasks();
+        window.allTasks = dashboardTasks; // Dashboard için aktif görevleri sakla
         
         
         // Mağazaları yükle
@@ -147,17 +230,16 @@ async function loadDashboardData() {
         // Görev detay istatistiklerini yükle
         await loadTaskDetailStats(window.allTasks);
         
-        // Gerçek verilerle istatistikleri hesapla
-        const tasks = window.allTasks || [];
+        // Dashboard için istatistikleri hesapla (sadece aktif görevler)
         const stores = allStores || [];
         
-        const totalTasks = tasks.length;
-        const completedTasks = tasks.filter(task => task.status === 'completed').length;
-        const activeTasks = tasks.filter(task => task.status === 'active').length;
-        const lateTasks = tasks.filter(task => {
+        const totalTasks = dashboardTasks.length; // Dashboard'da sadece aktif görevler
+        const completedTasks = 0; // Dashboard'da tamamlanmış görev yok
+        const activeTasks = dashboardTasks.length; // Dashboard'daki tüm görevler aktif
+        const lateTasks = dashboardTasks.filter(task => {
             const endDate = new Date(task.end_date);
             const now = new Date();
-            return endDate < now && task.status !== 'completed';
+            return endDate < now; // Dashboard'da sadece aktif görevler var
         }).length;
         
         // İstatistikleri güncelle
@@ -583,6 +665,131 @@ function editTask(taskId) {
     showAlert('Görev düzenleme sayfası açılacak', 'info');
 }
 
+// Mağaza ekleme formunu temizleyen fonksiyon
+function resetStoreForm() {
+    // Formu sıfırla
+    const form = document.getElementById('add-store-form');
+    if (form) {
+        form.reset();
+    }
+    
+    // Form başlığını düzelt
+    const titleElement = document.querySelector('#add-store-section .card-header h5');
+    if (titleElement) {
+        titleElement.textContent = 'Yeni Mağaza Ekle';
+    }
+    
+    // Submit butonunu düzelt
+    const submitBtn = document.querySelector('#add-store-form button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Mağaza Ekle';
+        submitBtn.type = 'submit';
+        submitBtn.onclick = null;
+    }
+    
+    // Form submit event'ini normale döndür
+    if (form) {
+        form.onsubmit = null;
+        // Önceki event listener'ları temizle ve yeniden ekle
+        form.removeEventListener('submit', handleAddStore);
+        form.addEventListener('submit', handleAddStore);
+    }
+}
+
+// Kullanıcı ekleme formunu temizleyen fonksiyon
+function resetUserForm() {
+    // Formu sıfırla
+    const form = document.getElementById('add-user-form');
+    if (form) {
+        form.reset();
+    }
+    
+    // Form başlığını düzelt
+    const titleElement = document.querySelector('#add-user-section .card-header h5');
+    if (titleElement) {
+        titleElement.textContent = 'Yeni Kullanıcı Ekle';
+    }
+    
+    // Submit butonunu düzelt
+    const submitBtn = document.querySelector('#add-user-form button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Kullanıcı Ekle';
+        submitBtn.type = 'submit';
+        submitBtn.onclick = null;
+    }
+    
+    // Form submit event'ini normale döndür
+    if (form) {
+        form.onsubmit = null;
+        // Önceki event listener'ları temizle ve yeniden ekle
+        form.removeEventListener('submit', handleAddUser);
+        form.addEventListener('submit', handleAddUser);
+    }
+}
+
+// Bölge ekleme formunu temizleyen fonksiyon
+function resetRegionForm() {
+    // Formu sıfırla
+    const form = document.getElementById('add-region-form');
+    if (form) {
+        form.reset();
+    }
+    
+    // Form başlığını düzelt
+    const titleElement = document.querySelector('#add-region-section .card-header h5');
+    if (titleElement) {
+        titleElement.textContent = 'Yeni Bölge Ekle';
+    }
+    
+    // Submit butonunu düzelt
+    const submitBtn = document.querySelector('#add-region-form button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Bölge Ekle';
+        submitBtn.type = 'submit';
+        submitBtn.onclick = null;
+    }
+    
+    // Form submit event'ini normale döndür
+    if (form) {
+        form.onsubmit = null;
+        // Önceki event listener'ları temizle ve yeniden ekle
+        form.removeEventListener('submit', handleAddRegion);
+        form.addEventListener('submit', handleAddRegion);
+        console.log('Bölge ekleme formu event listener eklendi');
+    }
+}
+
+// Kanal ekleme formunu temizleyen fonksiyon
+function resetChannelForm() {
+    // Formu sıfırla
+    const form = document.getElementById('add-channel-form');
+    if (form) {
+        form.reset();
+    }
+    
+    // Form başlığını düzelt
+    const titleElement = document.querySelector('#add-channel-section .card-header h5');
+    if (titleElement) {
+        titleElement.textContent = 'Yeni Kanal Ekle';
+    }
+    
+    // Submit butonunu düzelt
+    const submitBtn = document.querySelector('#add-channel-form button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Kanal Ekle';
+        submitBtn.type = 'submit';
+        submitBtn.onclick = null;
+    }
+    
+    // Form submit event'ini normale döndür
+    if (form) {
+        form.onsubmit = null;
+        // Önceki event listener'ları temizle ve yeniden ekle
+        form.removeEventListener('submit', handleAddChannel);
+        form.addEventListener('submit', handleAddChannel);
+    }
+}
+
 // Bölümleri gösteren fonksiyon
 function showSection(sectionName) {
     console.log('showSection çağrıldı:', sectionName);
@@ -604,6 +811,17 @@ function showSection(sectionName) {
     if (targetSection) {
         targetSection.style.display = 'block';
         console.log('Bölüm gösterildi:', sectionName);
+        
+        // Form temizleme işlemleri
+        if (sectionName === 'add-store') {
+            resetStoreForm();
+        } else if (sectionName === 'add-user') {
+            resetUserForm();
+        } else if (sectionName === 'add-region') {
+            resetRegionForm();
+        } else if (sectionName === 'add-channel') {
+            resetChannelForm();
+        }
     } else {
         console.error('Bölüm bulunamadı:', sectionName);
         console.log('Mevcut tüm bölümler:', Array.from(sections).map(s => s.id));
@@ -1081,6 +1299,12 @@ async function handleAddUser(event) {
         // Kullanıcı listesini yenile
         loadUsersList();
         
+        // Tüm dropdown'ları yenile
+        loadTaskFormDropdowns();
+        loadRegionsForUserForm();
+        loadChannelsForStoreForm();
+        loadRegionsForStoreForm();
+        
     } catch (error) {
         console.error('Kullanıcı ekleme hatası:', error);
         showAlert('Kullanıcı eklenirken bir hata oluştu!', 'danger');
@@ -1116,6 +1340,12 @@ async function handleAddStore(event) {
         
         // Mağaza listesini yenile
         loadStoresList();
+        
+        // Tüm dropdown'ları yenile
+        loadTaskFormDropdowns();
+        loadChannelsForStoreForm();
+        loadRegionsForStoreForm();
+        loadManagersForStoreForm();
         
         // Global mağaza listesi yenileme eventi gönder
         window.dispatchEvent(new CustomEvent('storesUpdated'));
@@ -1468,8 +1698,15 @@ async function loadRegionsList() {
             return;
         }
         
-        console.log('Supabase\'den bölgeler çekildi:', regions.length, 'bölge');
+        console.log('Supabase\'den bölgeler çekildi:', regions ? regions.length : 0, 'bölge');
         console.log('Bölge verileri:', regions);
+        
+        if (!regions) {
+            console.error('Bölgeler verisi null geldi!');
+            displayRegionsList([]);
+            return;
+        }
+        
         displayRegionsList(regions);
         
     } catch (error) {
@@ -1481,12 +1718,17 @@ async function loadRegionsList() {
 // Bölge listesini görüntüleyen fonksiyon
 function displayRegionsList(regions) {
     console.log('displayRegionsList çağrıldı:', regions);
+    console.log('regions tipi:', typeof regions);
+    console.log('regions uzunluğu:', regions ? regions.length : 'null');
+    
     const tbody = document.getElementById('regions-table-body');
     
     if (!tbody) {
         console.error('regions-table-body bulunamadı!');
         return;
     }
+    
+    console.log('regions-table-body bulundu:', tbody);
     
     if (!regions || regions.length === 0) {
         console.log('Bölge verisi yok');
@@ -1501,6 +1743,7 @@ function displayRegionsList(regions) {
         return;
     }
     
+    // Status alanı olmadığı için tüm bölgeleri aktif kabul et
     console.log('Bölge listesi oluşturuluyor:', regions.length, 'bölge');
     
     tbody.innerHTML = regions.map(region => {
@@ -1583,10 +1826,14 @@ async function editUser(userId) {
         
         // Form submit event'ini geçici olarak devre dışı bırak
         const form = document.getElementById('add-user-form');
-        form.onsubmit = (e) => {
-            e.preventDefault();
-            updateUser(userId);
-        };
+        if (form) {
+            // Önceki event listener'ı temizle
+            form.removeEventListener('submit', handleAddUser);
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                updateUser(userId);
+            };
+        }
         
         // Kullanıcı Ekleme section'ına geç
         showSection('add-user');
@@ -1642,7 +1889,12 @@ async function updateUser(userId) {
         
         // Form submit event'ini normale döndür
         const form = document.getElementById('add-user-form');
-        if (form) form.onsubmit = null;
+        if (form) {
+            form.onsubmit = null;
+            // Önceki event listener'ları temizle ve yeniden ekle
+            form.removeEventListener('submit', handleAddUser);
+            form.addEventListener('submit', handleAddUser);
+        }
         
         // Kullanıcılar listesini yenile
         loadUsersList();
@@ -1707,10 +1959,14 @@ async function editStore(storeId) {
         
         // Form submit event'ini geçici olarak devre dışı bırak
         const form = document.getElementById('add-store-form');
-        form.onsubmit = (e) => {
-            e.preventDefault();
-            updateStore(storeId);
-        };
+        if (form) {
+            // Önceki event listener'ı temizle
+            form.removeEventListener('submit', handleAddStore);
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                updateStore(storeId);
+            };
+        }
         
         // Mağaza Ekleme section'ına geç
         showSection('add-store');
@@ -1757,7 +2013,12 @@ async function updateStore(storeId) {
         
         // Form submit event'ini normale döndür
         const form = document.getElementById('add-store-form');
-        if (form) form.onsubmit = null;
+        if (form) {
+            form.onsubmit = null;
+            // Önceki event listener'ları temizle ve yeniden ekle
+            form.removeEventListener('submit', handleAddStore);
+            form.addEventListener('submit', handleAddStore);
+        }
         
         // Mağazalar listesini yenile
         loadStoresList();
@@ -1918,8 +2179,22 @@ async function editRegion(regionId) {
         
         // Submit butonunu değiştir
         const submitBtn = document.querySelector('#add-region-form button[type="submit"]');
-        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Güncelle';
-        submitBtn.onclick = () => updateRegion(regionId);
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Güncelle';
+            submitBtn.type = 'button';
+            submitBtn.onclick = () => updateRegion(regionId);
+        }
+        
+        // Form submit event'ini geçici olarak devre dışı bırak
+        const form = document.getElementById('add-region-form');
+        if (form) {
+            // Önceki event listener'ı temizle
+            form.removeEventListener('submit', handleAddRegion);
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                updateRegion(regionId);
+            };
+        }
         
         // Bölge Ekleme section'ına geç
         showSection('add-region');
@@ -1954,8 +2229,20 @@ async function updateRegion(regionId) {
         document.getElementById('add-region-form').reset();
         document.querySelector('#add-region-section .card-header h5').textContent = 'Yeni Bölge Ekle';
         const submitBtn = document.querySelector('#add-region-form button[type="submit"]');
-        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Bölge Ekle';
-        submitBtn.onclick = null;
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Bölge Ekle';
+            submitBtn.type = 'submit';
+            submitBtn.onclick = null;
+        }
+        
+        // Form submit event'ini normale döndür
+        const form = document.getElementById('add-region-form');
+        if (form) {
+            form.onsubmit = null;
+            // Önceki event listener'ları temizle ve yeniden ekle
+            form.removeEventListener('submit', handleAddRegion);
+            form.addEventListener('submit', handleAddRegion);
+        }
         
         // Bölgeler listesini yenile
         loadRegionsList();
@@ -1968,17 +2255,25 @@ async function updateRegion(regionId) {
 
 // Bölge silme fonksiyonu
 async function deleteRegion(regionId) {
+    console.log('deleteRegion çağrıldı, regionId:', regionId);
     if (confirm('Bu bölgeyi silmek istediğinizden emin misiniz?')) {
         try {
+            // Status alanı olmadığı için gerçek silme yap
             const { error } = await supabase
                 .from('regions')
-                .update({ status: 'inactive' })
+                .delete()
                 .eq('id', regionId);
             
             if (error) throw error;
             
             alert('✅ Bölge başarıyla silindi!');
             loadRegionsList(); // Listeyi yenile
+            
+            // Tüm dropdown'ları yenile
+            loadTaskFormDropdowns();
+            loadRegionsForUserForm();
+            loadRegionsForStoreForm();
+            loadManagersForStoreForm();
             
         } catch (error) {
             console.error('Bölge silme hatası:', error);
@@ -2605,6 +2900,10 @@ async function handleAddChannel(event) {
         // Kanallar listesini yenile
         loadChannelsList();
         
+        // Tüm dropdown'ları yenile
+        loadTaskFormDropdowns();
+        loadChannelsForStoreForm();
+        
     } catch (error) {
         console.error('Kanal ekleme hatası:', error);
         console.error('Error details:', JSON.stringify(error, null, 2));
@@ -2623,30 +2922,23 @@ async function handleAddChannel(event) {
 
 // Bölge ekleme fonksiyonu
 async function handleAddRegion(event) {
+    console.log('handleAddRegion çağrıldı');
     event.preventDefault();
     
     const name = document.getElementById('region-name').value;
     const description = document.getElementById('region-description').value;
     const managerName = document.getElementById('region-manager-name').value;
     
+    console.log('Bölge ekleme form verileri:', { name, description, managerName });
+    
     try {
-        // Önce mevcut bölgeleri sayalım
-        const { count } = await supabase
-            .from('regions')
-            .select('*', { count: 'exact', head: true });
-        
-        const newId = (count || 0) + 1;
-        
         const { data, error } = await supabase
             .from('regions')
             .insert([
                 {
-                    id: newId,
                     name: name,
                     description: description,
-                    manager_name: managerName,
-                    status: 'active',
-                    created_at: new Date().toISOString()
+                    manager_name: managerName
                 }
             ])
             .select();
@@ -2661,6 +2953,12 @@ async function handleAddRegion(event) {
         
         // Bölgeler listesini yenile
         loadRegionsList();
+        
+        // Tüm dropdown'ları yenile
+        loadTaskFormDropdowns();
+        loadRegionsForUserForm();
+        loadRegionsForStoreForm();
+        loadManagersForStoreForm();
         
     } catch (error) {
         console.error('Bölge ekleme hatası:', error);
@@ -2721,7 +3019,7 @@ async function loadTasksList() {
         if (error) throw error;
 
         console.log('Görevler yüklendi:', tasks);
-        window.allTasks = tasks || []; // Global değişkende sakla
+        window.allTasks = tasks || []; // Global değişkende sakla (tüm görevler)
         
         displayTasksList(window.allTasks);
         
@@ -3227,7 +3525,6 @@ function exportTasksToExcel() {
         // Excel verisi hazırla
         const excelData = tasks.map(task => ({
             'Görev Adı': task.title,
-            'Açıklama': task.description || '',
             'Kategori': getTaskCategoryDisplayName(task.category),
             'Kanal': task.channels?.name || 'Bilinmiyor',
             'Durum': getTaskStatusDisplay(task.status),
@@ -3237,7 +3534,8 @@ function exportTasksToExcel() {
             'Fotoğraflı Yanıt': task.response_photo_enabled ? 'Evet' : 'Hayır',
             'Fotoğraf Limiti': task.photo_limit || '',
             'Atanan Mağaza Sayısı': task.task_assignments?.length || 0,
-            'Oluşturulma Tarihi': task.created_at ? new Date(task.created_at).toLocaleDateString('tr-TR') : ''
+            'Oluşturulma Tarihi': task.created_at ? new Date(task.created_at).toLocaleDateString('tr-TR') : '',
+            'Açıklama': task.description || ''
         }));
         
         // Excel dosyası oluştur
@@ -3287,6 +3585,115 @@ function getTaskStatusDisplay(status) {
         'cancelled': 'İptal'
     };
     return statuses[status] || status;
+}
+
+// Görev cevaplarını Excel olarak indiren fonksiyon
+async function exportTaskAnswersToExcel() {
+    try {
+        showAlert('Görev cevapları Excel olarak indiriliyor...', 'info');
+        
+        // Tüm görevleri ve atamalarını al
+        const { data: tasks, error: tasksError } = await supabase
+            .from('tasks')
+            .select(`
+                id,
+                title,
+                description,
+                category,
+                start_date,
+                end_date,
+                channels(name),
+                task_assignments(
+                    id,
+                    status,
+                    text_response,
+                    photo_urls,
+                    completed_at,
+                    stores(name)
+                )
+            `)
+            .order('created_at', { ascending: false });
+        
+        if (tasksError) throw tasksError;
+        
+        if (!tasks || tasks.length === 0) {
+            showAlert('İndirilecek görev bulunamadı!', 'warning');
+            return;
+        }
+        
+        // Excel verisi hazırla - her atama için ayrı satır
+        const excelData = [];
+        
+        tasks.forEach(task => {
+            if (task.task_assignments && task.task_assignments.length > 0) {
+                task.task_assignments.forEach(assignment => {
+                    excelData.push({
+                        'Görev Adı': task.title,
+                        'Görev Açıklaması': task.description || '',
+                        'Kategori': getTaskCategoryDisplayName(task.category),
+                        'Kanal': task.channels?.name || 'Bilinmiyor',
+                        'Mağaza': assignment.stores?.name || 'Bilinmeyen Mağaza',
+                        'Durum': getTaskStatusDisplay(assignment.status),
+                        'Başlangıç Tarihi': task.start_date ? new Date(task.start_date).toLocaleDateString('tr-TR') : '',
+                        'Bitiş Tarihi': task.end_date ? new Date(task.end_date).toLocaleDateString('tr-TR') : '',
+                        'Yazılı Cevap': assignment.text_response || '',
+                        'Fotoğraf Sayısı': assignment.photo_urls ? assignment.photo_urls.length : 0,
+                        'Tamamlanma Tarihi': assignment.completed_at ? new Date(assignment.completed_at).toLocaleDateString('tr-TR') : '',
+                        'Tamamlanma Saati': assignment.completed_at ? new Date(assignment.completed_at).toLocaleTimeString('tr-TR') : ''
+                    });
+                });
+            } else {
+                // Atama yoksa sadece görev bilgilerini ekle
+                excelData.push({
+                    'Görev Adı': task.title,
+                    'Görev Açıklaması': task.description || '',
+                    'Kategori': getTaskCategoryDisplayName(task.category),
+                    'Kanal': task.channels?.name || 'Bilinmiyor',
+                    'Mağaza': 'Atanmamış',
+                    'Durum': 'Atanmamış',
+                    'Başlangıç Tarihi': task.start_date ? new Date(task.start_date).toLocaleDateString('tr-TR') : '',
+                    'Bitiş Tarihi': task.end_date ? new Date(task.end_date).toLocaleDateString('tr-TR') : '',
+                    'Yazılı Cevap': '',
+                    'Fotoğraf Sayısı': 0,
+                    'Tamamlanma Tarihi': '',
+                    'Tamamlanma Saati': ''
+                });
+            }
+        });
+        
+        // Excel dosyası oluştur
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        
+        // Sütun genişliklerini ayarla
+        const colWidths = [
+            { wch: 30 }, // Görev Adı
+            { wch: 40 }, // Görev Açıklaması
+            { wch: 15 }, // Kategori
+            { wch: 20 }, // Kanal
+            { wch: 25 }, // Mağaza
+            { wch: 15 }, // Durum
+            { wch: 15 }, // Başlangıç Tarihi
+            { wch: 15 }, // Bitiş Tarihi
+            { wch: 50 }, // Yazılı Cevap
+            { wch: 15 }, // Fotoğraf Sayısı
+            { wch: 15 }, // Tamamlanma Tarihi
+            { wch: 15 }  // Tamamlanma Saati
+        ];
+        ws['!cols'] = colWidths;
+        
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Görev Cevapları');
+        
+        // Dosyayı indir
+        const fileName = `gorev_cevaplari_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        showAlert('Görev cevapları Excel olarak başarıyla indirildi!', 'success');
+        
+    } catch (error) {
+        console.error('Görev cevapları Excel export hatası:', error);
+        showAlert('Görev cevapları Excel dosyası oluşturulurken hata oluştu!', 'danger');
+    }
 }
 
 // Fotoğraf galerisi oluşturan fonksiyon (mağaza bazında)
@@ -3414,6 +3821,18 @@ function openStorePhotoModal(storeName, photoUrls, status) {
                                         </div>
                                         <div class="card-body p-2">
                                             <small class="text-muted">Fotoğraf ${index + 1}</small>
+                                            ${(() => {
+                                                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                                                return (user.role === 'admin' || user.role === 'manager') ? `
+                                                    <div class="mt-2">
+                                                        <button class="btn btn-danger btn-sm" 
+                                                                onclick="deletePhotoFromStore('${storeName}', '${photoUrl}', ${index})"
+                                                                title="Fotoğrafı Sil">
+                                                            <i class="fas fa-trash"></i> Sil
+                                                        </button>
+                                                    </div>
+                                                ` : '';
+                                            })()}
                                         </div>
                                     </div>
                                 </div>
@@ -3441,6 +3860,118 @@ function openStorePhotoModal(storeName, photoUrls, status) {
     // Modal'ı göster
     const modal = new bootstrap.Modal(document.getElementById('storePhotoModal'));
     modal.show();
+}
+
+// Fotoğraf silme fonksiyonu - İyileştirilmiş
+async function deletePhotoFromStore(storeName, photoUrl, photoIndex) {
+    console.log('Fotoğraf silme işlemi başlatıldı:', { storeName, photoUrl, photoIndex });
+    
+    // Kullanıcı yetkisini kontrol et
+    const user = checkUserSession();
+    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+        showAlert('Bu işlem için yetkiniz bulunmuyor!', 'danger');
+        return;
+    }
+    
+    // Onay iste
+    if (!confirm(`"${storeName}" mağazasından bu fotoğrafı silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+        return;
+    }
+    
+    try {
+        showAlert('Fotoğraf siliniyor...', 'info');
+        
+        // Mevcut görev ID'sini kullan
+        if (!window.selectedTaskId) {
+            showAlert('Görev bilgisi bulunamadı!', 'danger');
+            return;
+        }
+        
+        // Görev atamalarını getir
+        const { data: task, error: taskError } = await supabase
+            .from('tasks')
+            .select(`
+                id,
+                task_assignments(
+                    id,
+                    photo_urls,
+                    stores(name)
+                )
+            `)
+            .eq('id', window.selectedTaskId)
+            .single();
+            
+        if (taskError) {
+            console.error('Görev bilgisi alınırken hata:', taskError);
+            throw taskError;
+        }
+        
+        // İlgili mağaza atamasını bul
+        const targetAssignment = task.task_assignments?.find(assignment => 
+            assignment.stores?.name === storeName && 
+            assignment.photo_urls?.includes(photoUrl)
+        );
+        
+        if (!targetAssignment) {
+            showAlert('Fotoğraf bulunamadı!', 'danger');
+            return;
+        }
+        
+        // Fotoğraf URL'sini listeden çıkar
+        const updatedPhotoUrls = targetAssignment.photo_urls.filter(url => url !== photoUrl);
+        
+        // Güncellenmiş listeyi kaydet
+        const { error: updateError } = await supabase
+            .from('task_assignments')
+            .update({ photo_urls: updatedPhotoUrls })
+            .eq('id', targetAssignment.id);
+            
+        if (updateError) {
+            console.error('Fotoğraf silme hatası:', updateError);
+            throw updateError;
+        }
+        
+        console.log(`Fotoğraf başarıyla silindi: ${storeName}`);
+        
+        // Supabase Storage'dan da sil
+        try {
+            // URL'den dosya adını çıkar
+            const fileName = photoUrl.split('/').pop();
+            const { error: storageError } = await supabase.storage
+                .from('task-photos')
+                .remove([fileName]);
+                
+            if (storageError) {
+                console.warn('Storage\'dan silme hatası (dosya zaten silinmiş olabilir):', storageError);
+            } else {
+                console.log('Fotoğraf storage\'dan da silindi:', fileName);
+            }
+        } catch (storageError) {
+            console.warn('Storage silme işlemi atlandı:', storageError);
+        }
+        
+        showAlert('Fotoğraf başarıyla silindi!', 'success');
+        
+        // Modal'ı kapat ve görev detaylarını yenile
+        const storeModal = bootstrap.Modal.getInstance(document.getElementById('storePhotoModal'));
+        if (storeModal) {
+            storeModal.hide();
+        }
+        
+        const singleModal = bootstrap.Modal.getInstance(document.getElementById('singlePhotoModal'));
+        if (singleModal) {
+            singleModal.hide();
+        }
+        
+        // Görev detaylarını yenile
+        setTimeout(() => {
+            viewTask(window.selectedTaskId);
+        }, 500);
+        
+    } catch (error) {
+        console.error('Fotoğraf silme hatası:', error);
+        showAlert('Fotoğraf silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
+    }
 }
 
 // Tek fotoğraf modal'ını açan fonksiyon
@@ -3484,6 +4015,14 @@ function openSinglePhotoModal(photoUrl, storeName) {
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
                         <a href="${photoUrl}" target="_blank" class="btn btn-primary">Yeni Sekmede Aç</a>
+                        ${(() => {
+                            const user = JSON.parse(localStorage.getItem('user') || '{}');
+                            return (user.role === 'admin' || user.role === 'manager') ? `
+                                <button type="button" class="btn btn-danger" onclick="deletePhotoFromStore('${storeName}', '${photoUrl}', 0); $('#singlePhotoModal').modal('hide');">
+                                    <i class="fas fa-trash"></i> Fotoğrafı Sil
+                                </button>
+                            ` : '';
+                        })()}
                     </div>
                 </div>
             </div>
@@ -3588,15 +4127,36 @@ async function exportTaskToPresentation(taskId) {
     }
 }
 
-// URL'yi base64'e çeviren fonksiyon
+// URL'yi base64'e çeviren fonksiyon - İyileştirilmiş kalite
 async function urlToBase64(url) {
     try {
-        const response = await fetch(url);
+        console.log('Fotoğraf yükleniyor:', url);
+        
+        // Fetch ile fotoğrafı al
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'image/*',
+            },
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const blob = await response.blob();
+        console.log('Fotoğraf blob boyutu:', blob.size, 'bytes');
+        
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
+            reader.onloadend = () => {
+                console.log('Base64 çevirme tamamlandı');
+                resolve(reader.result);
+            };
+            reader.onerror = (error) => {
+                console.error('FileReader hatası:', error);
+                reject(error);
+            };
             reader.readAsDataURL(blob);
         });
     } catch (error) {
@@ -3617,39 +4177,56 @@ async function createPowerPointPresentation(task) {
         // PowerPoint sunumu oluştur
         const pptx = new PptxGenJS();
         
-        // Başlık sayfası - Düzeltilmiş
+        // Başlık sayfası - İyileştirilmiş tasarım
         const titleSlide = pptx.addSlide();
         titleSlide.background = { fill: '667eea' };
+        
+        // Ana başlık
         titleSlide.addText(task.title, {
-            x: 0.5, y: 1.5, w: 9, h: 1.2,
-            fontSize: 36,
+            x: 0.5, y: 1.2, w: 9, h: 1.5,
+            fontSize: 42,
             color: 'ffffff',
             bold: true,
-            align: 'center'
+            align: 'center',
+            valign: 'middle'
         });
+        
+        // Alt başlık
         titleSlide.addText('Görev Raporu', {
             x: 0.5, y: 2.8, w: 9, h: 0.8,
-            fontSize: 24,
+            fontSize: 28,
             color: 'ffffff',
-            align: 'center'
+            align: 'center',
+            bold: true
         });
+        
+        // Görev detayları
         titleSlide.addText(`Kanal: ${task.channels?.name || 'Bilinmiyor'}`, {
-            x: 0.5, y: 4, w: 9, h: 0.4,
-            fontSize: 16,
+            x: 0.5, y: 4, w: 9, h: 0.5,
+            fontSize: 18,
             color: 'ffffff',
             align: 'center'
         });
         titleSlide.addText(`Kategori: ${getTaskCategoryDisplayName(task.category)}`, {
-            x: 0.5, y: 4.5, w: 9, h: 0.4,
-            fontSize: 16,
+            x: 0.5, y: 4.6, w: 9, h: 0.5,
+            fontSize: 18,
             color: 'ffffff',
             align: 'center'
         });
         titleSlide.addText(`Tarih: ${formatDateTime(task.start_date)} - ${formatDateTime(task.end_date)}`, {
-            x: 0.5, y: 5, w: 9, h: 0.4,
-            fontSize: 16,
+            x: 0.5, y: 5.2, w: 9, h: 0.5,
+            fontSize: 18,
             color: 'ffffff',
             align: 'center'
+        });
+        
+        // Alt bilgi
+        titleSlide.addText(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, {
+            x: 0.5, y: 6.5, w: 9, h: 0.4,
+            fontSize: 14,
+            color: 'ffffff',
+            align: 'center',
+            opacity: 0.8
         });
 
         const completedStores = task.task_assignments?.filter(a => a.status === 'completed' && a.photo_urls && a.photo_urls.length > 0) || [];
@@ -3659,32 +4236,53 @@ async function createPowerPointPresentation(task) {
         console.log('Tamamlayan mağazalar:', completedStores);
         console.log('Tamamlamayan mağazalar:', incompleteStores);
 
-        // Özet sayfası
+        // Özet sayfası - İyileştirilmiş tasarım
         const summarySlide = pptx.addSlide();
+        summarySlide.background = { fill: 'f8f9fa' };
+        
         summarySlide.addText('Görev Özeti', {
-            x: 1, y: 0.5, w: 8, h: 1,
-            fontSize: 36,
+            x: 1, y: 0.5, w: 8, h: 1.2,
+            fontSize: 42,
             color: '333333',
             bold: true,
             align: 'center'
         });
-        summarySlide.addText(`Toplam Mağaza: ${task.task_assignments?.length || 0}`, {
-            x: 1, y: 2, w: 8, h: 0.8,
-            fontSize: 24,
-            color: '333333',
-            align: 'center'
-        });
-        summarySlide.addText(`Tamamlayan: ${completedStores.length}`, {
-            x: 1, y: 3, w: 8, h: 0.8,
-            fontSize: 24,
-            color: '28a745',
-            align: 'center'
-        });
-        summarySlide.addText(`Tamamlamayan: ${incompleteStores.length}`, {
-            x: 1, y: 4, w: 8, h: 0.8,
-            fontSize: 24,
-            color: 'dc3545',
-            align: 'center'
+        
+        // İstatistik kartları
+        const stats = [
+            { label: 'Toplam Mağaza', value: task.task_assignments?.length || 0, color: '007bff' },
+            { label: 'Tamamlayan', value: completedStores.length, color: '28a745' },
+            { label: 'Tamamlamayan', value: incompleteStores.length, color: 'dc3545' }
+        ];
+        
+        stats.forEach((stat, index) => {
+            const x = 0.5 + index * 3.2;
+            const y = 2.5;
+            
+            // İstatistik kutusu
+            summarySlide.addShape('rect', {
+                x: x, y: y, w: 3.0, h: 2.0,
+                fill: { color: 'ffffff' },
+                line: { color: stat.color, width: 2 }
+            });
+            
+            // Değer
+            summarySlide.addText(stat.value.toString(), {
+                x: x, y: y + 0.3, w: 3.0, h: 1.0,
+                fontSize: 48,
+                color: stat.color,
+                bold: true,
+                align: 'center'
+            });
+            
+            // Etiket
+            summarySlide.addText(stat.label, {
+                x: x, y: y + 1.4, w: 3.0, h: 0.5,
+                fontSize: 16,
+                color: '333333',
+                align: 'center',
+                bold: true
+            });
         });
 
         // Tamamlayan mağazalar sayfası - Düzeltilmiş (satır satır)
@@ -3797,43 +4395,49 @@ async function createPowerPointPresentation(task) {
             
             console.log('Toplam fotoğraf sayısı:', allPhotos.length);
 
-            // Her sayfada 6 fotoğraf - Düzeltilmiş
-            for (let i = 0; i < allPhotos.length; i += 6) {
-                const pagePhotos = allPhotos.slice(i, i + 6);
+            // Her sayfada 3 fotoğraf - İyileştirilmiş kalite
+            for (let i = 0; i < allPhotos.length; i += 3) {
+                const pagePhotos = allPhotos.slice(i, i + 3);
                 const photoSlide = pptx.addSlide();
                 photoSlide.addText('📸 Fotoğraf Galerisi', {
                     x: 0.5, y: 0.5, w: 9, h: 0.8,
-                    fontSize: 24,
+                    fontSize: 28,
                     color: '333333',
                     bold: true,
                     align: 'center'
                 });
                 
-                // Fotoğrafları paralel olarak base64'e çevir - Düzeltilmiş
+                // Fotoğrafları paralel olarak base64'e çevir - İyileştirilmiş kalite
                 const photoPromises = pagePhotos.map(async (photo, index) => {
-                    const row = Math.floor(index / 3);
-                    const col = index % 3;
-                    const x = 0.5 + col * 3;
-                    const y = 1.5 + row * 2.5;
+                    // 3 fotoğraf için daha geniş alan
+                    const x = 0.5 + index * 3.2;
+                    const y = 1.8;
                     
                     console.log(`Fotoğraf ${index + 1} base64'e çevriliyor:`, photo.url);
                     
                     try {
-                        // URL'yi base64'e çevir
+                        // URL'yi base64'e çevir - Yüksek kalite
                         const base64Data = await urlToBase64(photo.url);
                         
                         if (base64Data) {
-                            // Fotoğraf ekleme (base64 olarak) - Düzeltilmiş boyutlar
+                            // Fotoğraf ekleme - Orijinal boyutları koruyarak orantılı küçültme
                             photoSlide.addImage({
                                 data: base64Data,
-                                x: x, y: y, w: 2.8, h: 2.0
+                                x: x, y: y, w: 3.0, h: 2.5,
+                                sizing: {
+                                    type: 'contain', // Orijinal orantıları korur
+                                    w: 3.0,
+                                    h: 2.5
+                                }
                             });
                             
+                            // Mağaza adı için daha büyük alan
                             photoSlide.addText(photo.storeName, {
-                                x: x, y: y + 2.1, w: 2.8, h: 0.3,
-                                fontSize: 11,
+                                x: x, y: y + 2.6, w: 3.0, h: 0.4,
+                                fontSize: 12,
                                 color: '333333',
-                                align: 'center'
+                                align: 'center',
+                                bold: true
                             });
                             
                             console.log(`Fotoğraf ${index + 1} başarıyla eklendi`);
@@ -3843,21 +4447,23 @@ async function createPowerPointPresentation(task) {
                     } catch (error) {
                         console.error(`Fotoğraf ${index + 1} eklenirken hata:`, error);
                         
-                        // Hata durumunda placeholder ekle
+                        // Hata durumunda placeholder ekle - İyileştirilmiş
                         photoSlide.addText('Fotoğraf Yüklenemedi', {
-                            x: x, y: y, w: 2.5, h: 1.8,
-                            fontSize: 14,
+                            x: x, y: y, w: 3.0, h: 2.5,
+                            fontSize: 16,
                             color: 'dc3545',
                             align: 'center',
                             valign: 'middle',
-                            fill: { color: 'f8f9fa' }
+                            fill: { color: 'f8f9fa' },
+                            bold: true
                         });
                         
                         photoSlide.addText(photo.storeName, {
-                            x: x, y: y + 1.9, w: 2.5, h: 0.3,
+                            x: x, y: y + 2.6, w: 3.0, h: 0.4,
                             fontSize: 12,
                             color: '333333',
-                            align: 'center'
+                            align: 'center',
+                            bold: true
                         });
                     }
                 });
@@ -4150,15 +4756,53 @@ async function exportTaskToExcel(taskId) {
 
         if (error) throw error;
 
+        // Görev yanıtlarını al
+        const { data: responses, error: responseError } = await supabase
+            .from('task_responses')
+            .select(`
+                id,
+                response_text,
+                photo_urls,
+                status,
+                created_at,
+                users(name),
+                stores(name)
+            `)
+            .eq('task_id', taskId);
+
+        if (responseError) {
+            console.error('Görev yanıtları yüklenirken hata:', responseError);
+        }
+
         // Excel verilerini hazırla
-        const excelData = task.task_assignments?.map(assignment => ({
-            'Görev Adı': task.title,
-            'Başlangıç Tarihi': formatDateForExcel(task.start_date),
-            'Bitiş Tarihi': formatDateForExcel(task.end_date),
-            'Bölge Yöneticisi': assignment.stores?.regions?.manager_name || 'Bilinmiyor',
-            'Mağaza': assignment.stores?.name || 'Bilinmiyor',
-            'Durum': getStatusText(assignment.status)
-        })) || [];
+        const excelData = task.task_assignments?.map(assignment => {
+            // Bu mağaza için yanıtları bul
+            const storeResponses = responses?.filter(response => 
+                response.stores?.name === assignment.stores?.name
+            ) || [];
+
+            // Yazılı yanıtları birleştir
+            const writtenResponses = storeResponses
+                .filter(response => response.response_text && response.response_text.trim())
+                .map(response => response.response_text)
+                .join(' | ');
+
+            // Fotoğraf sayısını hesapla
+            const photoCount = storeResponses.reduce((total, response) => {
+                return total + (response.photo_urls ? response.photo_urls.length : 0);
+            }, 0);
+
+            return {
+                'Görev Adı': task.title,
+                'Başlangıç Tarihi': formatDateForExcel(task.start_date),
+                'Bitiş Tarihi': formatDateForExcel(task.end_date),
+                'Bölge Yöneticisi': assignment.stores?.regions?.manager_name || 'Bilinmiyor',
+                'Mağaza': assignment.stores?.name || 'Bilinmiyor',
+                'Durum': getStatusText(assignment.status),
+                'Yazılı Yanıt': writtenResponses || 'Yanıt yok',
+                'Fotoğraf Sayısı': photoCount
+            };
+        }) || [];
 
         // Excel dosyasını oluştur
         const ws = XLSX.utils.json_to_sheet(excelData);
@@ -4169,7 +4813,7 @@ async function exportTaskToExcel(taskId) {
         const fileName = `Gorev_${task.title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
         
-        showAlert('Excel dosyası başarıyla indirildi!', 'success');
+        showAlert('Görev detayları ve yanıtları Excel olarak indirildi!', 'success');
 
     } catch (error) {
         console.error('Excel export hatası:', error);

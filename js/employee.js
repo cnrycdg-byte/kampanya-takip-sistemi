@@ -692,9 +692,9 @@ async function compressImage(file) {
             try {
                 console.log('Resim yüklendi, boyutlar:', img.width, 'x', img.height);
                 
-                // Maksimum boyutları belirle
-                const maxWidth = 800;
-                const maxHeight = 600;
+                // Maksimum boyutları belirle - 1024x768 formatında
+                const maxWidth = 1024;
+                const maxHeight = 768;
                 
                 let { width, height } = img;
                 
@@ -728,7 +728,7 @@ async function compressImage(file) {
                         console.error('Blob oluşturulamadı');
                         reject(new Error('Fotoğraf sıkıştırılamadı'));
                     }
-                }, 'image/jpeg', 0.8);
+                }, 'image/jpeg', 0.9);
                 
             } catch (error) {
                 console.error('Canvas hatası:', error);

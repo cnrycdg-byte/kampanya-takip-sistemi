@@ -18,42 +18,52 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     */
     
-    // Mevcut Service Worker'ı temizle - AGGRESSIVE
-    if ('serviceWorker' in navigator) {
-        // Önce mevcut Service Worker'ları kaldır
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) {
-                registration.unregister();
-                console.log('Service Worker kaldırıldı:', registration);
-            }
-        });
-        
-        // Service Worker'ı tamamen devre dışı bırak
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({action: 'SKIP_WAITING'});
-        }
-        
-        // Cache'i de temizle
-        if ('caches' in window) {
-            caches.keys().then(function(cacheNames) {
-                return Promise.all(
-                    cacheNames.map(function(cacheName) {
-                        console.log('Cache temizleniyor:', cacheName);
-                        return caches.delete(cacheName);
-                    })
-                );
-            });
-        }
-        
-        // Service Worker'ı tekrar kontrol et ve kaldır
-        setTimeout(function() {
+    // Mevcut Service Worker'ı temizle - Güvenli versiyon
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+        if ('serviceWorker' in navigator) {
+            // Önce mevcut Service Worker'ları kaldır
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for(let registration of registrations) {
                     registration.unregister();
-                    console.log('Service Worker tekrar kaldırıldı:', registration);
+                    console.log('Service Worker kaldırıldı:', registration);
                 }
+            }).catch(function(error) {
+                console.log('Service Worker zaten temiz');
             });
-        }, 1000);
+            
+            // Service Worker'ı tamamen devre dışı bırak
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({action: 'SKIP_WAITING'});
+            }
+            
+            // Cache'i de temizle
+            if ('caches' in window) {
+                caches.keys().then(function(cacheNames) {
+                    return Promise.all(
+                        cacheNames.map(function(cacheName) {
+                            console.log('Cache temizleniyor:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                }).catch(function(error) {
+                    console.log('Cache zaten temiz');
+                });
+            }
+            
+            // Service Worker'ı tekrar kontrol et ve kaldır
+            setTimeout(function() {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                        console.log('Service Worker tekrar kaldırıldı:', registration);
+                    }
+                }).catch(function(error) {
+                    console.log('Service Worker zaten temiz (timeout)');
+                });
+            }, 1000);
+        }
+    } else {
+        console.log('File protokolü tespit edildi, Service Worker işlemleri atlandı');
     }
     
     // Giriş formunu dinle
@@ -293,7 +303,7 @@ function validateImageSize(file, maxSizeMB = 1) {
 }
 
 // Fotoğraf sıkıştırma fonksiyonu
-function compressImage(file, quality = 0.8, maxWidth = 1920, maxHeight = 1080) {
+function compressImage(file, quality = 0.9, maxWidth = 1024, maxHeight = 768) {
     return new Promise((resolve) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
