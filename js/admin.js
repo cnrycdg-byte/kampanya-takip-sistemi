@@ -2995,6 +2995,9 @@ async function loadTasksList() {
                 task_assignments(
                     id,
                     status,
+                    comment,
+                    photo_urls,
+                    completed_at,
                     stores(name, manager)
                 )
             `);
@@ -3522,21 +3525,58 @@ function exportTasksToExcel() {
             return;
         }
         
-        // Excel verisi hazırla
-        const excelData = tasks.map(task => ({
-            'Görev Adı': task.title,
-            'Kategori': getTaskCategoryDisplayName(task.category),
-            'Kanal': task.channels?.name || 'Bilinmiyor',
-            'Durum': getTaskStatusDisplay(task.status),
-            'Başlangıç Tarihi': task.start_date ? new Date(task.start_date).toLocaleDateString('tr-TR') : '',
-            'Bitiş Tarihi': task.end_date ? new Date(task.end_date).toLocaleDateString('tr-TR') : '',
-            'Yazılı Yanıt': task.response_text_enabled ? 'Evet' : 'Hayır',
-            'Fotoğraflı Yanıt': task.response_photo_enabled ? 'Evet' : 'Hayır',
-            'Fotoğraf Limiti': task.photo_limit || '',
-            'Atanan Mağaza Sayısı': task.task_assignments?.length || 0,
-            'Oluşturulma Tarihi': task.created_at ? new Date(task.created_at).toLocaleDateString('tr-TR') : '',
-            'Açıklama': task.description || ''
-        }));
+        // Excel verisi hazırla - yazılı yanıtları da dahil et
+        const excelData = [];
+        
+        for (const task of tasks) {
+            if (task.task_assignments && task.task_assignments.length > 0) {
+                // Her mağaza ataması için ayrı satır oluştur
+                for (const assignment of task.task_assignments) {
+                    // Yazılı yanıt (comment alanından)
+                    const writtenResponse = assignment.comment && assignment.comment.trim() 
+                        ? assignment.comment.trim() 
+                        : 'Yanıt yok';
+                    
+                    // Fotoğraf sayısı
+                    const photoCount = assignment.photo_urls ? assignment.photo_urls.length : 0;
+                    
+                    excelData.push({
+                        'Görev Adı': task.title,
+                        'Kategori': getTaskCategoryDisplayName(task.category),
+                        'Kanal': task.channels?.name || 'Bilinmiyor',
+                        'Durum': getTaskStatusDisplay(task.status),
+                        'Başlangıç Tarihi': task.start_date ? new Date(task.start_date).toLocaleDateString('tr-TR') : '',
+                        'Bitiş Tarihi': task.end_date ? new Date(task.end_date).toLocaleDateString('tr-TR') : '',
+                        'Mağaza': assignment.stores?.name || 'Bilinmiyor',
+                        'Mağaza Durumu': getTaskAssignmentStatusText(assignment.status),
+                        'Yazılı Yanıt': writtenResponse,
+                        'Fotoğraf Sayısı': photoCount,
+                        'Fotoğraf Limiti': task.photo_limit || '',
+                        'Tamamlanma Tarihi': assignment.completed_at ? new Date(assignment.completed_at).toLocaleDateString('tr-TR') : 'Tamamlanmadı',
+                        'Oluşturulma Tarihi': task.created_at ? new Date(task.created_at).toLocaleDateString('tr-TR') : '',
+                        'Açıklama': task.description || ''
+                    });
+                }
+            } else {
+                // Mağaza ataması olmayan görevler için
+                excelData.push({
+                    'Görev Adı': task.title,
+                    'Kategori': getTaskCategoryDisplayName(task.category),
+                    'Kanal': task.channels?.name || 'Bilinmiyor',
+                    'Durum': getTaskStatusDisplay(task.status),
+                    'Başlangıç Tarihi': task.start_date ? new Date(task.start_date).toLocaleDateString('tr-TR') : '',
+                    'Bitiş Tarihi': task.end_date ? new Date(task.end_date).toLocaleDateString('tr-TR') : '',
+                    'Mağaza': 'Atanmamış',
+                    'Mağaza Durumu': '-',
+                    'Yazılı Yanıt': '-',
+                    'Fotoğraf Sayısı': 0,
+                    'Fotoğraf Limiti': task.photo_limit || '',
+                    'Tamamlanma Tarihi': '-',
+                    'Oluşturulma Tarihi': task.created_at ? new Date(task.created_at).toLocaleDateString('tr-TR') : '',
+                    'Açıklama': task.description || ''
+                });
+            }
+        }
         
         // Excel dosyası oluştur
         const ws = XLSX.utils.json_to_sheet(excelData);
@@ -4739,7 +4779,7 @@ async function exportTaskToExcel(taskId) {
     console.log('XLSX library yüklü mü?', typeof XLSX);
     
     try {
-        // Görev detaylarını al
+        // Görev detaylarını al - comment alanını da dahil et
         const { data: task, error } = await supabase
             .from('tasks')
             .select(`
@@ -4748,6 +4788,9 @@ async function exportTaskToExcel(taskId) {
                 task_assignments(
                     id,
                     status,
+                    comment,
+                    photo_urls,
+                    completed_at,
                     stores(name, manager_id, regions(name, manager_name))
                 )
             `)
@@ -4756,41 +4799,20 @@ async function exportTaskToExcel(taskId) {
 
         if (error) throw error;
 
-        // Görev yanıtlarını al
-        const { data: responses, error: responseError } = await supabase
-            .from('task_responses')
-            .select(`
-                id,
-                response_text,
-                photo_urls,
-                status,
-                created_at,
-                users(name),
-                stores(name)
-            `)
-            .eq('task_id', taskId);
-
-        if (responseError) {
-            console.error('Görev yanıtları yüklenirken hata:', responseError);
-        }
+        console.log('Görev detayları alındı:', task);
+        console.log('Task assignments:', task.task_assignments);
 
         // Excel verilerini hazırla
         const excelData = task.task_assignments?.map(assignment => {
-            // Bu mağaza için yanıtları bul
-            const storeResponses = responses?.filter(response => 
-                response.stores?.name === assignment.stores?.name
-            ) || [];
-
-            // Yazılı yanıtları birleştir
-            const writtenResponses = storeResponses
-                .filter(response => response.response_text && response.response_text.trim())
-                .map(response => response.response_text)
-                .join(' | ');
+            console.log('Assignment işleniyor:', assignment);
+            
+            // Yazılı yanıt (comment alanından)
+            const writtenResponse = assignment.comment && assignment.comment.trim() 
+                ? assignment.comment.trim() 
+                : 'Yanıt yok';
 
             // Fotoğraf sayısını hesapla
-            const photoCount = storeResponses.reduce((total, response) => {
-                return total + (response.photo_urls ? response.photo_urls.length : 0);
-            }, 0);
+            const photoCount = assignment.photo_urls ? assignment.photo_urls.length : 0;
 
             return {
                 'Görev Adı': task.title,
@@ -4799,8 +4821,9 @@ async function exportTaskToExcel(taskId) {
                 'Bölge Yöneticisi': assignment.stores?.regions?.manager_name || 'Bilinmiyor',
                 'Mağaza': assignment.stores?.name || 'Bilinmiyor',
                 'Durum': getStatusText(assignment.status),
-                'Yazılı Yanıt': writtenResponses || 'Yanıt yok',
-                'Fotoğraf Sayısı': photoCount
+                'Yazılı Yanıt': writtenResponse,
+                'Fotoğraf Sayısı': photoCount,
+                'Tamamlanma Tarihi': assignment.completed_at ? formatDateForExcel(assignment.completed_at) : 'Tamamlanmadı'
             };
         }) || [];
 
@@ -4831,6 +4854,17 @@ function getStatusText(status) {
         'completed': 'Tamamlandı',
         'cancelled': 'İptal',
         'active': 'Aktif'
+    };
+    return statusMap[status] || 'Bilinmiyor';
+}
+
+// Görev atama durumu metni
+function getTaskAssignmentStatusText(status) {
+    const statusMap = {
+        'assigned': 'Atandı',
+        'in_progress': 'Devam Ediyor',
+        'completed': 'Tamamlandı',
+        'cancelled': 'İptal'
     };
     return statusMap[status] || 'Bilinmiyor';
 }
