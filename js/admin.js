@@ -3814,6 +3814,12 @@ function openStorePhotoModal(storeName, photoUrls, status) {
         return;
     }
     
+    // Kullanıcı rolünü fonksiyon başında al
+    const user = checkUserSession();
+    const userRole = user ? user.role : null;
+    const canDelete = userRole === 'admin' || userRole === 'manager';
+    console.log('Kullanıcı rolü (fonksiyon başında):', userRole, 'Silme yetkisi:', canDelete);
+    
     // URL'leri kontrol et
     photoUrls.forEach((url, index) => {
         console.log(`Fotoğraf ${index + 1} URL:`, url);
@@ -3861,27 +3867,15 @@ function openStorePhotoModal(storeName, photoUrls, status) {
                                         </div>
                                         <div class="card-body p-2">
                                             <small class="text-muted">Fotoğraf ${index + 1}</small>
-                                            ${(() => {
-                                                try {
-                                                    const userStr = localStorage.getItem('user');
-                                                    if (!userStr) return '';
-                                                    const user = JSON.parse(userStr);
-                                                    const userRole = user.role || user.userRole;
-                                                    console.log('Modal içinde kullanıcı rolü:', userRole);
-                                                    return (userRole === 'admin' || userRole === 'manager') ? `
-                                                        <div class="mt-2">
-                                                            <button class="btn btn-danger btn-sm" 
-                                                                    onclick="deletePhotoFromStore('${storeName}', '${photoUrl}', ${index})"
-                                                                    title="Fotoğrafı Sil">
-                                                                <i class="fas fa-trash"></i> Sil
-                                                            </button>
-                                                        </div>
-                                                    ` : '';
-                                                } catch (e) {
-                                                    console.error('Kullanıcı rolü kontrolü hatası:', e);
-                                                    return '';
-                                                }
-                                            })()}
+                                            ${canDelete ? `
+                                                <div class="mt-2">
+                                                    <button class="btn btn-danger btn-sm" 
+                                                            onclick="deletePhotoFromStore('${storeName}', '${photoUrl}', ${index})"
+                                                            title="Fotoğrafı Sil">
+                                                        <i class="fas fa-trash"></i> Sil
+                                                    </button>
+                                                </div>
+                                            ` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -4027,6 +4021,12 @@ async function deletePhotoFromStore(storeName, photoUrl, photoIndex) {
 function openSinglePhotoModal(photoUrl, storeName) {
     console.log('openSinglePhotoModal çağrıldı:', { photoUrl, storeName });
     
+    // Kullanıcı rolünü fonksiyon başında al
+    const user = checkUserSession();
+    const userRole = user ? user.role : null;
+    const canDelete = userRole === 'admin' || userRole === 'manager';
+    console.log('Tek fotoğraf modalı - Kullanıcı rolü:', userRole, 'Silme yetkisi:', canDelete);
+    
     // URL'yi test et
     const img = new Image();
     img.onload = function() {
@@ -4064,23 +4064,11 @@ function openSinglePhotoModal(photoUrl, storeName) {
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
                         <a href="${photoUrl}" target="_blank" class="btn btn-primary">Yeni Sekmede Aç</a>
-                        ${(() => {
-                            try {
-                                const userStr = localStorage.getItem('user');
-                                if (!userStr) return '';
-                                const user = JSON.parse(userStr);
-                                const userRole = user.role || user.userRole;
-                                console.log('Tek fotoğraf modalında kullanıcı rolü:', userRole);
-                                return (userRole === 'admin' || userRole === 'manager') ? `
-                                    <button type="button" class="btn btn-danger" onclick="deletePhotoFromStore('${storeName}', '${photoUrl}', 0); $('#singlePhotoModal').modal('hide');">
-                                        <i class="fas fa-trash"></i> Fotoğrafı Sil
-                                    </button>
-                                ` : '';
-                            } catch (e) {
-                                console.error('Kullanıcı rolü kontrolü hatası:', e);
-                                return '';
-                            }
-                        })()}
+                        ${canDelete ? `
+                            <button type="button" class="btn btn-danger" onclick="deletePhotoFromStore('${storeName}', '${photoUrl}', 0); $('#singlePhotoModal').modal('hide');">
+                                <i class="fas fa-trash"></i> Fotoğrafı Sil
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             </div>
