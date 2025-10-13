@@ -1369,6 +1369,13 @@ async function nextQuestion() {
     const saved = await saveCurrentAnswer();
     if (!saved) return;
     
+    // Son soru mu kontrol et
+    if (currentQuestionIndex >= surveyQuestions.length - 1) {
+        console.log('✅ Son soru tamamlandı, anket bitiriliyor...');
+        completeSurvey();
+        return;
+    }
+    
     currentQuestionIndex++;
     renderQuestion(currentQuestionIndex);
 }
