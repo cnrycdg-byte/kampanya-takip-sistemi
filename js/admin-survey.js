@@ -25,13 +25,8 @@ const QUESTION_TEMPLATES = {
     },
     basket: {
         type: 'basket_dynamic',
-        text: 'Mağazanızda kulaklık ürünlerinin bulunduğu sepet sayısını giriniz ve detaylarını doldurunuz',
-        help: 'Her sepet için marka, artikel, ürün adı ve fiyat bilgilerini girin'
-    },
-    gsm: {
-        type: 'gsm_accessory_basket',
-        text: 'Mağazanızda kaç adet GSM aksesuar sepeti bulunmaktadır?',
-        help: 'Her sepet için marka, artikel, ürün adı ve fiyat bilgilerini girin'
+        text: 'Mağazanızdaki sepetleri ekleyiniz (Kulaklık ve GSM Aksesuar)',
+        help: 'Her sepet için sepet türü, üst grup, alt grup, marka, artikel ve fiyat bilgilerini girin. "Sepet Ekle" butonuna tıklayarak istediğiniz kadar sepet ekleyebilirsiniz.'
     }
 };
 
@@ -261,14 +256,41 @@ async function getDefaultQuestionConfig(type) {
                 };
             case 'basket_dynamic':
                 return {
-                    type: "basket_dynamic",
+                    type: "dynamic_basket",
                     basket_label: "Sepet",
                     basket_count_label: "Sepet Sayısı",
+                    basket_types: [
+                        {"label": "Büyük boy Sepet", "value": "large_basket"},
+                        {"label": "Basket Sepet", "value": "basket"}
+                    ],
+                    upper_groups: [
+                        {
+                            "label": "Kulaklık", 
+                            "value": "headphone",
+                            "lower_groups": [
+                                {"label": "Kulak İçi Kulaklık", "value": "in_ear"},
+                                {"label": "Kafa Bantlı Kulaklık", "value": "over_ear"},
+                                {"label": "TWS Kulaklık", "value": "tws"}
+                            ]
+                        },
+                        {
+                            "label": "GSM Aksesuar", 
+                            "value": "gsm_accessory",
+                            "lower_groups": [
+                                {"label": "Duvar Adaptörü", "value": "wall_adapter"},
+                                {"label": "Powerbank", "value": "powerbank"},
+                                {"label": "Araç İçi Tutucu", "value": "car_holder"},
+                                {"label": "Çakmak Şarj Aleti", "value": "car_charger"},
+                                {"label": "Kablo", "value": "cable"},
+                                {"label": "Diğer", "value": "other"}
+                            ]
+                        }
+                    ],
                     brands: brandNames.concat(["Diğer"]),
                     fields: [
-                        {"name": "brand", "label": "Marka", "type": "select", "required": true},
+                        {"name": "product_name", "label": "Ürün Adı", "type": "text", "required": true},
                         {"name": "artikel", "label": "Artikel No", "type": "text", "required": true},
-                        {"name": "product_name", "label": "Ürün Adı", "type": "text", "required": true}
+                        {"name": "price", "label": "Fiyat", "type": "number", "required": true}
                     ]
                 };
             case 'gsm_accessory_basket':
@@ -322,14 +344,41 @@ function getFallbackQuestionConfig(type) {
             };
         case 'basket_dynamic':
             return {
-                type: "basket_dynamic",
+                type: "dynamic_basket",
                 basket_label: "Sepet",
                 basket_count_label: "Sepet Sayısı",
+                basket_types: [
+                    {"label": "Büyük boy Sepet", "value": "large_basket"},
+                    {"label": "Basket Sepet", "value": "basket"}
+                ],
+                upper_groups: [
+                    {
+                        "label": "Kulaklık", 
+                        "value": "headphone",
+                        "lower_groups": [
+                            {"label": "Kulak İçi Kulaklık", "value": "in_ear"},
+                            {"label": "Kafa Bantlı Kulaklık", "value": "over_ear"},
+                            {"label": "TWS Kulaklık", "value": "tws"}
+                        ]
+                    },
+                    {
+                        "label": "GSM Aksesuar", 
+                        "value": "gsm_accessory",
+                        "lower_groups": [
+                            {"label": "Duvar Adaptörü", "value": "wall_adapter"},
+                            {"label": "Powerbank", "value": "powerbank"},
+                            {"label": "Araç İçi Tutucu", "value": "car_holder"},
+                            {"label": "Çakmak Şarj Aleti", "value": "car_charger"},
+                            {"label": "Kablo", "value": "cable"},
+                            {"label": "Diğer", "value": "other"}
+                        ]
+                    }
+                ],
                 brands: fallbackBrands.concat(["Diğer"]),
                 fields: [
-                    {"name": "brand", "label": "Marka", "type": "select", "required": true},
+                    {"name": "product_name", "label": "Ürün Adı", "type": "text", "required": true},
                     {"name": "artikel", "label": "Artikel No", "type": "text", "required": true},
-                    {"name": "product_name", "label": "Ürün Adı", "type": "text", "required": true}
+                    {"name": "price", "label": "Fiyat", "type": "number", "required": true}
                 ]
             };
         case 'gsm_accessory_basket':

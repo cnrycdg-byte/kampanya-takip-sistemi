@@ -787,10 +787,10 @@ async function loadBasketData() {
             <table class="table table-sm table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th>Mağaza</th>
-                        <th>Kanal</th>
+                        <th>Sepet Türü</th>
+                        <th>Üst Grup</th>
+                        <th>Alt Grup</th>
                         <th>Marka</th>
-                        <th>Ürün Adı</th>
                         <th>Artikel</th>
                         <th>Fiyat (TL)</th>
                     </tr>
@@ -836,12 +836,32 @@ async function loadBasketData() {
                 
                 // Sepet detayları
                 store.baskets.forEach(basket => {
+                    // Sepet türü çevirisi
+                    const basketTypeText = basket.basket_type === 'large_basket' ? 'Büyük boy Sepet' : 
+                                          basket.basket_type === 'basket' ? 'Baket Sepet' : basket.basket_type;
+                    
+                    // Üst grup çevirisi
+                    const upperGroupText = basket.upper_group === 'headphone' ? 'Kulaklık' : 
+                                          basket.upper_group === 'gsm_accessory' ? 'GSM Aksesuar' : basket.upper_group;
+                    
+                    // Alt grup çevirisi
+                    let lowerGroupText = basket.lower_group;
+                    if (basket.upper_group === 'headphone') {
+                        lowerGroupText = basket.lower_group === 'in_ear' ? 'Kulakiçi Kulaklık' :
+                                        basket.lower_group === 'over_ear' ? 'Kafa Bantlı Kulaklık' :
+                                        basket.lower_group === 'tws' ? 'TWS Kulaklık' : basket.lower_group;
+                    } else if (basket.upper_group === 'gsm_accessory') {
+                        lowerGroupText = basket.lower_group === 'wall_adapter' ? 'Duvar Adaptörü' :
+                                        basket.lower_group === 'powerbank' ? 'Powerbank' :
+                                        basket.lower_group === 'other' ? 'Diğer' : basket.lower_group;
+                    }
+                    
                     html += `
                         <tr>
-                            <td></td>
-                            <td></td>
+                            <td>${basketTypeText}</td>
+                            <td>${upperGroupText}</td>
+                            <td>${lowerGroupText}</td>
                             <td>${basket.brand || '-'}</td>
-                            <td>${basket.product_name || '-'}</td>
                             <td>${basket.artikel || '-'}</td>
                             <td class="fw-bold">${parseFloat(basket.price || 0).toFixed(2)} TL</td>
                         </tr>

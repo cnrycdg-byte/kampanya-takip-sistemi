@@ -167,12 +167,7 @@ function displayCompletedSurveys(surveys) {
     const container = document.getElementById('completed-surveys-container');
     
     if (surveys.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle me-2"></i>
-                Henüz tamamlanmış anket bulunmamaktadır.
-            </div>
-        `;
+        container.innerHTML = ''; // Boş bırak, uyarı gösterme
         return;
     }
     
@@ -419,6 +414,8 @@ function renderQuestionType(question) {
     console.log('Config brands:', config?.brands);
     console.log('Config options:', config?.options);
     console.log('Config categories:', config?.categories);
+    console.log('Config basket_types:', config?.basket_types);
+    console.log('Config upper_groups:', config?.upper_groups);
     
     switch (question.question_type) {
         case 'promoter_count':
@@ -430,7 +427,7 @@ function renderQuestionType(question) {
             return renderInvestmentAreaQuestion(question, config);
         case 'basket_dynamic':
             console.log('Sepet sorusu render ediliyor...');
-            return renderBasketDynamicQuestion(question, config);
+            return renderDynamicBasketQuestion(question, config);
         case 'gsm_accessory_basket':
             console.log('GSM Aksesuar sorusu render ediliyor...');
             return renderGSMAccessoryBasketQuestion(question, config);
@@ -567,7 +564,49 @@ function renderInvestmentAreaQuestion(question, config) {
 }
 
 // ============================================
-// 10. SEPET SORUSU
+// 10. DİNAMİK SEPET SORUSU (YATIRIM ALANI MANTIĞI GİBİ)
+// ============================================
+function renderDynamicBasketQuestion(question, config) {
+    console.log('🔍 Dynamic Basket render - Config:', config);
+    console.log('🔍 Config detayları:', {
+        hasConfig: !!config,
+        hasBasketTypes: !!config?.basket_types,
+        hasUpperGroups: !!config?.upper_groups,
+        hasBrands: !!config?.brands,
+        basketTypes: config?.basket_types,
+        upperGroups: config?.upper_groups,
+        brands: config?.brands
+    });
+    
+    if (!config || !config.basket_types || !config.upper_groups || !config.brands) {
+        console.error('❌ Config eksik! Config:', config);
+        return '<div class="alert alert-danger">Sepet konfigürasyonu bulunamadı! Config eksik veya yanlış format.</div>';
+    }
+    
+    // Config'i global olarak set et
+    window.basketConfig = config;
+    window.basketItemCount = 0;
+    console.log('🔧 Basket config direkt set edildi:', window.basketConfig);
+    
+    let html = `
+        <div id="dynamic-basket-answer">
+            <button type="button" class="btn btn-success mb-3" onclick="addBasketItem()">
+                <i class="fas fa-plus me-2"></i>Sepet Ekle
+            </button>
+            <div id="baskets-container"></div>
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-success" onclick="addBasketItem()">
+                    <i class="fas fa-plus me-2"></i>Sepet Ekle
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return html;
+}
+
+// ============================================
+// 11. ESKİ SEPET SORUSU (DEPRECATED)
 // ============================================
 function renderBasketDynamicQuestion(question, config) {
     let html = `
@@ -811,6 +850,223 @@ function previewAreaPhotos(index) {
             };
             reader.readAsDataURL(file);
         });
+    }
+}
+
+// ============================================
+// YENİ SEPET FONKSİYONLARI (YATIRIM ALANI MANTIĞI)
+// ============================================
+
+// Sepet ekle
+async function addBasketItem() {
+    const container = document.getElementById('baskets-container');
+    const count = window.basketItemCount || 0;
+    let config = window.basketConfig;
+    
+    console.log('addBasketItem çağrıldı, config:', config);
+    
+    // Güvenlik kontrolü
+    if (!config) {
+        console.error('❌ Basket config bulunamadı! window.basketConfig:', window.basketConfig);
+        config = {
+            basket_types: [
+                {"label": "Büyük boy Sepet", "value": "large_basket"},
+                {"label": "Basket Sepet", "value": "basket"}
+            ],
+            upper_groups: [
+                {
+                    "label": "Kulaklık", 
+                    "value": "headphone",
+                    "lower_groups": [
+                        {"label": "Kulak İçi Kulaklık", "value": "in_ear"},
+                        {"label": "Kafa Bantlı Kulaklık", "value": "over_ear"},
+                        {"label": "TWS Kulaklık", "value": "tws"}
+                    ]
+                },
+                {
+                    "label": "GSM Aksesuar", 
+                    "value": "gsm_accessory",
+                    "lower_groups": [
+                        {"label": "Duvar Adaptörü", "value": "wall_adapter"},
+                        {"label": "Powerbank", "value": "powerbank"},
+                        {"label": "Araç İçi Tutucu", "value": "car_holder"},
+                        {"label": "Çakmak Şarj Aleti", "value": "car_charger"},
+                        {"label": "Kablo", "value": "cable"},
+                        {"label": "Diğer", "value": "other"}
+                    ]
+                }
+            ],
+            brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Diğer"]
+        };
+    }
+    
+    const html = `
+        <div class="card mb-3 basket-item-card" id="basket-item-${count}">
+            <div class="card-header d-flex justify-content-between align-items-center bg-success text-white">
+                <span><i class="fas fa-shopping-basket me-2"></i>Sepet #${count + 1}</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeBasketItem(${count})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Sepet Türü -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Sepet Türü *</label>
+                        <select class="form-control basket-type" data-index="${count}" required>
+                            <option value="">Seçiniz</option>
+                            ${config.basket_types.map(type => `
+                                <option value="${type.value}">${type.label}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    
+                    <!-- Üst Grup -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Üst Grup *</label>
+                        <select class="form-control basket-upper-group" data-index="${count}" required>
+                            <option value="">Seçiniz</option>
+                            ${config.upper_groups.map(group => `
+                                <option value="${group.value}">${group.label}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    
+                    <!-- Alt Grup -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Alt Grup *</label>
+                        <select class="form-control basket-lower-group" data-index="${count}" id="basket-lower-group-${count}" required>
+                            <option value="">Önce üst grup seçin</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Marka -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Marka *</label>
+                        <select class="form-control basket-brand" data-index="${count}" required>
+                            <option value="">Seçiniz</option>
+                            ${config.brands.map(brand => `<option value="${brand}">${brand}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <!-- Özel Marka (Diğer seçilirse) -->
+                    <div class="col-md-6" id="custom-basket-brand-${count}" style="display: none;">
+                        <label class="form-label fw-bold">Marka Adı *</label>
+                        <input type="text" class="form-control custom-basket-brand-name" data-index="${count}" placeholder="Marka adını yazın">
+                    </div>
+                    
+                    <!-- Ürün Adı -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Ürün Adı *</label>
+                        <input type="text" class="form-control basket-product-name" data-index="${count}" placeholder="Ürün adını girin" required>
+                    </div>
+                    
+                    <!-- Artikel -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Artikel No *</label>
+                        <input type="text" class="form-control basket-artikel" data-index="${count}" placeholder="Artikel numarasını girin" required>
+                    </div>
+                    
+                    <!-- Fiyat -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Fiyat (₺) *</label>
+                        <input type="number" class="form-control basket-price" data-index="${count}" placeholder="Fiyatı girin" step="0.01" min="0" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', html);
+    window.basketItemCount = count + 1;
+    
+    console.log('🔧 Sepet kartı eklendi, count:', count);
+    console.log('🔧 window.basketConfig:', window.basketConfig);
+    
+    // Event listener'ları ekle
+    setTimeout(() => {
+        const upperGroupSelect = document.querySelector(`select.basket-upper-group[data-index="${count}"]`);
+        const brandSelect = document.querySelector(`select.basket-brand[data-index="${count}"]`);
+        
+        console.log('🔧 Event listener ekleniyor, selectors:', { upperGroupSelect, brandSelect });
+        
+        if (upperGroupSelect) {
+            upperGroupSelect.addEventListener('change', function() {
+                console.log('🔧 Üst grup değişti:', this.value);
+                updateBasketLowerGroup(count);
+            });
+        } else {
+            console.error('❌ upperGroupSelect bulunamadı!');
+        }
+        
+        if (brandSelect) {
+            brandSelect.addEventListener('change', function() {
+                console.log('🔧 Marka değişti:', this.value);
+                checkOtherBasketBrand(count);
+            });
+        } else {
+            console.error('❌ brandSelect bulunamadı!');
+        }
+    }, 100);
+}
+
+// Sepet sil
+function removeBasketItem(index) {
+    const card = document.getElementById(`basket-item-${index}`);
+    if (card) card.remove();
+}
+
+// Alt grup güncelle (üst gruba göre)
+function updateBasketLowerGroup(index) {
+    console.log('🔄 updateBasketLowerGroup çağrıldı, index:', index);
+    
+    const upperGroupSelect = document.querySelector(`select.basket-upper-group[data-index="${index}"]`);
+    const lowerGroupSelect = document.getElementById(`basket-lower-group-${index}`);
+    
+    console.log('🔍 Selectors:', { upperGroupSelect, lowerGroupSelect });
+    
+    if (!upperGroupSelect || !lowerGroupSelect) {
+        console.error('❌ Selector bulunamadı!');
+        return;
+    }
+    
+    const selectedUpperGroup = upperGroupSelect.value;
+    console.log('🔍 Seçilen üst grup:', selectedUpperGroup);
+    
+    lowerGroupSelect.innerHTML = '<option value="">Seçiniz</option>';
+    
+    if (selectedUpperGroup) {
+        const config = window.basketConfig;
+        console.log('🔍 Config:', config);
+        
+        if (!config || !config.upper_groups) {
+            console.error('❌ Config veya upper_groups bulunamadı!');
+            return;
+        }
+        
+        const upperGroup = config.upper_groups.find(g => g.value === selectedUpperGroup);
+        console.log('🔍 Bulunan upper group:', upperGroup);
+        
+        if (upperGroup && upperGroup.lower_groups) {
+            console.log('✅ Alt gruplar ekleniyor:', upperGroup.lower_groups);
+            upperGroup.lower_groups.forEach(lowerGroup => {
+                lowerGroupSelect.innerHTML += `<option value="${lowerGroup.value}">${lowerGroup.label}</option>`;
+            });
+        } else {
+            console.error('❌ Alt gruplar bulunamadı!');
+        }
+    }
+}
+
+// Diğer marka kontrolü (sepet için)
+function checkOtherBasketBrand(index) {
+    const select = document.querySelector(`select.basket-brand[data-index="${index}"]`);
+    const customContainer = document.getElementById(`custom-basket-brand-${index}`);
+    
+    if (select.value === 'Diğer' || select.value === 'other') {
+        customContainer.style.display = 'block';
+    } else {
+        customContainer.style.display = 'none';
     }
 }
 
@@ -1161,7 +1417,7 @@ async function saveCurrentAnswer() {
                 console.log('📸 Photos array:', photos);
                 break;
             case 'basket_dynamic':
-                answerData = collectBasketAnswer();
+                answerData = collectDynamicBasketAnswer();
                 break;
             case 'gsm_accessory_basket':
                 answerData = collectGSMAccessoryAnswer();
@@ -1302,7 +1558,53 @@ async function collectInvestmentAnswer() {
     return { data: { areas }, photos: photoUrls };
 }
 
-// SEPET CEVABINI TOPLA
+// DİNAMİK SEPET CEVABINI TOPLA (YENİ)
+function collectDynamicBasketAnswer() {
+    const baskets = [];
+    const basketCards = document.querySelectorAll('.basket-item-card');
+    
+    console.log('🔍 Sepet kartları bulundu:', basketCards.length);
+    
+    basketCards.forEach((card, index) => {
+        const cardIndex = card.id.replace('basket-item-', '');
+        
+        const basketType = card.querySelector(`.basket-type[data-index="${cardIndex}"]`)?.value;
+        const upperGroup = card.querySelector(`.basket-upper-group[data-index="${cardIndex}"]`)?.value;
+        const lowerGroup = card.querySelector(`.basket-lower-group[data-index="${cardIndex}"]`)?.value;
+        
+        let brand = card.querySelector(`.basket-brand[data-index="${cardIndex}"]`)?.value;
+        const customBrandInput = card.querySelector(`#custom-basket-brand-${cardIndex} .custom-basket-brand-name`);
+        
+        // Eğer "Diğer" seçilmişse özel marka adını al
+        if ((brand === 'Diğer' || brand === 'other') && customBrandInput) {
+            brand = customBrandInput.value || brand;
+        }
+        
+        const productName = card.querySelector(`.basket-product-name[data-index="${cardIndex}"]`)?.value;
+        const artikel = card.querySelector(`.basket-artikel[data-index="${cardIndex}"]`)?.value;
+        const price = parseFloat(card.querySelector(`.basket-price[data-index="${cardIndex}"]`)?.value) || 0;
+        
+        console.log(`Sepet ${index + 1}:`, { basketType, upperGroup, lowerGroup, brand, productName, artikel, price });
+        
+        // Tüm alanlar doluysa ekle
+        if (basketType && upperGroup && lowerGroup && brand && productName && artikel) {
+            baskets.push({
+                basket_type: basketType,
+                upper_group: upperGroup,
+                lower_group: lowerGroup,
+                brand: brand,
+                product_name: productName,
+                artikel: artikel,
+                price: price
+            });
+        }
+    });
+    
+    console.log('🔍 Toplanan sepet verileri:', baskets);
+    return { data: { baskets } };
+}
+
+// ESKİ SEPET CEVABINI TOPLA (DEPRECATED)
 function collectBasketAnswer() {
     const basketCount = parseInt(document.getElementById('basket-count')?.value);
     if (!basketCount) return {};

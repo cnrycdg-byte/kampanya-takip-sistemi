@@ -267,13 +267,8 @@ Xiaomi</textarea>
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="include-basket" checked>
                 <label class="form-check-label" for="include-basket">
-                    <strong>Kulaklık Sepet Analizi Sorusu</strong> ekle
-                </label>
-            </div>
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" id="include-gsm-accessory" checked>
-                <label class="form-check-label" for="include-gsm-accessory">
-                    <strong>GSM Aksesuar Sepeti Sorusu</strong> ekle
+                    <strong>Sepet Analizi (Kulaklık & GSM)</strong> ekle
+                    <br><small class="text-muted">Yatırım alanı mantığıyla çalışır - "Sepet Ekle" butonu ile istediğiniz kadar sepet ekleyebilirsiniz</small>
                 </label>
             </div>
             
@@ -763,44 +758,48 @@ Xiaomi</textarea>
                 if (document.getElementById('include-basket').checked) {
                     questions.push({
                         survey_id: survey.id,
-                        question_text: 'Mağazanızda kulaklık ürünlerinin bulunduğu sepet sayısını giriniz ve detaylarını doldurunuz',
+                        question_text: 'Mağazanızdaki sepetleri ekleyiniz (Kulaklık ve GSM Aksesuar)',
                         question_type: 'basket_dynamic',
                         question_order: order++,
                         question_config: {
-                            type: "basket_dynamic",
-                            basket_label: "Kulaklık Sepeti",
-                            basket_count_label: "Toplam Sepet Sayısı",
+                            type: "dynamic_basket",
+                            basket_label: "Sepet",
+                            basket_count_label: "Sepet Sayısı",
+                            basket_types: [
+                                {"label": "Büyük boy Sepet", "value": "large_basket"},
+                                {"label": "Basket Sepet", "value": "basket"}
+                            ],
+                            upper_groups: [
+                                {
+                                    "label": "Kulaklık", 
+                                    "value": "headphone",
+                                    "lower_groups": [
+                                        {"label": "Kulak İçi Kulaklık", "value": "in_ear"},
+                                        {"label": "Kafa Bantlı Kulaklık", "value": "over_ear"},
+                                        {"label": "TWS Kulaklık", "value": "tws"}
+                                    ]
+                                },
+                                {
+                                    "label": "GSM Aksesuar", 
+                                    "value": "gsm_accessory",
+                                    "lower_groups": [
+                                        {"label": "Duvar Adaptörü", "value": "wall_adapter"},
+                                        {"label": "Powerbank", "value": "powerbank"},
+                                        {"label": "Araç İçi Tutucu", "value": "car_holder"},
+                                        {"label": "Çakmak Şarj Aleti", "value": "car_charger"},
+                                        {"label": "Kablo", "value": "cable"},
+                                        {"label": "Diğer", "value": "other"}
+                                    ]
+                                }
+                            ],
                             brands: brands.map(b => b.name).concat(["Diğer"]),
                             fields: [
-                                {"name": "brand", "label": "Marka", "type": "select", "required": true},
-                                {"name": "artikel", "label": "Artikel No", "type": "text", "required": true},
                                 {"name": "product_name", "label": "Ürün Adı", "type": "text", "required": true},
-                                {"name": "price", "label": "Fiyat (TL)", "type": "number", "required": true}
+                                {"name": "artikel", "label": "Artikel No", "type": "text", "required": true},
+                                {"name": "price", "label": "Fiyat", "type": "number", "required": true}
                             ]
                         },
-                        is_required: true
-                    });
-                }
-                
-                if (document.getElementById('include-gsm-accessory').checked) {
-                    questions.push({
-                        survey_id: survey.id,
-                        question_text: 'Mağazanızda kaç adet GSM aksesuar sepeti bulunmaktadır?',
-                        question_type: 'gsm_accessory_basket',
-                        question_order: order++,
-                        question_config: {
-                            type: "gsm_accessory_basket",
-                            basket_label: "GSM Aksesuar Sepeti",
-                            basket_count_label: "Toplam GSM Aksesuar Sepeti Sayısı",
-                            brands: brands.map(b => b.name).concat(["Diğer"]),
-                            fields: [
-                                {"name": "brand", "label": "Marka", "type": "select", "required": true},
-                                {"name": "artikel", "label": "Artikel No", "type": "text", "required": true},
-                                {"name": "product_name", "label": "Ürün Adı", "type": "text", "required": true},
-                                {"name": "price", "label": "Fiyat (TL)", "type": "number", "required": true}
-                            ]
-                        },
-                        is_required: true
+                        is_required: false
                     });
                 }
                 
