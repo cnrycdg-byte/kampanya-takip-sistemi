@@ -1372,7 +1372,7 @@ async function nextQuestion() {
     // Son soru mu kontrol et
     if (currentQuestionIndex >= surveyQuestions.length - 1) {
         console.log('✅ Son soru tamamlandı, anket bitiriliyor...');
-        completeSurvey();
+        submitSurvey();
         return;
     }
     
