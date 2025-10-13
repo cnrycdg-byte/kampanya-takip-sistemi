@@ -821,6 +821,16 @@ function showSection(sectionName) {
             resetRegionForm();
         } else if (sectionName === 'add-channel') {
             resetChannelForm();
+        } else if (sectionName === 'survey-reports') {
+            // Anket raporlarını yükle
+            if (typeof loadSurveyDashboard === 'function') {
+                loadSurveyDashboard();
+            }
+        } else if (sectionName === 'promoter-report') {
+            // Promotör trend analizi yükle
+            if (typeof loadPromoterTrendSection === 'function') {
+                loadPromoterTrendSection();
+            }
         }
     } else {
         console.error('Bölüm bulunamadı:', sectionName);
@@ -1502,9 +1512,13 @@ function displayUsersList(users) {
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser(${user.id})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${(() => {
+                        const currentUser = checkUserSession();
+                        return currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? 
+                            `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})" title="Kullanıcıyı Sil">
+                                <i class="fas fa-trash"></i>
+                            </button>` : '';
+                    })()}
                 </td>
             </tr>
         `;
@@ -1907,7 +1921,20 @@ async function updateUser(userId) {
 
 // Kullanıcı silme fonksiyonu
 async function deleteUser(userId) {
-    if (confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
+    // Kullanıcı yetkisini kontrol et
+    const user = checkUserSession();
+    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+        showAlert('Kullanıcı silme yetkiniz yok! Sadece admin ve yönetici hesapları kullanıcı silebilir.', 'danger');
+        return;
+    }
+    
+    // Kendini silmeye çalışıyor mu?
+    if (user.id === userId) {
+        showAlert('Kendi hesabınızı silemezsiniz!', 'danger');
+        return;
+    }
+    
+    if (confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!')) {
         try {
             const { error } = await supabase
                 .from('users')
@@ -1916,12 +1943,12 @@ async function deleteUser(userId) {
             
             if (error) throw error;
             
-            alert('✅ Kullanıcı başarıyla silindi!');
+            showAlert('✅ Kullanıcı başarıyla silindi!', 'success');
             loadUsersList(); // Listeyi yenile
             
         } catch (error) {
             console.error('Kullanıcı silme hatası:', error);
-            alert('❌ Kullanıcı silinirken bir hata oluştu!');
+            showAlert('❌ Kullanıcı silinirken bir hata oluştu!', 'danger');
         }
     }
 }

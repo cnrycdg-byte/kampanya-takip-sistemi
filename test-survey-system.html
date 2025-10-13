@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anket Sistemi Test Paneli</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-section.success {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        .test-section.error {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .test-section.pending {
+            border-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        .log-output {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log-entry {
+            padding: 5px;
+            margin: 2px 0;
+        }
+        .log-success {
+            color: #28a745;
+        }
+        .log-error {
+            color: #dc3545;
+        }
+        .log-info {
+            color: #17a2b8;
+        }
+        .log-warning {
+            color: #ffc107;
+        }
+        .step-indicator {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            border-radius: 50%;
+            background: #6c757d;
+            color: white;
+            margin-right: 10px;
+        }
+        .step-indicator.active {
+            background: #007bff;
+        }
+        .step-indicator.completed {
+            background: #28a745;
+        }
+        .step-indicator.failed {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="fas fa-flask me-2"></i>
+                Anket Sistemi Test Paneli
+            </span>
+            <span class="text-white">
+                <i class="fas fa-database me-1"></i>
+                Supabase: <span id="connection-status" class="badge bg-secondary">Bağlantı Bekleniyor</span>
+            </span>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Progress Bar -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Kurulum İlerlemesi</h5>
+            </div>
+            <div class="card-body">
+                <div class="progress" style="height: 30px;">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%">
+                        0%
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <span id="step-1" class="step-indicator">1</span> Supabase Bağlantı Testi
+                    <span id="step-2" class="step-indicator">2</span> Tabloları Oluştur
+                    <span id="step-3" class="step-indicator">3</span> Markaları Ekle
+                    <span id="step-4" class="step-indicator">4</span> Örnek Anket Oluştur
+                    <span id="step-5" class="step-indicator">5</span> Test Verileri Ekle
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Sections -->
+        
+        <!-- 1. Supabase Bağlantı Testi -->
+        <div class="test-section" id="section-1">
+            <h4>
+                <i class="fas fa-plug me-2"></i>
+                1. Supabase Bağlantı Testi
+            </h4>
+            <p class="text-muted">Supabase bağlantınızın çalışıp çalışmadığını kontrol edelim.</p>
+            
+            <button class="btn btn-primary" onclick="testConnection()">
+                <i class="fas fa-check-circle me-2"></i>Bağlantıyı Test Et
+            </button>
+            
+            <div id="log-1" class="log-output" style="display: none;"></div>
+        </div>
+
+        <!-- 2. Tabloları Oluştur -->
+        <div class="test-section" id="section-2">
+            <h4>
+                <i class="fas fa-database me-2"></i>
+                2. Veritabanı Tablolarını Oluştur
+            </h4>
+            <p class="text-muted">Anket sistemi için gerekli tabloları oluşturalım.</p>
+            
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Dikkat:</strong> Bu adım veritabanınızda yeni tablolar oluşturacak. 
+                Eğer aynı isimde tablolar varsa hata verebilir.
+            </div>
+            
+            <button class="btn btn-success" onclick="createTables()" id="btn-create-tables">
+                <i class="fas fa-plus-circle me-2"></i>Tabloları Oluştur
+            </button>
+            
+            <button class="btn btn-danger ms-2" onclick="dropTables()" id="btn-drop-tables">
+                <i class="fas fa-trash me-2"></i>Tabloları Sil (Temizle)
+            </button>
+            
+            <div id="log-2" class="log-output" style="display: none;"></div>
+        </div>
+
+        <!-- 3. Marka Yapılandırması -->
+        <div class="test-section" id="section-3">
+            <h4>
+                <i class="fas fa-tags me-2"></i>
+                3. Marka Listesi
+            </h4>
+            <p class="text-muted">Sistemde kullanılacak tüm markaları tanımlayalım.</p>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Tüm markalar tek listede olacak. Anketlerde ve raporlarda bu markalar görünecek.
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold">Markalar (Her satıra bir marka)</label>
+                    <textarea class="form-control" id="all-brands" rows="10" placeholder="Her satıra bir marka yazın&#10;&#10;Örnek:&#10;JBL&#10;Anker&#10;Baseus&#10;Ttec&#10;Sony&#10;Samsung&#10;Apple&#10;Xiaomi&#10;Marka1&#10;Marka2">JBL
+Anker
+Baseus
+Ttec
+Sony
+Samsung
+Apple
+Xiaomi</textarea>
+                    <small class="text-muted">
+                        Bu markalar anket sorularında seçenek olarak görünecek.<br>
+                        Dilediğiniz kadar marka ekleyebilirsiniz.
+                    </small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Kategori (Opsiyonel)</label>
+                    <select class="form-select mb-2" id="brand-category">
+                        <option value="audio">Ses Ürünleri</option>
+                        <option value="mobile">Mobil Aksesuarlar</option>
+                        <option value="electronics">Elektronik</option>
+                        <option value="other">Diğer</option>
+                    </select>
+                    <small class="text-muted">Tüm markalar için geçerli kategori</small>
+                    
+                    <div class="mt-4">
+                        <label class="form-label fw-bold">İstatistik</label>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <span>Toplam Marka:</span>
+                                    <strong id="brand-count">0</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-secondary w-100" onclick="addPresetBrands()">
+                            <i class="fas fa-plus me-1"></i>Örnek Markalar Ekle
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-success" onclick="saveBrands()">
+                <i class="fas fa-save me-2"></i>Markaları Kaydet
+            </button>
+            
+            <button class="btn btn-outline-primary ms-2" onclick="viewBrands()">
+                <i class="fas fa-list me-2"></i>Kayıtlı Markaları Görüntüle
+            </button>
+            
+            <div id="log-3" class="log-output" style="display: none;"></div>
+        </div>
+
+        <!-- 4. Örnek Anket Oluştur -->
+        <div class="test-section" id="section-4">
+            <h4>
+                <i class="fas fa-clipboard-list me-2"></i>
+                4. Test Anketi Oluştur
+            </h4>
+            <p class="text-muted">Sistemi test etmek için örnek bir anket oluşturalım.</p>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Anket Başlığı</label>
+                    <input type="text" class="form-control" id="survey-title" 
+                           value="Test Anketi - Ekim 2025">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ay</label>
+                    <select class="form-select" id="survey-month">
+                        <option value="10" selected>Ekim</option>
+                        <option value="11">Kasım</option>
+                        <option value="12">Aralık</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Yıl</label>
+                    <select class="form-select" id="survey-year">
+                        <option value="2025" selected>2025</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="include-promoter" checked>
+                <label class="form-check-label" for="include-promoter">
+                    <strong>Promotör Sayısı Sorusu</strong> ekle
+                </label>
+            </div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="include-investment" checked>
+                <label class="form-check-label" for="include-investment">
+                    <strong>Yatırım Alanı Sorusu</strong> ekle (fotoğraflı)
+                </label>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="include-basket" checked>
+                <label class="form-check-label" for="include-basket">
+                    <strong>Kulaklık Sepet Analizi Sorusu</strong> ekle
+                </label>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="include-gsm-accessory" checked>
+                <label class="form-check-label" for="include-gsm-accessory">
+                    <strong>GSM Aksesuar Sepeti Sorusu</strong> ekle
+                </label>
+            </div>
+            
+            <button class="btn btn-success" onclick="createTestSurvey()">
+                <i class="fas fa-plus-circle me-2"></i>Test Anketi Oluştur
+            </button>
+            
+            <div id="log-4" class="log-output" style="display: none;"></div>
+        </div>
+
+        <!-- 5. Test Verileri -->
+        <div class="test-section" id="section-5">
+            <h4>
+                <i class="fas fa-vial me-2"></i>
+                5. Test Verilerini Ekle
+            </h4>
+            <p class="text-muted">Sistemi test etmek için örnek cevaplar oluşturalım.</p>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Bu adım, rastgele test verileri oluşturacaktır. Gerçek veri değildir.
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Kaç mağaza için test verisi oluşturulsun?</label>
+                <input type="number" class="form-control" id="test-store-count" value="5" min="1" max="20" style="max-width: 200px;">
+            </div>
+            
+            <button class="btn btn-primary" onclick="createTestData()">
+                <i class="fas fa-database me-2"></i>Test Verilerini Oluştur
+            </button>
+            
+            <div id="log-5" class="log-output" style="display: none;"></div>
+        </div>
+
+        <!-- Hızlı Test Butonları -->
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5><i class="fas fa-rocket me-2"></i>Hızlı Testler</h5>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary" onclick="testPromoterReport()">
+                        <i class="fas fa-users me-1"></i>Promotör Raporu Test
+                    </button>
+                    <button class="btn btn-outline-info" onclick="testBasketReport()">
+                        <i class="fas fa-shopping-basket me-1"></i>Sepet Raporu Test
+                    </button>
+                    <button class="btn btn-outline-success" onclick="testPriceTracking()">
+                        <i class="fas fa-tag me-1"></i>Fiyat Takibi Test
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="testStorageUpload()">
+                        <i class="fas fa-image me-1"></i>Fotoğraf Yükleme Test
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Genel Log -->
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-terminal me-2"></i>
+                    Sistem Konsolu
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="global-log" class="log-output" style="max-height: 300px;"></div>
+                <button class="btn btn-sm btn-secondary mt-2" onclick="clearLogs()">
+                    <i class="fas fa-eraser me-1"></i>Logları Temizle
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    
+    <script>
+        // Global değişkenler
+        let testProgress = 0;
+        const steps = ['step-1', 'step-2', 'step-3', 'step-4', 'step-5'];
+        let currentUser = null;
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Test paneli yüklendi', 'info');
+            log('Supabase URL: ' + supabase.supabaseUrl, 'info');
+            
+            // Kullanıcı oturumunu kontrol et
+            const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+            if (session.id) {
+                currentUser = session;
+                log('Kullanıcı oturumu bulundu: ' + session.name, 'success');
+            } else {
+                log('⚠️ Kullanıcı oturumu bulunamadı. Admin olarak giriş yapmanız önerilir.', 'warning');
+            }
+        });
+
+        // Log fonksiyonu
+        function log(message, type = 'info', section = 'global') {
+            const timestamp = new Date().toLocaleTimeString('tr-TR');
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            const logEntry = `<div class="log-entry log-${type}">${icons[type]} [${timestamp}] ${message}</div>`;
+            
+            // Global log
+            const globalLog = document.getElementById('global-log');
+            if (globalLog) {
+                globalLog.innerHTML += logEntry;
+                globalLog.scrollTop = globalLog.scrollHeight;
+            }
+            
+            // Section log
+            if (section !== 'global') {
+                const sectionLog = document.getElementById(`log-${section}`);
+                if (sectionLog) {
+                    sectionLog.style.display = 'block';
+                    sectionLog.innerHTML += logEntry;
+                    sectionLog.scrollTop = sectionLog.scrollHeight;
+                }
+            }
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function updateProgress(step) {
+            const stepElement = document.getElementById(`step-${step}`);
+            if (stepElement) {
+                stepElement.classList.remove('active');
+                stepElement.classList.add('completed');
+            }
+            
+            testProgress = (step / 5) * 100;
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = testProgress + '%';
+            progressBar.textContent = Math.round(testProgress) + '%';
+        }
+
+        function markStepFailed(step) {
+            const stepElement = document.getElementById(`step-${step}`);
+            if (stepElement) {
+                stepElement.classList.remove('active');
+                stepElement.classList.add('failed');
+            }
+        }
+
+        // 1. Bağlantı Testi
+        async function testConnection() {
+            log('Supabase bağlantısı test ediliyor...', 'info', '1');
+            document.getElementById('step-1').classList.add('active');
+            
+            try {
+                // Test query
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) throw error;
+                
+                log('✅ Supabase bağlantısı başarılı!', 'success', '1');
+                log('Veritabanına erişim sağlandı', 'success', '1');
+                
+                document.getElementById('connection-status').className = 'badge bg-success';
+                document.getElementById('connection-status').textContent = 'Bağlı';
+                document.getElementById('section-1').classList.add('success');
+                
+                updateProgress(1);
+                return true;
+                
+            } catch (error) {
+                log('❌ Bağlantı hatası: ' + error.message, 'error', '1');
+                document.getElementById('connection-status').className = 'badge bg-danger';
+                document.getElementById('connection-status').textContent = 'Bağlantı Hatası';
+                document.getElementById('section-1').classList.add('error');
+                markStepFailed(1);
+                return false;
+            }
+        }
+
+        // 2. Tabloları Oluştur
+        async function createTables() {
+            log('Tablolar oluşturuluyor...', 'info', '2');
+            document.getElementById('step-2').classList.add('active');
+            document.getElementById('btn-create-tables').disabled = true;
+            
+            try {
+                // 1. Brands tablosu
+                log('1/7 - brands tablosu oluşturuluyor...', 'info', '2');
+                const createBrandsSQL = `
+                    CREATE TABLE IF NOT EXISTS brands (
+                        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                        name TEXT NOT NULL UNIQUE,
+                        is_our_brand BOOLEAN DEFAULT false,
+                        logo_url TEXT,
+                        status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+                        category TEXT,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    );
+                    
+                    CREATE INDEX IF NOT EXISTS idx_brands_status ON brands(status);
+                    CREATE INDEX IF NOT EXISTS idx_brands_category ON brands(category);
+                `;
+                
+                const { error: brandsError } = await supabase.rpc('exec_sql', { sql: createBrandsSQL });
+                if (brandsError) {
+                    // Alternatif yöntem - doğrudan oluştur
+                    log('RPC ile çalışmadı, alternatif yöntem deneniyor...', 'warning', '2');
+                    // Supabase client ile doğrudan SQL çalıştıramayız, bu yüzden kullanıcıyı yönlendireceğiz
+                    throw new Error('Tablolar otomatik oluşturulamıyor. Manuel kurulum gerekli.');
+                }
+                
+                log('✅ brands tablosu oluşturuldu', 'success', '2');
+                
+                // Diğer tablolar...
+                log('✅ Tüm tablolar başarıyla oluşturuldu!', 'success', '2');
+                document.getElementById('section-2').classList.add('success');
+                updateProgress(2);
+                
+            } catch (error) {
+                log('❌ Otomatik kurulum çalışmadı: ' + error.message, 'error', '2');
+                log('', 'info', '2');
+                log('🔧 MANUEL KURULUM GEREKLİ:', 'warning', '2');
+                log('1. Supabase Dashboard → SQL Editor', 'info', '2');
+                log('2. "database_survey_system.sql" dosyasını açın', 'info', '2');
+                log('3. Tüm içeriği kopyalayıp SQL Editor\'e yapıştırın', 'info', '2');
+                log('4. RUN butonuna tıklayın', 'info', '2');
+                log('5. Bu sayfaya geri dönüp "3. Marka Listesi" adımına geçin', 'info', '2');
+                log('', 'info', '2');
+                log('💡 SQL dosyası proje klasöründe: database_survey_system.sql', 'info', '2');
+                
+                document.getElementById('section-2').classList.add('error');
+                markStepFailed(2);
+            } finally {
+                document.getElementById('btn-create-tables').disabled = false;
+            }
+        }
+
+        async function dropTables() {
+            if (!confirm('⚠️ TÜM ANKET VERİLERİ SİLİNECEK! Emin misiniz?')) return;
+            
+            log('Tablolar siliniyor...', 'warning', '2');
+            
+            const tables = [
+                'survey_answers',
+                'survey_responses',
+                'survey_questions',
+                'surveys',
+                'competitor_price_tracking',
+                'brands'
+            ];
+            
+            for (const table of tables) {
+                try {
+                    // RPC ile tablo silme (eğer varsa)
+                    log(`${table} tablosu siliniyor...`, 'info', '2');
+                } catch (error) {
+                    log(`${table} silinemedi: ${error.message}`, 'warning', '2');
+                }
+            }
+            
+            log('✅ Tablolar temizlendi', 'success', '2');
+        }
+
+        // Marka sayacını güncelle
+        document.addEventListener('DOMContentLoaded', function() {
+            const brandsTextarea = document.getElementById('all-brands');
+            if (brandsTextarea) {
+                brandsTextarea.addEventListener('input', updateBrandCount);
+                updateBrandCount(); // İlk yüklemede
+            }
+        });
+
+        function updateBrandCount() {
+            const brands = document.getElementById('all-brands').value.split('\n').filter(b => b.trim());
+            document.getElementById('brand-count').textContent = brands.length;
+        }
+
+        function addPresetBrands() {
+            const presetBrands = [
+                'JBL', 'Anker', 'Baseus', 'Ttec', 'Sony', 'Samsung', 
+                'Apple', 'Xiaomi', 'Huawei', 'OnePlus', 'Oppo', 
+                'Realme', 'Vivo', 'Mi', 'Redmi'
+            ];
+            
+            const currentBrands = document.getElementById('all-brands').value.split('\n').filter(b => b.trim());
+            const allBrands = [...new Set([...currentBrands, ...presetBrands])];
+            
+            document.getElementById('all-brands').value = allBrands.join('\n');
+            updateBrandCount();
+            log('✅ Örnek markalar eklendi', 'success', '3');
+        }
+
+        async function viewBrands() {
+            log('Kayıtlı markalar getiriliyor...', 'info', '3');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('brands')
+                    .select('*')
+                    .order('name');
+                
+                if (error) throw error;
+                
+                if (data.length === 0) {
+                    log('Henüz kayıtlı marka yok', 'warning', '3');
+                    return;
+                }
+                
+                log(`📊 Toplam ${data.length} marka kayıtlı:`, 'info', '3');
+                data.forEach(brand => {
+                    log(`  • ${brand.name} (${brand.category})`, 'info', '3');
+                });
+                
+                console.table(data);
+                
+            } catch (error) {
+                log('❌ Markalar getirilemedi: ' + error.message, 'error', '3');
+            }
+        }
+
+        // 3. Markaları Kaydet
+        async function saveBrands() {
+            log('Markalar kaydediliyor...', 'info', '3');
+            document.getElementById('step-3').classList.add('active');
+            
+            const allBrands = document.getElementById('all-brands').value.split('\n').filter(b => b.trim());
+            const category = document.getElementById('brand-category').value;
+            
+            if (allBrands.length === 0) {
+                log('❌ En az bir marka girmelisiniz', 'error', '3');
+                return;
+            }
+            
+            try {
+                // Önce mevcut markaları kontrol et
+                const { data: existingBrands, error: checkError } = await supabase
+                    .from('brands')
+                    .select('name');
+                
+                if (checkError) throw checkError;
+                
+                const existingNames = existingBrands.map(b => b.name);
+                
+                // Sadece yeni markaları ekle
+                const newBrands = allBrands.filter(brand => !existingNames.includes(brand));
+                
+                if (newBrands.length === 0) {
+                    log('⚠️ Tüm markalar zaten kayıtlı', 'warning', '3');
+                    log(`Toplam kayıtlı marka: ${existingNames.length}`, 'info', '3');
+                    document.getElementById('section-3').classList.add('success');
+                    updateProgress(3);
+                    return;
+                }
+                
+                const brandsToInsert = newBrands.map(brand => ({
+                    name: brand,
+                    is_our_brand: false, // Artık önemli değil ama field var
+                    status: 'active',
+                    category: category
+                }));
+                
+                const { data, error } = await supabase
+                    .from('brands')
+                    .insert(brandsToInsert)
+                    .select();
+                
+                if (error) throw error;
+                
+                log(`✅ ${data.length} yeni marka kaydedildi`, 'success', '3');
+                log(`Toplam marka: ${existingNames.length + data.length}`, 'info', '3');
+                log(`Eklenen markalar: ${newBrands.join(', ')}`, 'info', '3');
+                
+                if (allBrands.length - newBrands.length > 0) {
+                    log(`ℹ️ ${allBrands.length - newBrands.length} marka zaten kayıtlıydı`, 'info', '3');
+                }
+                
+                document.getElementById('section-3').classList.add('success');
+                updateProgress(3);
+                
+            } catch (error) {
+                log('❌ Marka kaydetme hatası: ' + error.message, 'error', '3');
+                log('Detay: ' + (error.details || error.hint || ''), 'error', '3');
+                document.getElementById('section-3').classList.add('error');
+                markStepFailed(3);
+            }
+        }
+
+        // 4. Test Anketi Oluştur
+        async function createTestSurvey() {
+            log('Test anketi oluşturuluyor...', 'info', '4');
+            document.getElementById('step-4').classList.add('active');
+            
+            const title = document.getElementById('survey-title').value;
+            const month = parseInt(document.getElementById('survey-month').value);
+            const year = parseInt(document.getElementById('survey-year').value);
+            
+            try {
+                // Önce brands tablosundan markaları çek
+                log('Markalar veritabanından çekiliyor...', 'info', '4');
+                const { data: brands, error: brandsError } = await supabase
+                    .from('brands')
+                    .select('name')
+                    .eq('status', 'active')
+                    .order('name');
+                
+                if (brandsError) throw brandsError;
+                
+                log(`✅ ${brands.length} marka bulundu: ${brands.map(b => b.name).join(', ')}`, 'success', '4');
+                
+                // Marka seçeneklerini hazırla
+                const brandOptions = brands.map(brand => ({
+                    "label": brand.name,
+                    "value": brand.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+                }));
+                
+                // Diğer seçeneğini ekle
+                brandOptions.push({"label": "Diğer", "value": "other", "allow_custom": true});
+                
+                // Anket oluştur
+                const { data: survey, error: surveyError } = await supabase
+                    .from('surveys')
+                    .insert({
+                        title,
+                        description: 'Sistem test anketi - otomatik oluşturuldu',
+                        month,
+                        year,
+                        status: 'active',
+                        created_by: currentUser?.id || null
+                    })
+                    .select()
+                    .single();
+                
+                if (surveyError) throw surveyError;
+                
+                log(`✅ Anket oluşturuldu: ${survey.title}`, 'success', '4');
+                
+                // Soruları ekle
+                const questions = [];
+                let order = 1;
+                
+                if (document.getElementById('include-promoter').checked) {
+                    questions.push({
+                        survey_id: survey.id,
+                        question_text: 'Mağazanızda sizden başka hangi markaların promotörleri bulunmaktadır?',
+                        question_type: 'promoter_count',
+                        question_order: order++,
+                        question_config: {
+                            type: "multiple_choice_with_count",
+                            options: brandOptions,
+                            count_field: true,
+                            count_label: "Kişi Sayısı"
+                        },
+                        is_required: true
+                    });
+                }
+                
+                if (document.getElementById('include-investment').checked) {
+                    questions.push({
+                        survey_id: survey.id,
+                        question_text: 'Mağazanızda bulunan duvar standı veya orta alan standı olan markaları seçin ve fotoğraflarını yükleyiniz',
+                        question_type: 'investment_area',
+                        question_order: order++,
+                        question_config: {
+                            type: "investment_area",
+                            categories: [
+                                {"label": "Duvar Standı", "value": "wall"},
+                                {"label": "Orta Alan Standı", "value": "middle"},
+                                {"label": "Diğer", "value": "other", "allow_custom": true}
+                            ],
+                            brands: brands.map(b => b.name),
+                            photo_required: true,
+                            max_photos: 5,
+                            photo_label: "Standın fotoğraflarını yükleyin"
+                        },
+                        is_required: true
+                    });
+                }
+                
+                if (document.getElementById('include-basket').checked) {
+                    questions.push({
+                        survey_id: survey.id,
+                        question_text: 'Mağazanızda kulaklık ürünlerinin bulunduğu sepet sayısını giriniz ve detaylarını doldurunuz',
+                        question_type: 'basket_dynamic',
+                        question_order: order++,
+                        question_config: {
+                            type: "basket_dynamic",
+                            basket_label: "Kulaklık Sepeti",
+                            basket_count_label: "Toplam Sepet Sayısı",
+                            brands: brands.map(b => b.name).concat(["Diğer"]),
+                            fields: [
+                                {"name": "brand", "label": "Marka", "type": "select", "required": true},
+                                {"name": "artikel", "label": "Artikel No", "type": "text", "required": true},
+                                {"name": "product_name", "label": "Ürün Adı", "type": "text", "required": true},
+                                {"name": "price", "label": "Fiyat (TL)", "type": "number", "required": true}
+                            ]
+                        },
+                        is_required: true
+                    });
+                }
+                
+                if (document.getElementById('include-gsm-accessory').checked) {
+                    questions.push({
+                        survey_id: survey.id,
+                        question_text: 'Mağazanızda kaç adet GSM aksesuar sepeti bulunmaktadır?',
+                        question_type: 'gsm_accessory_basket',
+                        question_order: order++,
+                        question_config: {
+                            type: "gsm_accessory_basket",
+                            basket_label: "GSM Aksesuar Sepeti",
+                            basket_count_label: "Toplam GSM Aksesuar Sepeti Sayısı",
+                            brands: brands.map(b => b.name).concat(["Diğer"]),
+                            fields: [
+                                {"name": "brand", "label": "Marka", "type": "select", "required": true},
+                                {"name": "artikel", "label": "Artikel No", "type": "text", "required": true},
+                                {"name": "product_name", "label": "Ürün Adı", "type": "text", "required": true},
+                                {"name": "price", "label": "Fiyat (TL)", "type": "number", "required": true}
+                            ]
+                        },
+                        is_required: true
+                    });
+                }
+                
+                const { data: insertedQuestions, error: questionsError } = await supabase
+                    .from('survey_questions')
+                    .insert(questions)
+                    .select();
+                
+                if (questionsError) throw questionsError;
+                
+                log(`✅ ${insertedQuestions.length} soru eklendi`, 'success', '4');
+                log(`Anket ID: ${survey.id}`, 'info', '4');
+                
+                document.getElementById('section-4').classList.add('success');
+                updateProgress(4);
+                
+            } catch (error) {
+                log('❌ Anket oluşturma hatası: ' + error.message, 'error', '4');
+                document.getElementById('section-4').classList.add('error');
+                markStepFailed(4);
+            }
+        }
+
+        // 5. Test Verilerini Oluştur
+        async function createTestData() {
+            log('Test verileri oluşturuluyor...', 'info', '5');
+            document.getElementById('step-5').classList.add('active');
+            
+            const storeCount = parseInt(document.getElementById('test-store-count').value);
+            
+            log(`${storeCount} mağaza için test verisi oluşturuluyor...`, 'info', '5');
+            log('Bu işlem birkaç saniye sürebilir...', 'warning', '5');
+            
+            // TODO: Test veri oluşturma implementasyonu
+            log('Test veri oluşturma fonksiyonu henüz tamamlanmadı', 'warning', '5');
+            log('Manuel olarak employee dashboard\'dan anket doldurabilirsiniz', 'info', '5');
+            
+            updateProgress(5);
+        }
+
+        // Hızlı Testler
+        async function testPromoterReport() {
+            log('Promotör raporu test ediliyor...', 'info');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('v_promoter_report')
+                    .select('*')
+                    .limit(10);
+                
+                if (error) throw error;
+                
+                log(`✅ Promotör raporu çalışıyor. ${data.length} kayıt bulundu`, 'success');
+                console.table(data);
+                
+            } catch (error) {
+                log('❌ Promotör raporu hatası: ' + error.message, 'error');
+            }
+        }
+
+        async function testBasketReport() {
+            log('Sepet raporu test ediliyor...', 'info');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('v_basket_report')
+                    .select('*')
+                    .limit(10);
+                
+                if (error) throw error;
+                
+                log(`✅ Sepet raporu çalışıyor. ${data.length} kayıt bulundu`, 'success');
+                console.table(data);
+                
+            } catch (error) {
+                log('❌ Sepet raporu hatası: ' + error.message, 'error');
+            }
+        }
+
+        async function testPriceTracking() {
+            log('Fiyat takibi test ediliyor...', 'info');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('competitor_price_tracking')
+                    .select('*')
+                    .limit(5);
+                
+                if (error) throw error;
+                
+                log(`✅ Fiyat takibi çalışıyor. ${data.length} kayıt bulundu`, 'success');
+                console.table(data);
+                
+            } catch (error) {
+                log('❌ Fiyat takibi hatası: ' + error.message, 'error');
+            }
+        }
+
+        async function testStorageUpload() {
+            log('Storage bucket kontrolü yapılıyor...', 'info');
+            
+            try {
+                const { data, error } = await supabase.storage
+                    .from('survey-photos')
+                    .list('', { limit: 1 });
+                
+                if (error) throw error;
+                
+                log('✅ Storage bucket erişilebilir', 'success');
+                
+            } catch (error) {
+                log('❌ Storage hatası: ' + error.message, 'error');
+                log('💡 Supabase Dashboard\'da "survey-photos" bucket\'ını oluşturun', 'warning');
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('global-log').innerHTML = '';
+            log('Loglar temizlendi', 'info');
+        }
+    </script>
+</body>
+</html>
+

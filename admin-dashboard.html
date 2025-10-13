@@ -14,6 +14,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Kampanya Takip">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <style>
+        /* Hover effect for clickable cards */
+        .hover-card {
+            transition: all 0.3s ease;
+        }
+        .hover-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Üst Menü -->
@@ -94,6 +105,48 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#add-region" onclick="showSection('add-region')">
                                 <i class="fas fa-map-marked-alt me-2"></i>Bölge Ekle
+                            </a>
+                        </li>
+                        
+                        <!-- ANKET YÖNETİMİ -->
+                        <li class="nav-item mt-3">
+                            <h6 class="sidebar-heading px-3 text-muted">
+                                ANKET YÖNETİMİ
+                            </h6>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#create-survey" onclick="showSection('create-survey')">
+                                <i class="fas fa-plus-square me-2"></i>Anket Oluştur
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#surveys-list" onclick="showSection('surveys-list')">
+                                <i class="fas fa-list me-2"></i>Anket Listesi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#survey-reports" onclick="showSection('survey-reports')">
+                                <i class="fas fa-chart-bar me-2"></i>Anket Raporları
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#promoter-report" onclick="showSection('promoter-report')">
+                                <i class="fas fa-users me-2"></i>Promotör Raporu
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#investment-report" onclick="showSection('investment-report')">
+                                <i class="fas fa-store-alt me-2"></i>Yatırım Alanı Raporu
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#basket-report" onclick="showSection('basket-report')">
+                                <i class="fas fa-shopping-basket me-2"></i>Sepet Raporu
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#price-report" onclick="showSection('price-report')">
+                                <i class="fas fa-tags me-2"></i>Fiyat Takip Raporu
                             </a>
                         </li>
                     </ul>
@@ -864,12 +917,647 @@
                     </div>
                 </div>
 
+                <!-- ============================================ -->
+                <!-- ANKET YÖNETİMİ İÇERİK BÖLÜMLERİ -->
+                <!-- ============================================ -->
+
+                <!-- Anket Oluştur -->
+                <div id="create-survey-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Yeni Anket Oluştur</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Bilgilendirme: SQL dosyaları çalıştırıldı, sistem hazır -->
+                            <form id="create-survey-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Anket Başlığı *</label>
+                                            <input type="text" class="form-control" id="survey-title" required 
+                                                placeholder="Örn: Mart 2025 Aylık Anket">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Ay / Yıl *</label>
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <select class="form-select" id="survey-month" required>
+                                                        <option value="">Ay</option>
+                                                        <option value="1">Ocak</option>
+                                                        <option value="2">Şubat</option>
+                                                        <option value="3">Mart</option>
+                                                        <option value="4">Nisan</option>
+                                                        <option value="5">Mayıs</option>
+                                                        <option value="6">Haziran</option>
+                                                        <option value="7">Temmuz</option>
+                                                        <option value="8">Ağustos</option>
+                                                        <option value="9">Eylül</option>
+                                                        <option value="10">Ekim</option>
+                                                        <option value="11">Kasım</option>
+                                                        <option value="12">Aralık</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-6">
+                                                    <select class="form-select" id="survey-year" required>
+                                                        <option value="">Yıl</option>
+                                                        <option value="2024">2024</option>
+                                                        <option value="2025">2025</option>
+                                                        <option value="2026">2026</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Açıklama</label>
+                                    <textarea class="form-control" id="survey-description" rows="2"></textarea>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Başlangıç Tarihi *</label>
+                                            <input type="date" class="form-control" id="survey-start-date" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Bitiş Tarihi *</label>
+                                            <input type="date" class="form-control" id="survey-end-date" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-filter me-2"></i>Anket Atama Seçenekleri
+                                    </label>
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="radio" name="assignment-type" 
+                                                       id="assign-all" value="all" checked onchange="toggleAssignmentOptions()">
+                                                <label class="form-check-label" for="assign-all">
+                                                    <strong>Tüm Mağazalar</strong> - Tüm aktif mağazalara ata
+                                                </label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="radio" name="assignment-type" 
+                                                       id="assign-by-channel" value="channel" onchange="toggleAssignmentOptions()">
+                                                <label class="form-check-label" for="assign-by-channel">
+                                                    <strong>Kanala Göre</strong> - Sadece seçili kanallara ata
+                                                </label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="radio" name="assignment-type" 
+                                                       id="assign-by-region" value="region" onchange="toggleAssignmentOptions()">
+                                                <label class="form-check-label" for="assign-by-region">
+                                                    <strong>Bölgeye Göre</strong> - Sadece seçili bölgelere ata
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="assignment-type" 
+                                                       id="assign-by-store" value="store" onchange="toggleAssignmentOptions()">
+                                                <label class="form-check-label" for="assign-by-store">
+                                                    <strong>Mağazaya Göre</strong> - Sadece seçili mağazalara ata
+                                                </label>
+                                            </div>
+
+                                            <!-- Kanal Seçimi -->
+                                            <div id="channel-selection" class="mt-3" style="display: none;">
+                                                <label class="form-label">Kanalları Seçin:</label>
+                                                <select class="form-select" id="selected-channels" multiple size="3">
+                                                    <!-- Dinamik olarak doldurulacak -->
+                                                </select>
+                                                <small class="text-muted">Birden fazla seçmek için Ctrl tuşuna basılı tutun</small>
+                                            </div>
+
+                                            <!-- Bölge Seçimi -->
+                                            <div id="region-selection" class="mt-3" style="display: none;">
+                                                <label class="form-label">Bölgeleri Seçin:</label>
+                                                <select class="form-select" id="selected-regions" multiple size="5">
+                                                    <!-- Dinamik olarak doldurulacak -->
+                                                </select>
+                                                <small class="text-muted">Birden fazla seçmek için Ctrl tuşuna basılı tutun</small>
+                                            </div>
+
+                                            <!-- Mağaza Seçimi -->
+                                            <div id="store-selection" class="mt-3" style="display: none;">
+                                                <label class="form-label">Mağazaları Seçin:</label>
+                                                <input type="text" class="form-control mb-2" id="store-search" 
+                                                       placeholder="Mağaza ara..." onkeyup="filterStores()">
+                                                <select class="form-select" id="selected-stores" multiple size="10">
+                                                    <!-- Dinamik olarak doldurulacak -->
+                                                </select>
+                                                <small class="text-muted">Birden fazla seçmek için Ctrl tuşuna basılı tutun</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                <h6 class="mb-3">Sorular</h6>
+                                
+                                <div id="survey-questions-builder">
+                                    <p class="text-muted">Aşağıdaki butonları kullanarak soru ekleyin...</p>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><i class="fas fa-plus-circle me-2"></i>Hazır Soru Şablonları</label>
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-outline-primary text-start" 
+                                                onclick="addQuestionFromTemplate('promoter')">
+                                            <i class="fas fa-users me-2"></i>
+                                            <strong>Promotör Sayısı</strong>
+                                            <br>
+                                            <small class="text-muted">Mağazanızda sizden başka hangi markaların promotörleri bulunmaktadır?</small>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info text-start" 
+                                                onclick="addQuestionFromTemplate('investment')">
+                                            <i class="fas fa-store me-2"></i>
+                                            <strong>Yatırım Alanı</strong>
+                                            <br>
+                                            <small class="text-muted">Mağazanızda bulunan duvar standı veya orta alan standı olan markaları seçin ve fotoğraflarını yükleyiniz</small>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success text-start" 
+                                                onclick="addQuestionFromTemplate('basket')">
+                                            <i class="fas fa-shopping-basket me-2"></i>
+                                            <strong>Kulaklık Sepeti</strong>
+                                            <br>
+                                            <small class="text-muted">Mağazanızda kulaklık ürünlerinin bulunduğu sepet sayısını giriniz ve detaylarını doldurunuz</small>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-warning text-start" 
+                                                onclick="addQuestionFromTemplate('gsm')">
+                                            <i class="fas fa-mobile-alt me-2"></i>
+                                            <strong>GSM Aksesuar Sepeti</strong>
+                                            <br>
+                                            <small class="text-muted">Mağazanızda kaç adet GSM aksesuar sepeti bulunmaktadır?</small>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-2"></i>Anketi Oluştur ve Aktifleştir
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="showSection('surveys-list')">
+                                        İptal
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anket Listesi -->
+                <div id="surveys-list-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Anketler</h3>
+                        <button class="btn btn-primary" onclick="showSection('create-survey')">
+                            <i class="fas fa-plus me-2"></i>Yeni Anket
+                        </button>
+                    </div>
+                    
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <div class="table-responsive" id="surveys-list-table">
+                                <div class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anket Raporları Dashboard -->
+                <div id="survey-reports-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="mb-0">📊 Anket Raporları Dashboard</h3>
+                        <button class="btn btn-success" onclick="exportSurveyToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Excel'e Aktar
+                        </button>
+                    </div>
+                    
+                    <!-- Filtreler -->
+                    <div class="card shadow mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Anket</label>
+                                    <select class="form-select" id="filter-survey" onchange="applyFilters()">
+                                        <option value="">Tüm Anketler</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Kanal</label>
+                                    <select class="form-select" id="filter-channel" onchange="applyFilters()">
+                                        <option value="">Tüm Kanallar</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Bölge</label>
+                                    <select class="form-select" id="filter-region" onchange="applyFilters()">
+                                        <option value="">Tüm Bölgeler</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                        <i class="fas fa-filter me-2"></i>Filtrele
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- KPI Kartları (Kliklenebilir) -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card border-primary shadow-sm hover-card" style="cursor: pointer;" onclick="showStoreStatusModal()">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-store fa-2x text-primary mb-2"></i>
+                                    <h3 id="kpi-assigned-stores" class="text-primary">-</h3>
+                                    <p class="text-muted mb-1"><strong>Atanan Mağaza</strong></p>
+                                    <div class="d-flex justify-content-around mt-2">
+                                        <small class="text-success">
+                                            <i class="fas fa-check-circle"></i> <span id="kpi-completed-stores">-</span> Tamamlandı
+                                        </small>
+                                        <small class="text-warning">
+                                            <i class="fas fa-clock"></i> <span id="kpi-pending-stores">-</span> Bekliyor
+                                        </small>
+                                    </div>
+                                    <small class="text-muted"><i class="fas fa-hand-pointer"></i> Detaylar için tıklayın</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-success shadow-sm">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                    <h3 id="kpi-completion-rate" class="text-success">-</h3>
+                                    <p class="text-muted mb-0"><strong>Tamamlanma Oranı</strong></p>
+                                </div>
+                            </div>
+                        </div>
+          <div class="col-md-3">
+              <div class="card border-info shadow-sm">
+                  <div class="card-body text-center">
+                      <i class="fas fa-users fa-2x text-info mb-2"></i>
+                      <h3 id="kpi-total-promoters" class="text-info">-</h3>
+                      <p class="text-muted mb-0"><strong>Toplam Promotör</strong></p>
+                  </div>
+              </div>
+          </div>
+                        <div class="col-md-3">
+                            <div class="card border-warning shadow-sm hover-card" style="cursor: pointer;" onclick="showInvestmentBreakdownModal()">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-store-alt fa-2x text-warning mb-2"></i>
+                                    <h3 id="kpi-total-investments" class="text-warning">-</h3>
+                                    <p class="text-muted mb-1"><strong>Yatırım Alanı</strong></p>
+                                    <small class="text-muted"><i class="fas fa-hand-pointer"></i> Marka + Alan dağılımı için tıklayın</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabbed Interface -->
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="promoter-tab" data-bs-toggle="tab" data-bs-target="#promoter-data" type="button">
+                                Promotör Verileri
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="investment-tab" data-bs-toggle="tab" data-bs-target="#investment-data" type="button">
+                                Yatırım Alanı
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="basket-tab" data-bs-toggle="tab" data-bs-target="#basket-data" type="button">
+                                Kulaklık Sepeti
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="gsm-tab" data-bs-toggle="tab" data-bs-target="#gsm-data" type="button">
+                                GSM Aksesuar
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content">
+                        <!-- Promotör Tab -->
+                        <div class="tab-pane fade show active" id="promoter-data">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Promotör Verileri</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="promoter-data-table" class="table-responsive">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status"></div>
+                                            <p class="mt-2">Yükleniyor...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Yatırım Alanı Tab -->
+                        <div class="tab-pane fade" id="investment-data">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Yatırım Alanı Verileri</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="investment-data-table" class="table-responsive">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status"></div>
+                                            <p class="mt-2">Yükleniyor...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sepet Tab -->
+                        <div class="tab-pane fade" id="basket-data">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Kulaklık Sepet Verileri</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="basket-data-table" class="table-responsive">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status"></div>
+                                            <p class="mt-2">Yükleniyor...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- GSM Tab -->
+                        <div class="tab-pane fade" id="gsm-data">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">GSM Aksesuar Verileri</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="gsm-data-table" class="table-responsive">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status"></div>
+                                            <p class="mt-2">Yükleniyor...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Promotör Raporu -->
+                <div id="promoter-report-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>Promotör Değişim Analizi</h3>
+                        <button class="btn btn-success" onclick="exportTrendData()">
+                            <i class="fas fa-file-excel me-2"></i>Excel İndir
+                        </button>
+                    </div>
+                    
+                    <!-- Filtreler -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-filter me-2"></i>
+                                Filtreler
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label"><strong>Bölge Seçimi</strong></label>
+                                    <select id="trend-region-filter" class="form-select">
+                                        <option value="">Tüm Bölgeler</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label"><strong>Kanal Seçimi</strong></label>
+                                    <select id="trend-channel-filter" class="form-select">
+                                        <option value="">Tüm Kanallar</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label"><strong>Anket Seçimi</strong></label>
+                                    <select id="trend-survey-filter" class="form-select" multiple>
+                                    </select>
+                                    <small class="text-muted">Ctrl ile çoklu seçim</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label"><strong>Marka Seçimi</strong></label>
+                                    <select id="trend-brand-filter" class="form-select" multiple>
+                                    </select>
+                                    <small class="text-muted">Ctrl ile çoklu seçim</small>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12 text-center">
+                                    <button id="apply-trend-filters" class="btn btn-primary btn-lg px-5">
+                                        <i class="fas fa-chart-line me-2"></i>Grafikleri Güncelle
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Grafik Alanı -->
+                    <div class="row">
+                        <!-- Zaman Serisi Grafiği -->
+                        <div class="col-12 mb-4">
+                            <div class="card shadow">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-chart-line me-2"></i>
+                                        Promotör Sayısı Trend Analizi (Aylık)
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div style="height: 400px;">
+                                        <canvas id="promoterTrendChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Marka Dağılımı -->
+                        <div class="col-12 mb-4">
+                            <div class="card shadow">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-chart-pie me-2"></i>
+                                        Marka Bazında Promotör Dağılımı
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div style="height: 350px;">
+                                                <canvas id="brandDistributionChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div id="brandDistributionList" class="h-100">
+                                                <!-- Marka listesi burada gösterilecek -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detay Tablosu -->
+                    <div class="card shadow">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-table me-2"></i>
+                                Detaylı Veriler
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="trendDetailsTable" class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Anket</th>
+                                            <th>Bölge</th>
+                                            <th>Kanal</th>
+                                            <th>Marka</th>
+                                            <th>Promotör Sayısı</th>
+                                            <th>Değişim</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sepet Raporu -->
+                <div id="basket-report-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>Sepet Raporu</h3>
+                        <button class="btn btn-success" onclick="exportBasketToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Excel İndir
+                        </button>
+                    </div>
+                    
+                    <div class="card shadow mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Anket Seçiniz</label>
+                                    <select class="form-select" id="basket-survey-select" onchange="loadBasketReport()">
+                                        <option value="">Seçiniz</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Mağaza Seçiniz</label>
+                                    <select class="form-select" id="basket-store-select" onchange="loadBasketDetail()">
+                                        <option value="">Önce anket seçiniz</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4" id="basket-stats"></div>
+                    
+                    <div class="card shadow" id="basket-detail-card" style="display: none;">
+                        <div class="card-header">
+                            <h5 class="mb-0" id="basket-store-name">Mağaza Detayı</h5>
+                        </div>
+                        <div class="card-body" id="basket-detail-content"></div>
+                    </div>
+                    
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Tüm Mağazalar Özeti</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive" id="basket-summary-table">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Lütfen bir anket seçiniz.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fiyat Takip Raporu -->
+                <div id="price-report-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>Rakip Fiyat Takip Raporu</h3>
+                        <button class="btn btn-success" onclick="exportPriceToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Excel İndir
+                        </button>
+                    </div>
+                    
+                    <div class="card shadow mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Başlangıç Tarihi</label>
+                                    <input type="date" class="form-control" id="price-start-date" onchange="loadPriceReport()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Bitiş Tarihi</label>
+                                    <input type="date" class="form-control" id="price-end-date" onchange="loadPriceReport()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Mağaza</label>
+                                    <select class="form-select" id="price-store-filter" onchange="loadPriceReport()">
+                                        <option value="">Tüm Mağazalar</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Marka</label>
+                                    <select class="form-select" id="price-brand-filter" onchange="loadPriceReport()">
+                                        <option value="">Tüm Markalar</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <div class="table-responsive" id="price-report-table">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Tarih aralığı seçerek raporunuzu görüntüleyebilirsiniz.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script>
         // XLSX kütüphanesi yüklendi mi kontrol et
         window.addEventListener('load', function() {
@@ -886,7 +1574,12 @@
     <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/app.js?v=4.0"></script>
-    <script src="js/admin.js?v=4.0"></script>
+    <script src="js/admin.js?v=4.2"></script>
+    <script src="js/admin-survey.js?v=1.5"></script>
+    <script src="js/admin-survey-helpers.js?v=1.2"></script>
+    <script src="js/survey-reports-simple.js?v=1.5"></script>
+    <script src="js/survey-dashboard.js?v=1.0"></script>
+    <script src="js/promoter-trends.js?v=1.3"></script>
     
     <!-- JavaScript Yükleme Kontrolü -->
     <script>
@@ -1118,5 +1811,7 @@
             setTimeout(fixPhotoUrls, 3000);
         });
     </script>
+
+
 </body>
 </html>

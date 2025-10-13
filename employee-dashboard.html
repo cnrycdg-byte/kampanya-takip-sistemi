@@ -55,6 +55,17 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="#surveys" onclick="showSection('surveys')">
+                                <i class="fas fa-clipboard-list me-2"></i>Anketlerim
+                                <span id="pending-surveys-badge" class="badge bg-danger ms-2" style="display: none;">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#price-tracking" onclick="showSection('price-tracking')">
+                                <i class="fas fa-tag me-2"></i>Fiyat Takibi
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="#profile" onclick="showSection('profile')">
                                 <i class="fas fa-user me-2"></i>Profil
                             </a>
@@ -88,6 +99,132 @@
                     </div>
                 </div>
 
+                <!-- Anketler İçeriği -->
+                <div id="surveys-section" class="content-section" style="display: none;">
+                    <div class="row">
+                        <!-- Bekleyen Anketler -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-warning text-white">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-hourglass-half me-2"></i>Bekleyen Anketler
+                                    </h5>
+                                </div>
+                                <div class="card-body" id="pending-surveys-container">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Yükleniyor...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tamamlanan Anketler -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-check-circle me-2"></i>Tamamlanan Anketler
+                                    </h5>
+                                </div>
+                                <div class="card-body" id="completed-surveys-container">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Yükleniyor...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fiyat Takibi İçeriği -->
+                <div id="price-tracking-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Rakip Fiyat Takibi</h5>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-primary mb-3" onclick="showAddPriceForm()">
+                                <i class="fas fa-plus me-2"></i>Yeni Fiyat Kaydı Ekle
+                            </button>
+                            
+                            <!-- Fiyat Ekleme Formu -->
+                            <div id="add-price-form" style="display: none;" class="mb-4">
+                                <form id="price-form" onsubmit="submitPriceTracking(event)">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <h6 class="text-muted">Rakip Bilgileri</h6>
+                                            <div class="mb-3">
+                                                <label class="form-label">Rakip Marka *</label>
+                                                <select class="form-select" id="competitor-brand" required>
+                                                    <option value="">Marka Seçiniz</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Rakip Ürün Adı *</label>
+                                                <input type="text" class="form-control" id="competitor-product" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Rakip Artikel No</label>
+                                                <input type="text" class="form-control" id="competitor-artikel">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Rakip Fiyat (TL) *</label>
+                                                <input type="number" step="0.01" class="form-control" id="competitor-price" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <h6 class="text-muted">Bizim Ürün Bilgileri</h6>
+                                            <div class="mb-3">
+                                                <label class="form-label">Bizim Marka *</label>
+                                                <select class="form-select" id="our-brand" required>
+                                                    <option value="">Marka Seçiniz</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Bizim Ürün Adı *</label>
+                                                <input type="text" class="form-control" id="our-product" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Bizim Artikel No</label>
+                                                <input type="text" class="form-control" id="our-artikel">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Bizim Fiyat (TL) *</label>
+                                                <input type="number" step="0.01" class="form-control" id="our-price" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Notlar</label>
+                                        <textarea class="form-control" id="price-notes" rows="2"></textarea>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-save me-2"></i>Kaydet
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="hideAddPriceForm()">
+                                            İptal
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Fiyat Kayıtları Listesi -->
+                            <div id="price-tracking-list">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Yükleniyor...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Profil İçeriği -->
                 <div id="profile-section" class="content-section" style="display: none;">
                     <div class="card shadow">
@@ -110,6 +247,46 @@
                     </div>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- Anket Wizard Modal -->
+    <div class="modal fade" id="surveyWizardModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="surveyWizardTitle">Anket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="confirmCloseSurvey()"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted"><span id="current-question-num">1</span> / <span id="total-questions">10</span></span>
+                            <span class="text-muted" id="progress-percentage">10%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" id="survey-progress-bar" style="width: 10%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Soru Konteyneri -->
+                    <div id="survey-question-container">
+                        <!-- Sorular dinamik olarak buraya yüklenecek -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="prev-question-btn" onclick="previousQuestion()" style="display: none;">
+                        <i class="fas fa-arrow-left me-2"></i>Geri
+                    </button>
+                    <button type="button" class="btn btn-primary" id="next-question-btn" onclick="nextQuestion()">
+                        İleri<i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                    <button type="button" class="btn btn-success" id="submit-survey-btn" onclick="submitSurvey()" style="display: none;">
+                        <i class="fas fa-check me-2"></i>Anketi Tamamla
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -188,6 +365,7 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/app.js?v=4.0"></script>
     <script src="js/employee.js?v=1.4"></script>
+    <script src="js/survey.js?v=1.1"></script>
     
     <!-- Service Worker Registration - DEVRE DIŞI -->
     <script>
