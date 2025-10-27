@@ -1770,6 +1770,35 @@ async function saveCurrentAnswer(loadingId = null) {
             return false;
         }
         
+        // Sepet tipi sorular için artikel kontrolü
+        if (isBasketType && answerData.data && answerData.data.baskets) {
+            const baskets = answerData.data.baskets;
+            if (baskets.length === 0) {
+                showAlert('En az bir sepet girişi yapmalısınız', 'warning');
+                return false;
+            }
+            // Artikel kontrolü
+            const emptyArtikel = baskets.some(basket => !basket.artikel || basket.artikel.trim() === '');
+            if (emptyArtikel) {
+                showAlert('Lütfen tüm sepet girişlerinde artikel kodunu doldurun', 'warning');
+                return false;
+            }
+        }
+        
+        if (isBasketType && answerData.gsm_accessories) {
+            const gsmAccessories = answerData.gsm_accessories;
+            if (gsmAccessories.length === 0) {
+                showAlert('En az bir GSM aksesuar girişi yapmalısınız', 'warning');
+                return false;
+            }
+            // Artikel kontrolü
+            const emptyArtikel = gsmAccessories.some(accessory => !accessory.artikel || accessory.artikel.trim() === '');
+            if (emptyArtikel) {
+                showAlert('Lütfen tüm GSM aksesuar girişlerinde artikel kodunu doldurun', 'warning');
+                return false;
+            }
+        }
+        
         // Cevabı kaydet
         console.log('💾 === VERİTABANINA KAYDEDILIYOR ===');
         console.log('💾 Response ID:', currentResponseId);
@@ -1988,11 +2017,18 @@ function collectBasketAnswer() {
     for (let i = 0; i < basketCount; i++) {
         const customBrandInput = document.querySelector(`#custom-basket-brand-${i} input`);
         const brand = brandSelects[i].value === 'Diğer' ? customBrandInput?.value : brandSelects[i].value;
+        const artikel = artikelInputs[i].value;
+        const productName = productInputs[i].value;
+        
+        // Artikel kodu zorunlu - boş ise ekleme
+        if (!artikel || artikel.trim() === '') {
+            continue; // Bu sepet kaydını atla
+        }
         
         baskets.push({
             brand: brand,
-            artikel: artikelInputs[i].value,
-            product_name: productInputs[i].value,
+            artikel: artikel,
+            product_name: productName,
             price: parseFloat(priceInputs[i].value) || 0
         });
     }
@@ -2017,11 +2053,18 @@ function collectGSMAccessoryAnswer() {
     for (let i = 0; i < gsmAccessoryCount; i++) {
         const customBrandInput = document.querySelector(`#custom-gsm-accessory-brand-${i} input`);
         const brand = brandSelects[i].value === 'Diğer' ? customBrandInput?.value : brandSelects[i].value;
+        const artikel = artikelInputs[i].value;
+        const productName = productInputs[i].value;
+        
+        // Artikel kodu zorunlu - boş ise ekleme
+        if (!artikel || artikel.trim() === '') {
+            continue; // Bu GSM aksesuar kaydını atla
+        }
         
         gsmAccessories.push({
             brand: brand,
-            artikel: artikelInputs[i].value,
-            product_name: productInputs[i].value,
+            artikel: artikel,
+            product_name: productName,
             price: parseFloat(priceInputs[i].value) || 0
         });
     }

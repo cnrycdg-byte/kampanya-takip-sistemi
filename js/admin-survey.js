@@ -888,7 +888,22 @@ async function deleteSelectedSurvey() {
     try {
         console.log('🗑️ Anket siliniyor:', surveyId);
         
-        // İlişkili verileri sil (cascade delete)
+        // 1. Önce anket cevaplarını sil
+        console.log('📝 Anket cevapları siliniyor...');
+        const { error: answersError } = await supabase
+            .from('survey_answers')
+            .delete()
+            .eq('survey_id', surveyId);
+        
+        if (answersError) {
+            console.error('Anket cevapları silme hatası:', answersError);
+            throw answersError;
+        }
+        
+        console.log('✅ Anket cevapları başarıyla silindi');
+        
+        // 2. Sonra anketi sil
+        console.log('🗑️ Anket siliniyor...');
         const { error } = await supabase
             .from('surveys')
             .delete()
@@ -896,7 +911,8 @@ async function deleteSelectedSurvey() {
         
         if (error) throw error;
         
-        alert('✅ Anket başarıyla silindi!');
+        console.log('✅ Anket başarıyla silindi');
+        alert('✅ Anket ve tüm verileri başarıyla silindi!');
         
         // Sayfayı yenile
         location.reload();
@@ -918,7 +934,22 @@ async function deleteSurveyFromList(surveyId, surveyTitle) {
     try {
         console.log('🗑️ Anket siliniyor:', surveyId, surveyTitle);
         
-        // İlişkili verileri sil (cascade delete)
+        // 1. Önce anket cevaplarını sil
+        console.log('📝 Anket cevapları siliniyor...');
+        const { error: answersError } = await supabase
+            .from('survey_answers')
+            .delete()
+            .eq('survey_id', surveyId);
+        
+        if (answersError) {
+            console.error('Anket cevapları silme hatası:', answersError);
+            throw answersError;
+        }
+        
+        console.log('✅ Anket cevapları başarıyla silindi');
+        
+        // 2. Sonra anketi sil
+        console.log('🗑️ Anket siliniyor...');
         const { error } = await supabase
             .from('surveys')
             .delete()
@@ -926,7 +957,8 @@ async function deleteSurveyFromList(surveyId, surveyTitle) {
         
         if (error) throw error;
         
-        alert('✅ Anket başarıyla silindi!');
+        console.log('✅ Anket başarıyla silindi');
+        alert('✅ Anket ve tüm verileri başarıyla silindi!');
         
         // Anket listesini yenile
         loadSurveysList();
