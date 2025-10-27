@@ -241,9 +241,18 @@ function showAlert(message, type) {
     alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     alertDiv.style.borderRadius = '8px';
     alertDiv.style.fontWeight = '500';
+    // X butonu için renk belirle (alert tipine göre)
+    let closeButtonColor = '#333';
+    if (type === 'danger') closeButtonColor = '#000';
+    else if (type === 'success') closeButtonColor = '#155724';
+    else if (type === 'warning') closeButtonColor = '#856404';
+    else if (type === 'info') closeButtonColor = '#004085';
+    
     alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="d-flex justify-content-between align-items-center">
+            <span>${message}</span>
+            <button type="button" class="btn-close-custom" aria-label="Close" style="background: none; border: none; font-size: 1.8rem; font-weight: bold; color: ${closeButtonColor}; opacity: 0.8; cursor: pointer; padding: 0 0.75rem; line-height: 1; transition: opacity 0.3s;">&times;</button>
+        </div>
     `;
     
     // Mobil için özel stil
@@ -260,12 +269,53 @@ function showAlert(message, type) {
     // Alert'i body'ye ekle
     document.body.appendChild(alertDiv);
     
+    // Kapat butonuna tıklama eventi ekle
+    const closeBtn = alertDiv.querySelector('.btn-close-custom');
+    if (closeBtn) {
+        // Hover efekti
+        closeBtn.addEventListener('mouseenter', function() {
+            this.style.opacity = '1';
+        });
+        closeBtn.addEventListener('mouseleave', function() {
+            this.style.opacity = '0.8';
+        });
+        
+        // Click eventi
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('✅ X butonuna tıklandı');
+            // Fade out animasyonu başlat
+            alertDiv.style.transition = 'opacity 0.3s';
+            alertDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 300);
+        });
+    }
+    
     // 5 saniye sonra otomatik kaldır
-    setTimeout(() => {
+    const autoCloseTimer = setTimeout(() => {
+        console.log('5 saniye doldu, alert kapanıyor');
         if (alertDiv.parentNode) {
-            alertDiv.remove();
+            alertDiv.classList.remove('show'); // Fade out animasyonu için
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 150);
         }
     }, 5000);
+    
+    // X butonuna tıklanınca timer'ı iptal et
+    if (closeBtn) {
+        const originalClickHandler = closeBtn.onclick;
+        closeBtn.addEventListener('click', function() {
+            clearTimeout(autoCloseTimer);
+        });
+    }
 }
 
 // Yükleme göstergesi
@@ -356,18 +406,33 @@ function getFromStorage(key) {
 
 // Kullanıcı oturumunu kontrol eden fonksiyon
 function checkUserSession() {
-    console.log('=== checkUserSession() başladı ===');
-    const user = getFromStorage('currentUser');
-    console.log('LocalStorage\'dan alınan kullanıcı:', user);
-    
-    if (!user) {
-        console.log('Kullanıcı oturumu bulunamadı, index.html\'e yönlendiriliyor');
-        window.location.href = 'index.html';
-        return false;
+    // Infinite loop önleme - çok güçlü
+    if (window.checkingSession) {
+        return window.lastUserSession || false;
     }
     
-    console.log('Kullanıcı oturumu başarılı:', user);
-    return user;
+    // Son kontrol zamanını kontrol et (5 saniye içinde tekrar kontrol etme)
+    const now = Date.now();
+    if (window.lastSessionCheck && (now - window.lastSessionCheck) < 5000) {
+        return window.lastUserSession || false;
+    }
+    
+    window.checkingSession = true;
+    window.lastSessionCheck = now;
+    
+    try {
+        const user = getFromStorage('currentUser');
+        
+        if (!user) {
+            window.location.href = 'index.html';
+            return false;
+        }
+        
+        window.lastUserSession = user;
+        return user;
+    } finally {
+        window.checkingSession = false; // Her durumda temizle
+    }
 }
 
 // Çıkış yapma fonksiyonu

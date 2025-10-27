@@ -5,8 +5,6 @@ let selectedPhotos = [];
 
 // Sayfa yüklendiğinde çalışacak kod
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Mağaza paneli yüklendi');
-    
     // Kullanıcı oturumunu kontrol et
     const user = checkUserSession();
     if (!user) {
@@ -25,10 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Kullanıcı bilgilerini göster
     displayUserInfo(user);
     
-    // Mağaza seçilmişse görevleri yükle
-    if (user.storeId) {
-        loadTasks();
-    } else {
+    // Mağaza kontrolü
+    if (!user.storeId) {
         // Mağaza seçilmemişse mağaza seçim sayfasına yönlendir
         window.location.href = 'store-selection.html';
     }
@@ -42,7 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Global mağaza güncelleme eventini dinle
     window.addEventListener('storesUpdated', function() {
-        console.log('Mağaza listesi güncellendi, kullanıcı bilgileri yeniden yükleniyor...');
         // Kullanıcı oturumunu yeniden kontrol et
         const user = checkUserSession();
         if (user) {
@@ -74,30 +69,35 @@ function displayUserInfo(user) {
 }
 
 // Görevleri yükleyen fonksiyon
+let isLoadingTasks = false;
 async function loadTasks() {
+    // Çift yükleme önlemi
+    if (isLoadingTasks) {
+        return;
+    }
+    
     try {
-        console.log('=== loadTasks() başladı ===');
+        isLoadingTasks = true;
         const user = checkUserSession();
-        console.log('Kullanıcı oturumu:', user);
+        
+        // Loading başlat
+        const loadingId = showLoading('Görevler Yükleniyor', 'Görev listesi çekiliyor...');
         
         if (!user) {
             console.error('Kullanıcı oturumu bulunamadı');
             displayTasks([]);
+            hideLoading(loadingId);
             return;
         }
         
         if (!user.storeId) {
             console.error('Kullanıcı mağaza ID\'si bulunamadı');
-            console.log('Kullanıcı detayları:', JSON.stringify(user, null, 2));
             displayTasks([]);
+            hideLoading(loadingId);
             return;
         }
-
-        console.log('Görevler yükleniyor, mağaza ID:', user.storeId);
-        console.log('Supabase bağlantısı:', supabase);
         
         // Çalışanın mağazasına atanan görevleri getir
-        console.log('Supabase sorgusu başlatılıyor...');
         const { data: taskAssignments, error } = await supabase
             .from('task_assignments')
             .select(`
@@ -119,16 +119,10 @@ async function loadTasks() {
             `)
             .eq('store_id', user.storeId);
 
-        console.log('Supabase sorgu sonucu:');
-        console.log('Data:', taskAssignments);
-        console.log('Error:', error);
-
         if (error) {
             console.error('Supabase hatası:', error);
             throw error;
         }
-
-        console.log('Görev atamaları yüklendi:', taskAssignments);
 
         // Görevleri işle - Kapanmış ve arşivlenmiş görevleri filtrele
         const tasks = taskAssignments
@@ -164,13 +158,18 @@ async function loadTasks() {
                 };
             });
 
-        console.log('İşlenen görevler:', tasks);
         displayTasks(tasks);
+        
+        // Loading kapat
+        hideLoading(loadingId);
+        isLoadingTasks = false;
         
     } catch (error) {
         console.error('Görevler yüklenirken hata:', error);
         showAlert('Görevler yüklenirken hata oluştu: ' + error.message, 'danger');
         displayTasks([]);
+        hideLoading(loadingId);
+        isLoadingTasks = false;
     }
 }
 
@@ -211,9 +210,6 @@ function getTaskStatusClass(status, isLate) {
 
 // Görevleri görüntüleyen fonksiyon
 function displayTasks(tasks) {
-    console.log('=== displayTasks() başladı ===');
-    console.log('Gösterilecek görevler:', tasks);
-    
     const container = document.getElementById('tasks-container');
     if (!container) {
         console.error('tasks-container elementi bulunamadı!');
@@ -223,7 +219,6 @@ function displayTasks(tasks) {
     container.innerHTML = '';
     
     if (tasks.length === 0) {
-        console.log('Gösterilecek görev yok, boş mesaj gösteriliyor');
         container.innerHTML = `
             <div class="col-12">
                 <div class="alert alert-info text-center">
@@ -235,9 +230,7 @@ function displayTasks(tasks) {
         return;
     }
     
-    console.log(`${tasks.length} görev gösteriliyor`);
     tasks.forEach((task, index) => {
-        console.log(`Görev ${index + 1}:`, task);
         const taskCard = createTaskCard(task);
         container.appendChild(taskCard);
     });
@@ -407,7 +400,6 @@ function findTaskById(taskId) {
 
 // Galeri açma fonksiyonu
 function openGallery() {
-    console.log('Galeri açılıyor...');
     const input = document.getElementById('gallery-upload');
     input.click();
 }
@@ -416,12 +408,9 @@ function openGallery() {
 
 // Galeri ile fotoğraf yükleme
 async function handleGalleryUpload(event) {
-    console.log('Galeri fotoğraf yükleme başladı');
     const files = Array.from(event.target.files);
-    console.log('Seçilen dosyalar:', files.length);
     
     if (files.length === 0) {
-        console.log('Dosya seçilmedi');
         return;
     }
     
@@ -434,7 +423,6 @@ async function handleGalleryUpload(event) {
     // Her dosyayı işle (async olarak)
     for (let index = 0; index < files.length; index++) {
         const file = files[index];
-        console.log(`Dosya ${index + 1} işleniyor:`, file.name, file.size);
         
         // Dosya boyutunu kontrol et
         if (!validateImageSize(file)) {
@@ -443,20 +431,13 @@ async function handleGalleryUpload(event) {
         
         // Fotoğrafı sıkıştır
         try {
-            console.log('Fotoğraf sıkıştırılıyor...');
             const compressedFile = await compressImage(file);
-            console.log('Sıkıştırma tamamlandı:', compressedFile.size);
-            
             selectedPhotos.push(compressedFile);
-            console.log('Toplam fotoğraf sayısı:', selectedPhotos.length);
             
         } catch (error) {
             console.error('Fotoğraf sıkıştırma hatası:', error);
-            console.log('Orijinal dosya kullanılıyor...');
-            
             // Sıkıştırma başarısız olursa orijinal dosyayı kullan
             selectedPhotos.push(file);
-            console.log('Toplam fotoğraf sayısı (orijinal):', selectedPhotos.length);
         }
     }
     
@@ -801,6 +782,12 @@ function showSection(sectionName) {
             break;
         case 'completed':
             loadCompletedTasks();
+            break;
+        case 'surveys':
+            loadSurveys();
+            break;
+        case 'price-tracking':
+            // Fiyat takibi verisi zaten yüklü
             break;
         case 'profile':
             // Profil bilgileri zaten yüklü

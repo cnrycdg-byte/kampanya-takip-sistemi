@@ -238,6 +238,16 @@ async function startSurvey(surveyId) {
         
         // Response yoksa oluştur
         if (!existingResponse) {
+            console.log('🔍 User bilgileri:', user);
+            console.log('🔍 User ID:', user.id);
+            
+            // User ID kontrolü
+            if (!user.id) {
+                console.error('❌ User ID bulunamadı!');
+                showAlert('Kullanıcı bilgileri eksik. Lütfen tekrar giriş yapın.', 'danger');
+                return;
+            }
+            
             const { data: newResponse, error: createError } = await supabase
                 .from('survey_responses')
                 .insert({
@@ -516,13 +526,14 @@ function renderInvestmentAreaQuestion(question, config) {
         config.categories = [
             {"label": "Duvar Standı", "value": "wall"},
             {"label": "Orta Alan Standı", "value": "middle"},
+            {"label": "Masa Üstü Standı", "value": "desk"},
             {"label": "Diğer", "value": "other", "allow_custom": true}
         ];
     }
     
     if (!config.brands) {
         console.log('Brands eksik, varsayılan markalar kullanılıyor...');
-        config.brands = ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili"];
+        config.brands = ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Samsung", "Apple"];
         console.log('Varsayılan markalar kullanılıyor:', config.brands);
     }
     
@@ -535,11 +546,14 @@ function renderInvestmentAreaQuestion(question, config) {
     console.log('Final brands:', config.brands);
     console.log('Final categories:', config.categories);
     
+    // Config'i global olarak set et
+    window.investmentConfig = config;
+    window.investmentAreaCount = 0;
+    window.currentSurveyQuestion = question;
+    console.log('🔧 Investment config direkt set edildi:', window.investmentConfig);
+    
     let html = `
         <div id="investment-answer">
-            <button type="button" class="btn btn-primary mb-3" onclick="addInvestmentArea()">
-                <i class="fas fa-plus me-2"></i>Yatırım Alanı Ekle
-            </button>
             <div id="investment-areas-container"></div>
             <div class="text-center mt-3">
                 <button type="button" class="btn btn-primary" onclick="addInvestmentArea()">
@@ -548,19 +562,95 @@ function renderInvestmentAreaQuestion(question, config) {
             </div>
         </div>
         
-        <script>
-            (function() {
-                window.investmentConfig = ${JSON.stringify(config)};
-                window.investmentAreaCount = 0;
-                window.currentSurveyQuestion = ${JSON.stringify(question)};
-                console.log('Investment config yüklendi:', window.investmentConfig);
-                console.log('Current question set edildi:', window.currentSurveyQuestion);
-                console.log('Marka sayısı:', config.brands ? config.brands.length : 'undefined');
-                console.log('Markalar:', config.brands);
-            })();
-        </script>
     `;
     return html;
+}
+
+// Loading göstergesi fonksiyonları
+function showInvestmentLoading() {
+    const container = document.getElementById('investment-areas-container');
+    if (container) {
+        container.innerHTML = `
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+                <p class="mt-2 text-muted">Yatırım alanı yükleniyor, lütfen bekleyiniz...</p>
+            </div>
+        `;
+    }
+}
+
+function hideInvestmentLoading() {
+    // Loading zaten addInvestmentArea içinde kaldırılıyor, sadece emniyet için
+    const container = document.getElementById('investment-areas-container');
+    if (container) {
+        const loadingDiv = container.querySelector('.spinner-border');
+        if (loadingDiv && loadingDiv.closest('.text-center')) {
+            loadingDiv.closest('.text-center').remove();
+        }
+    }
+}
+
+function showSaveLoading() {
+    // Kaydetme butonlarını disable et ve loading göster
+    const saveButtons = document.querySelectorAll('button[onclick*="nextQuestion"], button[onclick*="previousQuestion"]');
+    saveButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Kaydediliyor...';
+    });
+}
+
+function hideSaveLoading() {
+    // Kaydetme butonlarını normale döndür
+    const saveButtons = document.querySelectorAll('button[onclick*="nextQuestion"], button[onclick*="previousQuestion"]');
+    saveButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.innerHTML = btn.innerHTML.replace(/<i class="fas fa-spinner fa-spin me-2"><\/i>Kaydediliyor\.\.\./, 'İleri');
+        if (btn.innerHTML.includes('Geri')) {
+            btn.innerHTML = '<i class="fas fa-arrow-left me-2"></i>Geri';
+        }
+    });
+}
+
+function showGeneralLoading(message = 'İşlem yapılıyor...') {
+    // Genel loading modal
+    const existingModal = document.getElementById('generalLoadingModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modalHtml = `
+        <div class="modal fade" id="generalLoadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body text-center p-4">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <p class="mb-0">${message}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('generalLoadingModal'));
+    modal.show();
+    
+    return modal;
+}
+
+function hideGeneralLoading() {
+    const modal = document.getElementById('generalLoadingModal');
+    if (modal) {
+        const bsModal = bootstrap.Modal.getInstance(modal);
+        if (bsModal) {
+            bsModal.hide();
+        }
+        modal.remove();
+    }
 }
 
 // ============================================
@@ -590,9 +680,6 @@ function renderDynamicBasketQuestion(question, config) {
     
     let html = `
         <div id="dynamic-basket-answer">
-            <button type="button" class="btn btn-success mb-3" onclick="addBasketItem()">
-                <i class="fas fa-plus me-2"></i>Sepet Ekle
-            </button>
             <div id="baskets-container"></div>
             <div class="text-center mt-3">
                 <button type="button" class="btn btn-success" onclick="addBasketItem()">
@@ -692,6 +779,9 @@ async function addInvestmentArea() {
     
     console.log('addInvestmentArea çağrıldı, config:', config);
     
+    // Loading göstergesi göster
+    showInvestmentLoading();
+    
     // Güvenlik kontrolü
     if (!config) {
         console.error('Investment config bulunamadı! Global config kontrol ediliyor...');
@@ -710,9 +800,10 @@ async function addInvestmentArea() {
                     categories: [
                         {"label": "Duvar Standı", "value": "wall"},
                         {"label": "Orta Alan Standı", "value": "middle"},
+                        {"label": "Masa Üstü Standı", "value": "desk"},
                         {"label": "Diğer", "value": "other", "allow_custom": true}
                     ],
-                    brands: brands ? brands.map(b => b.name) : ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili"],
+                    brands: brands ? brands.map(b => b.name) : ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Samsung", "Apple"],
                     max_photos: 5
                 };
                 console.log('Veritabanından config oluşturuldu:', config);
@@ -722,9 +813,10 @@ async function addInvestmentArea() {
                     categories: [
                         {"label": "Duvar Standı", "value": "wall"},
                         {"label": "Orta Alan Standı", "value": "middle"},
+                        {"label": "Masa Üstü Standı", "value": "desk"},
                         {"label": "Diğer", "value": "other", "allow_custom": true}
                     ],
-                    brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili"],
+                    brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Samsung", "Apple"],
                     max_photos: 5
                 };
                 console.log('Varsayılan config kullanılıyor:', config);
@@ -738,8 +830,18 @@ async function addInvestmentArea() {
         config.categories = [
             {"label": "Duvar Standı", "value": "wall"},
             {"label": "Orta Alan Standı", "value": "middle"},
+            {"label": "Masa Üstü Standı", "value": "desk"},
             {"label": "Diğer", "value": "other", "allow_custom": true}
         ];
+    } else if (config.categories && config.categories.length === 3) {
+        // Mevcut ankette 3 kategori varsa "Masa Üstü Standı" ekle
+        console.log('⚠️ 3 kategori tespit edildi, "Masa Üstü Standı" ekleniyor...');
+        const hasDesk = config.categories.some(cat => cat.value === 'desk');
+        if (!hasDesk) {
+            // "Masa Üstü Standı" ekle (Orta Alan Standı'dan sonra)
+            config.categories.splice(2, 0, {"label": "Masa Üstü Standı", "value": "desk"});
+            console.log('✅ "Masa Üstü Standı" eklendi. Yeni config:', config.categories);
+        }
     }
     
     if (!config.brands) {
@@ -798,6 +900,10 @@ async function addInvestmentArea() {
         </div>
     `;
     
+    // Loading göstergesini gizle (HTML eklemeden önce)
+    hideInvestmentLoading();
+    console.log('✅ Yatırım alanı eklendi, loading gizleniyor...');
+    
     container.insertAdjacentHTML('beforeend', html);
     window.investmentAreaCount = count + 1;
     
@@ -834,6 +940,17 @@ function checkOtherBrand(index) {
 function previewAreaPhotos(index) {
     const input = document.querySelector(`input.area-photos[data-index="${index}"]`);
     const preview = document.getElementById(`photo-preview-${index}`);
+    
+    // Marka seçimi kontrolü
+    const brandSelect = document.querySelector(`select.area-brand[data-index="${index}"]`);
+    const selectedBrand = brandSelect ? brandSelect.value : '';
+    
+    if (!selectedBrand || selectedBrand === '') {
+        showAlert('Lütfen önce marka seçin!', 'warning');
+        input.value = ''; // Dosya seçimini temizle
+        preview.innerHTML = '';
+        return;
+    }
     
     preview.innerHTML = '';
     
@@ -892,11 +1009,12 @@ async function addBasketItem() {
                         {"label": "Araç İçi Tutucu", "value": "car_holder"},
                         {"label": "Çakmak Şarj Aleti", "value": "car_charger"},
                         {"label": "Kablo", "value": "cable"},
+                        {"label": "Şarj Standı", "value": "charging_stand"},
                         {"label": "Diğer", "value": "other"}
                     ]
                 }
             ],
-            brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Diğer"]
+            brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Samsung", "Apple", "Diğer"]
         };
     }
     
@@ -1087,7 +1205,7 @@ function generateBasketForms() {
     if (!config || !config.brands) {
         console.log('Config bulunamadı, varsayılan kullanılıyor...');
         config = {
-            brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Diğer"]
+            brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Samsung", "Apple", "Diğer"]
         };
     }
     
@@ -1170,7 +1288,7 @@ function generateGSMAccessoryForms() {
     if (!config || !config.brands) {
         console.log('Config bulunamadı, varsayılan kullanılıyor...');
         config = {
-            brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Diğer"]
+            brands: ["Philips", "Ugreen", "JBL", "Anker", "Baseus", "Ttec", "Cellurline", "Shokz", "Fresh'N Rebul", "Sennheiser", "Huawei", "Momax", "Piili", "Samsung", "Apple", "Diğer"]
         };
     }
     
@@ -1365,19 +1483,68 @@ function loadGSMAccessoryAnswer(data) {
 
 // SONRAKİ SORU
 async function nextQuestion() {
-    // Mevcut soruyu kaydet
-    const saved = await saveCurrentAnswer();
-    if (!saved) return;
+    console.log('🚀 === NEXT QUESTION BAŞLADI ===');
+    console.log('🚀 Mevcut soru index:', currentQuestionIndex);
+    console.log('🚀 Toplam soru:', surveyQuestions.length);
     
-    // Son soru mu kontrol et
-    if (currentQuestionIndex >= surveyQuestions.length - 1) {
-        console.log('✅ Son soru tamamlandı, anket bitiriliyor...');
-        submitSurvey();
-        return;
+    // Loading göstergesi göster - Global loading sistemini kullan
+    let loadingId;
+    if (typeof window.loadingSystem !== 'undefined') {
+        loadingId = window.loadingSystem.show('Kaydediliyor...', 'Lütfen bekleyiniz...');
+        console.log('⏳ Global Loading gösterildi, ID:', loadingId);
+    } else {
+        console.warn('⚠️ Global Loading sistemi bulunamadı! Window.loadingSystem:', typeof window.loadingSystem);
+        // Fallback: alert göster
+        alert('Lütfen bekleyiniz...');
     }
     
-    currentQuestionIndex++;
-    renderQuestion(currentQuestionIndex);
+    try {
+        // Mevcut soruyu kaydet
+        console.log('💾 Mevcut cevap kaydediliyor...');
+        if (loadingId && typeof window.loadingSystem !== 'undefined') {
+            window.loadingSystem.update(loadingId, 'Kaydediliyor...', 'Cevabınız kaydediliyor...');
+        }
+        const saved = await saveCurrentAnswer(loadingId);
+        if (!saved) {
+            if (loadingId && typeof window.loadingSystem !== 'undefined') {
+                window.loadingSystem.hide(loadingId);
+            }
+            return;
+        }
+        
+        if (loadingId && typeof window.loadingSystem !== 'undefined') {
+            window.loadingSystem.update(loadingId, 'Yükleniyor...', 'Sonraki soruya geçiliyor...');
+        }
+    
+        // Son soru mu kontrol et (bir sonraki soru yoksa)
+        const nextQuestionIndex = currentQuestionIndex + 1;
+        const isLastQuestion = nextQuestionIndex >= surveyQuestions.length;
+        
+        if (isLastQuestion) {
+            console.log('✅ Son soru tamamlandı, anket bitiriliyor...');
+            console.log('🔍 Current index:', currentQuestionIndex, 'Next index would be:', nextQuestionIndex, 'Total questions:', surveyQuestions.length);
+            if (loadingId && typeof window.loadingSystem !== 'undefined') {
+                window.loadingSystem.hide(loadingId);
+            }
+            submitSurvey();
+            return;
+        }
+        
+        currentQuestionIndex++;
+        console.log('➡️ Sonraki soruya geçiliyor. Yeni index:', currentQuestionIndex);
+        renderQuestion(currentQuestionIndex);
+        
+        // Başarıyla tamamlandı
+        if (loadingId && typeof window.loadingSystem !== 'undefined') {
+            window.loadingSystem.hide(loadingId);
+        }
+    } catch (error) {
+        console.error('❌ Next question hatası:', error);
+        showAlert('Bir hata oluştu. Lütfen tekrar deneyin.', 'danger');
+        if (loadingId && typeof window.loadingSystem !== 'undefined') {
+            window.loadingSystem.hide(loadingId);
+        }
+    }
 }
 
 // ÖNCEKİ SORU
@@ -1389,7 +1556,7 @@ function previousQuestion() {
 }
 
 // MEVCUT CEVABI KAYDET
-async function saveCurrentAnswer() {
+async function saveCurrentAnswer(loadingId = null) {
     console.log('💾 === SAVE CURRENT ANSWER BAŞLADI ===');
     console.log('💾 currentQuestionIndex:', currentQuestionIndex);
     console.log('💾 surveyQuestions:', surveyQuestions);
@@ -1412,11 +1579,15 @@ async function saveCurrentAnswer() {
         // Soru tipine göre cevabı topla
         switch (question.question_type) {
             case 'promoter_count':
+                // Promotör sorusu için loading yoksa göstermeyelim
+                if (loadingId && typeof window.loadingSystem !== 'undefined') {
+                    window.loadingSystem.update(loadingId, 'Cevap Kaydediliyor', 'Promotör bilgileri kaydediliyor...');
+                }
                 answerData = collectPromoterAnswer();
                 break;
             case 'investment_area':
                 console.log('🏗️ Investment area cevabı toplanıyor...');
-                const investmentResult = await collectInvestmentAnswer();
+                const investmentResult = await collectInvestmentAnswer(loadingId);
                 console.log('📦 Investment result:', investmentResult);
                 answerData = investmentResult.data;
                 photos = investmentResult.photos;
@@ -1424,9 +1595,15 @@ async function saveCurrentAnswer() {
                 console.log('📸 Photos array:', photos);
                 break;
             case 'basket_dynamic':
+                if (loadingId && typeof window.loadingSystem !== 'undefined') {
+                    window.loadingSystem.update(loadingId, 'Cevap Kaydediliyor', 'Sepet bilgileri kaydediliyor...');
+                }
                 answerData = collectDynamicBasketAnswer();
                 break;
             case 'gsm_accessory_basket':
+                if (loadingId && typeof window.loadingSystem !== 'undefined') {
+                    window.loadingSystem.update(loadingId, 'Cevap Kaydediliyor', 'GSM Aksesuar bilgileri kaydediliyor...');
+                }
                 answerData = collectGSMAccessoryAnswer();
                 break;
         }
@@ -1502,7 +1679,7 @@ function collectPromoterAnswer() {
 }
 
 // YATIRIM ALANI CEVABINI TOPLA
-async function collectInvestmentAnswer() {
+async function collectInvestmentAnswer(loadingId = null) {
     const areas = [];
     const photoUrls = [];
     const cards = document.querySelectorAll('.investment-area-card');
@@ -1527,11 +1704,23 @@ async function collectInvestmentAnswer() {
         
         if (photosInput && photosInput.files.length > 0) {
             console.log(`📤 ${photosInput.files.length} fotoğraf yükleniyor...`);
+            // Loading güncelle
+            if (loadingId && typeof window.loadingSystem !== 'undefined') {
+                window.loadingSystem.update(loadingId, 'Fotoğraflar Yükleniyor...', `Alan ${index + 1} - ${photosInput.files.length} fotoğraf`);
+            }
             for (let i = 0; i < photosInput.files.length; i++) {
                 const file = photosInput.files[i];
                 console.log(`📤 Fotoğraf ${i+1}/${photosInput.files.length} - ${file.name} (${(file.size/1024).toFixed(2)} KB)`);
                 
+                // Loading göster
+                if (loadingId && typeof window.loadingSystem !== 'undefined') {
+                    const fileSizeKB = (file.size / 1024).toFixed(0);
+                    window.loadingSystem.update(loadingId, 'Fotoğraf Yükleniyor...', `Fotoğraf ${i+1}/${photosInput.files.length} - ${fileSizeKB} KB`);
+                }
+                
+                console.log(`⏳ uploadSurveyPhoto başladı...`);
                 const photoUrl = await uploadSurveyPhoto(file);
+                console.log(`✅ uploadSurveyPhoto tamamlandı:`, photoUrl);
                 
                 if (photoUrl) {
                     console.log(`✅ Fotoğraf ${i+1} yüklendi:`, photoUrl);
@@ -1721,11 +1910,26 @@ async function uploadSurveyPhoto(file) {
 
 // ANKETİ TAMAMLA
 async function submitSurvey() {
-    // Son soruyu kaydet
-    const saved = await saveCurrentAnswer();
-    if (!saved) return;
+    // Loading göster - Global loading sistemini kullan
+    let loadingId;
+    if (typeof window.loadingSystem !== 'undefined') {
+        loadingId = window.loadingSystem.show('Anket Tamamlanıyor', 'Son soruyu kaydediliyor...');
+    }
     
     try {
+        // Son soruyu kaydet
+        const saved = await saveCurrentAnswer(loadingId);
+        if (!saved) {
+            if (loadingId && typeof window.loadingSystem !== 'undefined') {
+                window.loadingSystem.hide(loadingId);
+            }
+            return;
+        }
+        
+        if (loadingId && typeof window.loadingSystem !== 'undefined') {
+            window.loadingSystem.update(loadingId, 'Anket Tamamlanıyor', 'Anket veritabanına kaydediliyor...');
+        }
+        
         // Response'u completed olarak işaretle
         const { error } = await supabase
             .from('survey_responses')
@@ -1737,6 +1941,9 @@ async function submitSurvey() {
             
         if (error) throw error;
         
+        if (loadingId && typeof window.loadingSystem !== 'undefined') {
+            window.loadingSystem.hide(loadingId);
+        }
         showAlert('Anket başarıyla tamamlandı! Teşekkür ederiz.', 'success');
         
         // Modal'ı kapat
@@ -1750,6 +1957,9 @@ async function submitSurvey() {
         
     } catch (error) {
         console.error('Anket tamamlama hatası:', error);
+        if (loadingId && typeof window.loadingSystem !== 'undefined') {
+            window.loadingSystem.hide(loadingId);
+        }
         showAlert('Anket tamamlanırken hata oluştu: ' + error.message, 'danger');
     }
 }

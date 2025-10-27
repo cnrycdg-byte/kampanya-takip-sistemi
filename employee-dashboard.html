@@ -363,32 +363,46 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
-    <script src="js/app.js?v=4.0"></script>
-    <script src="js/employee.js?v=1.4"></script>
-    <script src="js/survey.js?v=2.8"></script>
+    <script src="js/loading-system.js"></script>
+    <script src="js/app.js?v=6.0"></script>
+    <script src="js/employee.js?v=2.0"></script>
+    <script src="js/survey.js?v=5.0"></script>
     
     <!-- Service Worker Registration - DEVRE DIŞI -->
     <script>
-        // Service Worker'ı tamamen devre dışı bırak - Agresif temizleme
+        // Service Worker'ı tamamen devre dışı bırak - Güvenli versiyon (sadece HTTP/HTTPS için)
         (function() {
-            // Hemen çalıştır
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(registration => {
-                        registration.unregister();
-                        console.log('Service Worker kaldırıldı:', registration);
-                    });
-                });
-            }
-            
-            // Cache'leri temizle
-            if ('caches' in window) {
-                caches.keys().then(cacheNames => {
-                    cacheNames.forEach(cacheName => {
-                        caches.delete(cacheName);
-                        console.log('Cache temizlendi:', cacheName);
-                    });
-                });
+            // Sadece HTTP veya HTTPS protokolünde çalış
+            if (location.protocol === 'http:' || location.protocol === 'https:') {
+                // Hemen çalıştır
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations()
+                        .then(registrations => {
+                            registrations.forEach(registration => {
+                                registration.unregister();
+                                console.log('Service Worker kaldırıldı:', registration);
+                            });
+                        })
+                        .catch(error => {
+                            console.log('Service Worker zaten temiz');
+                        });
+                }
+                
+                // Cache'leri temizle
+                if ('caches' in window) {
+                    caches.keys()
+                        .then(cacheNames => {
+                            cacheNames.forEach(cacheName => {
+                                caches.delete(cacheName);
+                                console.log('Cache temizlendi:', cacheName);
+                            });
+                        })
+                        .catch(error => {
+                            console.log('Cache zaten temiz');
+                        });
+                }
+            } else {
+                console.log('File protokolü tespit edildi, Service Worker işlemleri atlandı');
             }
             
             // Local storage'dan service worker verilerini temizle
@@ -402,27 +416,50 @@
             }
         })();
         
-        // Sayfa yüklendiğinde tekrar temizle
+        // Sayfa yüklendiğinde tekrar temizle - Güvenli versiyon
         window.addEventListener('load', () => {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(registration => {
-                        registration.unregister();
-                        console.log('Service Worker kaldırıldı (load):', registration);
-                    });
-                });
+            if (location.protocol === 'http:' || location.protocol === 'https:') {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations()
+                        .then(registrations => {
+                            registrations.forEach(registration => {
+                                registration.unregister();
+                                console.log('Service Worker kaldırıldı (load):', registration);
+                            });
+                        })
+                        .catch(error => {
+                            console.log('Service Worker zaten temiz (load)');
+                        });
+                }
+                
+                if ('caches' in window) {
+                    caches.keys()
+                        .then(cacheNames => {
+                            cacheNames.forEach(cacheName => {
+                                caches.delete(cacheName);
+                                console.log('Cache temizlendi (load):', cacheName);
+                            });
+                        })
+                        .catch(error => {
+                            console.log('Cache zaten temiz (load)');
+                        });
+                }
+                
+                console.log('Service Worker tamamen devre dışı bırakıldı');
             }
-            
-            if ('caches' in window) {
-                caches.keys().then(cacheNames => {
-                    cacheNames.forEach(cacheName => {
-                        caches.delete(cacheName);
-                        console.log('Cache temizlendi (load):', cacheName);
-                    });
-                });
+        });
+        
+        // Sayfa yüklendiğinde görevler bölümünü aç - ÇİFT YÜKLEME ÖNLEM
+        let isInitialLoad = true;
+        window.addEventListener('load', () => {
+            if (isInitialLoad) {
+                isInitialLoad = false;
+                setTimeout(() => {
+                    if (typeof showSection === 'function') {
+                        showSection('tasks');
+                    }
+                }, 500);
             }
-            
-            console.log('Service Worker tamamen devre dışı bırakıldı');
         });
     </script>
 </body>
