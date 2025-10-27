@@ -907,6 +907,14 @@ async function addInvestmentArea() {
     container.insertAdjacentHTML('beforeend', html);
     window.investmentAreaCount = count + 1;
     
+    // Yeni eklenen kartı görünür yap ve kaydır
+    setTimeout(() => {
+        const newCard = document.getElementById(`investment-area-${count}`);
+        if (newCard) {
+            newCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, 100);
+    
     // Alan tipi değişimi dinle
     document.querySelector(`select.area-type[data-index="${count}"]`).addEventListener('change', function(e) {
         const customContainer = document.getElementById(`custom-area-${count}`);
@@ -1100,6 +1108,14 @@ async function addBasketItem() {
     
     console.log('🔧 Sepet kartı eklendi, count:', count);
     console.log('🔧 window.basketConfig:', window.basketConfig);
+    
+    // Yeni eklenen kartı görünür yap ve kaydır
+    setTimeout(() => {
+        const newCard = document.getElementById(`basket-item-${count}`);
+        if (newCard) {
+            newCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, 100);
     
     // Event listener'ları ekle
     setTimeout(() => {
