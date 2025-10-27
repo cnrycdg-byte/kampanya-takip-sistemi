@@ -26,17 +26,19 @@ async function loadFilters() {
         
         if (!surveyError) {
             const surveySelect = document.getElementById('filter-survey');
-            // Eski option'ları temizle (ilk "Tüm Anketler" hariç)
-            while (surveySelect.options.length > 1) {
-                surveySelect.remove(1);
+            if (surveySelect) {
+                // Eski option'ları temizle (ilk "Tüm Anketler" hariç)
+                while (surveySelect.options.length > 1) {
+                    surveySelect.remove(1);
+                }
+                // Yeni option'ları ekle
+                surveys.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s.id;
+                    option.textContent = `${s.title} (${s.month}/${s.year})`;
+                    surveySelect.appendChild(option);
+                });
             }
-            // Yeni option'ları ekle
-            surveys.forEach(s => {
-                const option = document.createElement('option');
-                option.value = s.id;
-                option.textContent = `${s.title} (${s.month}/${s.year})`;
-                surveySelect.appendChild(option);
-            });
         }
         
         // Kanalları yükle
@@ -47,17 +49,19 @@ async function loadFilters() {
         
         if (!channelError) {
             const channelSelect = document.getElementById('filter-channel');
-            // Eski option'ları temizle (ilk "Tüm Kanallar" hariç)
-            while (channelSelect.options.length > 1) {
-                channelSelect.remove(1);
+            if (channelSelect) {
+                // Eski option'ları temizle (ilk "Tüm Kanallar" hariç)
+                while (channelSelect.options.length > 1) {
+                    channelSelect.remove(1);
+                }
+                // Yeni option'ları ekle
+                channels.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.name;
+                    option.textContent = c.name;
+                    channelSelect.appendChild(option);
+                });
             }
-            // Yeni option'ları ekle
-            channels.forEach(c => {
-                const option = document.createElement('option');
-                option.value = c.name;
-                option.textContent = c.name;
-                channelSelect.appendChild(option);
-            });
         }
         
         // Bölgeleri yükle
@@ -68,17 +72,19 @@ async function loadFilters() {
         
         if (!regionError) {
             const regionSelect = document.getElementById('filter-region');
-            // Eski option'ları temizle (ilk "Tüm Bölgeler" hariç)
-            while (regionSelect.options.length > 1) {
-                regionSelect.remove(1);
+            if (regionSelect) {
+                // Eski option'ları temizle (ilk "Tüm Bölgeler" hariç)
+                while (regionSelect.options.length > 1) {
+                    regionSelect.remove(1);
+                }
+                // Yeni option'ları ekle
+                regions.forEach(r => {
+                    const option = document.createElement('option');
+                    option.value = r.name;
+                    option.textContent = r.name;
+                    regionSelect.appendChild(option);
+                });
             }
-            // Yeni option'ları ekle
-            regions.forEach(r => {
-                const option = document.createElement('option');
-                option.value = r.name;
-                option.textContent = r.name;
-                regionSelect.appendChild(option);
-            });
         }
         
     } catch (error) {
@@ -970,12 +976,19 @@ async function loadGSMData() {
         }
         
         html += '</tbody></table>';
-        document.getElementById('gsm-data-table').innerHTML = html;
+        const gsmTableEl = document.getElementById('gsm-data-table');
+        if (gsmTableEl) {
+            gsmTableEl.innerHTML = html;
+        } else {
+            console.warn('⚠️ gsm-data-table elementi bulunamadı');
+        }
         
     } catch (error) {
         console.error('GSM Aksesuar verileri yükleme hatası:', error);
-        document.getElementById('gsm-data-table').innerHTML = 
-            `<div class="alert alert-danger">Hata: ${error.message}</div>`;
+        const gsmTableEl = document.getElementById('gsm-data-table');
+        if (gsmTableEl) {
+            gsmTableEl.innerHTML = `<div class="alert alert-danger">Hata: ${error.message}</div>`;
+        }
     }
 }
 

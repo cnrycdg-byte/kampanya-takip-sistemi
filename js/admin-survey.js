@@ -888,21 +888,54 @@ async function deleteSelectedSurvey() {
     try {
         console.log('🗑️ Anket siliniyor:', surveyId);
         
-        // 1. Önce anket cevaplarını sil
+        // 1. Anket cevaplarını sil (subquery ile survey_responses üzerinden)
         console.log('📝 Anket cevapları siliniyor...');
-        const { error: answersError } = await supabase
-            .from('survey_answers')
+        const { data: responses } = await supabase
+            .from('survey_responses')
+            .select('id')
+            .eq('survey_id', surveyId);
+        
+        if (responses && responses.length > 0) {
+            const responseIds = responses.map(r => r.id);
+            const { error: answersError } = await supabase
+                .from('survey_answers')
+                .delete()
+                .in('response_id', responseIds);
+            
+            if (answersError) {
+                console.error('Anket cevapları silme hatası:', answersError);
+                throw answersError;
+            }
+            console.log(`✅ ${responseIds.length} anket cevabı silindi`);
+        }
+        
+        // 2. Anket yanıtlarını sil
+        console.log('📝 Anket yanıtları siliniyor...');
+        const { error: responsesError } = await supabase
+            .from('survey_responses')
             .delete()
             .eq('survey_id', surveyId);
         
-        if (answersError) {
-            console.error('Anket cevapları silme hatası:', answersError);
-            throw answersError;
+        if (responsesError) {
+            console.error('Anket yanıtları silme hatası:', responsesError);
+            throw responsesError;
         }
+        console.log('✅ Anket yanıtları başarıyla silindi');
         
-        console.log('✅ Anket cevapları başarıyla silindi');
+        // 3. Anket sorularını sil
+        console.log('📝 Anket soruları siliniyor...');
+        const { error: questionsError } = await supabase
+            .from('survey_questions')
+            .delete()
+            .eq('survey_id', surveyId);
         
-        // 2. Sonra anketi sil
+        if (questionsError) {
+            console.error('Anket soruları silme hatası:', questionsError);
+            throw questionsError;
+        }
+        console.log('✅ Anket soruları başarıyla silindi');
+        
+        // 4. Son olarak anketi sil
         console.log('🗑️ Anket siliniyor...');
         const { error } = await supabase
             .from('surveys')
@@ -934,21 +967,54 @@ async function deleteSurveyFromList(surveyId, surveyTitle) {
     try {
         console.log('🗑️ Anket siliniyor:', surveyId, surveyTitle);
         
-        // 1. Önce anket cevaplarını sil
+        // 1. Anket cevaplarını sil (subquery ile survey_responses üzerinden)
         console.log('📝 Anket cevapları siliniyor...');
-        const { error: answersError } = await supabase
-            .from('survey_answers')
+        const { data: responses } = await supabase
+            .from('survey_responses')
+            .select('id')
+            .eq('survey_id', surveyId);
+        
+        if (responses && responses.length > 0) {
+            const responseIds = responses.map(r => r.id);
+            const { error: answersError } = await supabase
+                .from('survey_answers')
+                .delete()
+                .in('response_id', responseIds);
+            
+            if (answersError) {
+                console.error('Anket cevapları silme hatası:', answersError);
+                throw answersError;
+            }
+            console.log(`✅ ${responseIds.length} anket cevabı silindi`);
+        }
+        
+        // 2. Anket yanıtlarını sil
+        console.log('📝 Anket yanıtları siliniyor...');
+        const { error: responsesError } = await supabase
+            .from('survey_responses')
             .delete()
             .eq('survey_id', surveyId);
         
-        if (answersError) {
-            console.error('Anket cevapları silme hatası:', answersError);
-            throw answersError;
+        if (responsesError) {
+            console.error('Anket yanıtları silme hatası:', responsesError);
+            throw responsesError;
         }
+        console.log('✅ Anket yanıtları başarıyla silindi');
         
-        console.log('✅ Anket cevapları başarıyla silindi');
+        // 3. Anket sorularını sil
+        console.log('📝 Anket soruları siliniyor...');
+        const { error: questionsError } = await supabase
+            .from('survey_questions')
+            .delete()
+            .eq('survey_id', surveyId);
         
-        // 2. Sonra anketi sil
+        if (questionsError) {
+            console.error('Anket soruları silme hatası:', questionsError);
+            throw questionsError;
+        }
+        console.log('✅ Anket soruları başarıyla silindi');
+        
+        // 4. Son olarak anketi sil
         console.log('🗑️ Anket siliniyor...');
         const { error } = await supabase
             .from('surveys')
