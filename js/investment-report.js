@@ -200,7 +200,7 @@ async function loadSurveyAnswersData() {
                 areas_count: answerData.areas.length,
                 areas: answerData.areas.map(area => ({
                     brand: area.brand,
-                    area_type: area.area_type || (area.photos && area.photos.length > 0 ? 'wall' : 'middle'),
+                    area_type: area.area_type || area.type || (area.photos && area.photos.length > 0 ? 'wall' : 'middle'),
                     photos: area.photos || [],
                     photos_count: area.photos ? area.photos.length : 0
                 }))
@@ -729,6 +729,12 @@ function updateAreaTypeChart(data) {
     const areaTypeCounts = {};
     data.forEach(item => {
         item.areas.forEach(area => {
+            // Marka filtresi varsa sadece seçili markaları say
+            if (investmentReportData.currentFilters.brand.length > 0) {
+                if (!investmentReportData.currentFilters.brand.includes(area.brand)) {
+                    return; // Bu area'yı atla
+                }
+            }
             const areaType = area.area_type || 'middle';
             areaTypeCounts[areaType] = (areaTypeCounts[areaType] || 0) + 1;
         });
@@ -829,38 +835,60 @@ function updateBrandAnalysisChart(data) {
     }
     
     const brandCounts = {};
+    
+    // Önce tüm alan tiplerini tespit et
+    const allAreaTypes = new Set();
+    data.forEach(item => {
+        item.areas.forEach(area => {
+            allAreaTypes.add(area.area_type || 'middle');
+        });
+    });
+    
+    // Brand counts'u dinamik olarak oluştur
     data.forEach(item => {
         item.areas.forEach(area => {
             const brand = area.brand;
             if (!brandCounts[brand]) {
-                brandCounts[brand] = { wall: 0, middle: 0, total: 0 };
+                // Tüm area tiplerini içeren bir obje oluştur
+                brandCounts[brand] = {};
+                allAreaTypes.forEach(type => {
+                    brandCounts[brand][type] = 0;
+                });
+                brandCounts[brand].total = 0;
             }
             const areaType = area.area_type || 'middle';
-            brandCounts[brand][areaType]++;
-            brandCounts[brand].total++;
+            if (brandCounts[brand][areaType] !== undefined) {
+                brandCounts[brand][areaType]++;
+                brandCounts[brand].total++;
+            }
         });
     });
     
     const brands = Object.keys(brandCounts);
-    const wallData = brands.map(brand => brandCounts[brand].wall);
-    const middleData = brands.map(brand => brandCounts[brand].middle);
+    
+    // Tüm area tiplerini label'lara çevir
+    const areaTypeLabels = {
+        'wall': 'Duvar Standı',
+        'middle': 'Orta Alan Standı',
+        'desk': 'Masa Üstü Standı',
+        'other': 'Diğer'
+    };
+    
+    // Dataset'leri dinamik oluştur
+    const datasets = Array.from(allAreaTypes).map((areaType, index) => {
+        const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+        return {
+            label: areaTypeLabels[areaType] || areaType,
+            data: brands.map(brand => brandCounts[brand][areaType] || 0),
+            backgroundColor: colors[index % colors.length]
+        };
+    });
     
     window.brandAnalysisChart = new Chart(canvas, {
         type: 'bar',
         data: {
             labels: brands,
-            datasets: [
-                {
-                    label: 'Duvar',
-                    data: wallData,
-                    backgroundColor: '#FF6384'
-                },
-                {
-                    label: 'Orta Alan',
-                    data: middleData,
-                    backgroundColor: '#36A2EB'
-                }
-            ]
+            datasets: datasets
         },
         options: {
             responsive: true,
@@ -880,7 +908,7 @@ function updateBrandAnalysisChart(data) {
                 
                 // Eğer grafik elemanına tıklandıysa
                 if (elements.length > 0) {
-                    showChartModal('brand-analysis-chart', 'Marka Bazlı Yatırım Analizi', { brands, wallData, middleData });
+                    showChartModal('brand-analysis-chart', 'Marka Bazlı Yatırım Analizi', { brands, datasets });
                 } else {
                     // Eğer boş alana tıklandıysa (başlık alanı olabilir)
                     const rect = event.native.target.getBoundingClientRect();
@@ -889,7 +917,7 @@ function updateBrandAnalysisChart(data) {
                     
                     if (y < 50) {
                         console.log('🔍 Brand Analysis başlık alanına tıklandı (Chart.js onClick)');
-                        showChartModal('brand-analysis-chart', 'Marka Bazlı Yatırım Analizi', { brands, wallData, middleData });
+                        showChartModal('brand-analysis-chart', 'Marka Bazlı Yatırım Analizi', { brands, datasets });
                     }
                 }
             }
@@ -915,11 +943,11 @@ function updateBrandAnalysisChart(data) {
                 console.log('🔍 Çağrı parametreleri:', { 
                     chartId: 'brand-analysis-chart', 
                     title: 'Marka Bazlı Yatırım Analizi', 
-                    data: { brands, wallData, middleData } 
+                    data: { brands, datasets } 
                 });
                 console.log('🔍 showChartModal çağrılmadan önce...');
                 try {
-                    showChartModal('brand-analysis-chart', 'Marka Bazlı Yatırım Analizi', { brands, wallData, middleData });
+                    showChartModal('brand-analysis-chart', 'Marka Bazlı Yatırım Analizi', { brands, datasets });
                     console.log('✅ showChartModal çağrısı tamamlandı');
                 } catch (error) {
                     console.error('❌ showChartModal çağrısı başarısız:', error);
@@ -990,7 +1018,21 @@ function updateInvestmentBrandPercentageChart(data) {
     
     console.log('🔍 Brand counts:', brandCounts);
     
-    const total = Object.values(brandCounts).reduce((sum, count) => sum + count, 0);
+    // Marka filtresi varsa sadece seçili markaları kullan
+    let filteredBrandCounts = brandCounts;
+    if (investmentReportData.currentFilters.brand.length > 0) {
+        console.log('🔍 Marka filtresi uygulanıyor - Marka Yüzdesel Dağılımı');
+        console.log('🔍 Seçili markalar:', investmentReportData.currentFilters.brand);
+        filteredBrandCounts = {};
+        investmentReportData.currentFilters.brand.forEach(brand => {
+            if (brandCounts[brand]) {
+                filteredBrandCounts[brand] = brandCounts[brand];
+            }
+        });
+        console.log('🔍 Filtrelenmiş brand counts:', filteredBrandCounts);
+    }
+    
+    const total = Object.values(filteredBrandCounts).reduce((sum, count) => sum + count, 0);
     console.log('🔍 Total:', total);
     
     if (total === 0) {
@@ -1005,12 +1047,12 @@ function updateInvestmentBrandPercentageChart(data) {
         return;
     }
     
-    const labels = Object.keys(brandCounts).map(brand => {
-        const count = brandCounts[brand];
+    const labels = Object.keys(filteredBrandCounts).map(brand => {
+        const count = filteredBrandCounts[brand];
         const percentage = ((count / total) * 100).toFixed(1);
         return `${brand} (${percentage}%)`;
     });
-    const values = Object.values(brandCounts);
+    const values = Object.values(filteredBrandCounts);
     
     console.log('🔍 Labels:', labels);
     console.log('🔍 Values:', values);
@@ -1153,8 +1195,19 @@ function updateTrendAnalysisChart(data) {
         return;
     }
     
-    const brands = [...new Set(data.flatMap(item => item.areas.map(area => area.brand)))];
-    const datasets = brands.map((brand, index) => ({
+    // Tüm markaları topla
+    let allBrands = [...new Set(data.flatMap(item => item.areas.map(area => area.brand)))];
+    
+    // Marka filtresi varsa sadece seçili markaları kullan
+    if (investmentReportData.currentFilters.brand.length > 0) {
+        console.log('🔍 Marka filtresi uygulanıyor - Trend Analizi');
+        console.log('🔍 Seçili markalar:', investmentReportData.currentFilters.brand);
+        console.log('🔍 Tüm markalar:', allBrands);
+        allBrands = allBrands.filter(brand => investmentReportData.currentFilters.brand.includes(brand));
+        console.log('🔍 Filtrelenmiş markalar:', allBrands);
+    }
+    
+    const datasets = allBrands.map((brand, index) => ({
         label: brand,
         data: surveys.map(surveyId => surveyData[surveyId][brand] || 0),
         borderColor: `hsl(${index * 60}, 70%, 50%)`,
@@ -1398,10 +1451,7 @@ window.createModalChart = function(chartId, title, data) {
                 type: 'bar',
                 data: {
                     labels: data.brands,
-                    datasets: [
-                        { label: 'Duvar', data: data.wallData, backgroundColor: '#FF6384' },
-                        { label: 'Orta Alan', data: data.middleData, backgroundColor: '#36A2EB' }
-                    ]
+                    datasets: data.datasets
                 },
                 options: {
                     responsive: true,

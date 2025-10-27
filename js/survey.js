@@ -570,14 +570,19 @@ function renderInvestmentAreaQuestion(question, config) {
 function showInvestmentLoading() {
     const container = document.getElementById('investment-areas-container');
     if (container) {
-        container.innerHTML = `
-            <div class="text-center p-4">
+        // Mevcut içeriği silmeden sadece loading ekle
+        const existingLoading = container.querySelector('.investment-loading');
+        if (!existingLoading) {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'investment-loading text-center p-4';
+            loadingDiv.innerHTML = `
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Yükleniyor...</span>
                 </div>
                 <p class="mt-2 text-muted">Yatırım alanı yükleniyor, lütfen bekleyiniz...</p>
-            </div>
-        `;
+            `;
+            container.appendChild(loadingDiv);
+        }
     }
 }
 
@@ -585,9 +590,9 @@ function hideInvestmentLoading() {
     // Loading zaten addInvestmentArea içinde kaldırılıyor, sadece emniyet için
     const container = document.getElementById('investment-areas-container');
     if (container) {
-        const loadingDiv = container.querySelector('.spinner-border');
-        if (loadingDiv && loadingDiv.closest('.text-center')) {
-            loadingDiv.closest('.text-center').remove();
+        const loadingDiv = container.querySelector('.investment-loading');
+        if (loadingDiv) {
+            loadingDiv.remove();
         }
     }
 }
@@ -774,10 +779,16 @@ function toggleBrandCount(index) {
 // Yatırım alanı ekle
 async function addInvestmentArea() {
     const container = document.getElementById('investment-areas-container');
-    const count = window.investmentAreaCount || 0;
-    let config = window.investmentConfig;
     
-    console.log('addInvestmentArea çağrıldı, config:', config);
+    // Mevcut kartları say ve count'u buna göre ayarla
+    const existingCards = container.querySelectorAll('.investment-area-card');
+    const count = existingCards.length;
+    
+    console.log(`➕ addInvestmentArea çağrıldı - Mevcut ${count} kart var`);
+    console.log(`➕ Container:`, container);
+    console.log(`➕ Existing cards:`, existingCards);
+    
+    let config = window.investmentConfig;
     
     // Loading göstergesi göster
     showInvestmentLoading();
@@ -893,6 +904,7 @@ async function addInvestmentArea() {
                             multiple 
                             data-index="${count}"
                             onchange="previewAreaPhotos(${count})">
+                        <input type="hidden" class="area-existing-photos" data-index="${count}" value="[]">
                         <div id="photo-preview-${count}" class="mt-2"></div>
                     </div>
                 </div>
@@ -905,6 +917,11 @@ async function addInvestmentArea() {
     console.log('✅ Yatırım alanı eklendi, loading gizleniyor...');
     
     container.insertAdjacentHTML('beforeend', html);
+    
+    console.log(`✅ Kart eklendi - ID: investment-area-${count}`);
+    console.log(`✅ Container'da şimdi ${container.children.length} element var`);
+    
+    // Count'u artır (bir sonraki ekleme için)
     window.investmentAreaCount = count + 1;
     
     // Yeni eklenen kartı görünür yap ve kaydır
@@ -1440,7 +1457,127 @@ function loadPromoterAnswer(data) {
 
 function loadInvestmentAnswer(data, photos) {
     // Yatırım alanı cevabını yükle
-    // Bu fonksiyon daha sonra implement edilecek
+    console.log('=== LOAD INVESTMENT ANSWER ===');
+    console.log('Data:', data);
+    console.log('Photos:', photos);
+    
+    if (!data || !data.areas || !Array.isArray(data.areas) || data.areas.length === 0) {
+        console.log('Yüklenecek veri yok');
+        return;
+    }
+    
+    const config = window.investmentConfig;
+    if (!config) {
+        console.error('Investment config bulunamadı!');
+        return;
+    }
+    
+    const container = document.getElementById('investment-areas-container');
+    if (!container) {
+        console.error('Investment areas container bulunamadı!');
+        return;
+    }
+    
+    // Kaydedilmiş veri yoksa container'ı temizle
+    if (data.areas && data.areas.length > 0) {
+        console.log('Kaydedilmiş veriler yüklenecek, container temizleniyor...');
+        container.innerHTML = '';
+    } else {
+        console.log('Kaydedilmiş veri yok, mevcut kartlar korunacak');
+    }
+    
+    // Mevcut count'u ayarla - kaydedilmiş veriler varsa 0'dan başla, yoksa mevcut kart sayısından
+    let existingCardCount = container.querySelectorAll('.investment-area-card').length;
+    let count = existingCardCount || 0;
+    console.log(`📊 Başlangıç count: ${count}, Mevcut kart sayısı: ${existingCardCount}`);
+    data.areas.forEach((area, index) => {
+        console.log(`Alan ${index + 1} yükleniyor:`, area);
+        
+        const areaPhotos = area.photos || [];
+        const html = `
+            <div class="card mb-3 investment-area-card" id="investment-area-${count}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Yatırım Alanı #${count + 1}</span>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeInvestmentArea(${count})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Alan Tipi *</label>
+                            <select class="form-control area-type" data-index="${count}" required>
+                                <option value="">Seçiniz</option>
+                                ${config.categories.map(cat => `
+                                    <option value="${cat.value}" ${cat.allow_custom ? 'data-custom="true"' : ''} ${area.type === cat.value ? 'selected' : ''}>
+                                        ${cat.label}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3" id="custom-area-${count}" style="display: ${area.custom_type ? 'block' : 'none'};">
+                            <label class="form-label">Alan Adı</label>
+                            <input type="text" class="form-control custom-area-name" placeholder="Özel alan adı" value="${area.custom_type || ''}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Marka *</label>
+                            <select class="form-control area-brand" data-index="${count}" required onchange="checkOtherBrand(${count})">
+                                <option value="">Seçiniz</option>
+                                ${config.brands.map(brand => `<option value="${brand}" ${area.brand === brand ? 'selected' : ''}>${brand}</option>`).join('')}
+                                <option value="other">Diğer</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3" id="custom-brand-${count}" style="display: ${area.brand === 'other' ? 'block' : 'none'};">
+                            <label class="form-label">Marka Adı</label>
+                            <input type="text" class="form-control custom-brand-name" placeholder="Marka adını yazın" value="${area.brand && area.brand !== 'other' && !config.brands.includes(area.brand) ? area.brand : ''}">
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Fotoğraflar ${areaPhotos.length > 0 ? `(${areaPhotos.length} fotoğraf yüklendi)` : '(Maks. ' + config.max_photos + ')'} *</label>
+                            <input type="file" class="form-control area-photos" 
+                                accept="image/*" 
+                                multiple 
+                                data-index="${count}"
+                                onchange="previewAreaPhotos(${count})">
+                            <input type="hidden" class="area-existing-photos" data-index="${count}" value='${JSON.stringify(areaPhotos).replace(/'/g, '&#39;')}'>
+                            <div id="photo-preview-${count}" class="mt-2">
+                                ${areaPhotos.length > 0 ? areaPhotos.map((url, i) => `
+                                    <div class="d-inline-block me-2 mb-2">
+                                        <img src="${url}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                                        <small class="d-block text-center">${i + 1}</small>
+                                    </div>
+                                `).join('') : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', html);
+        count++;
+    });
+    
+    // Count'u güncelle (eğer hiç alan yoksa 0, varsa son index+1)
+    window.investmentAreaCount = count;
+    console.log(`📊 loadInvestmentAnswer tamamlandı, final count: ${count}`);
+    console.log(`✅ ${count} yatırım alanı yüklendi`);
+    
+    // Alan tipi değişimi dinle
+    setTimeout(() => {
+        data.areas.forEach((area, index) => {
+            const select = document.querySelector(`select.area-type[data-index="${index}"]`);
+            if (select) {
+                select.addEventListener('change', function(e) {
+                    const customContainer = document.getElementById(`custom-area-${index}`);
+                    if (e.target.selectedOptions[0]?.dataset.custom === 'true') {
+                        customContainer.style.display = 'block';
+                    } else {
+                        customContainer.style.display = 'none';
+                    }
+                });
+            }
+        });
+    }, 100);
 }
 
 function loadBasketAnswer(data) {
@@ -1700,6 +1837,8 @@ async function collectInvestmentAnswer(loadingId = null) {
     const photoUrls = [];
     const cards = document.querySelectorAll('.investment-area-card');
     
+    console.log(`🔍 Toplam ${cards.length} yatırım alanı kartı bulundu`);
+    
     for (const card of cards) {
         const index = card.id.split('-')[2];
         const typeSelect = card.querySelector('.area-type');
@@ -1707,14 +1846,33 @@ async function collectInvestmentAnswer(loadingId = null) {
         const customAreaInput = card.querySelector('.custom-area-name');
         const customBrandInput = card.querySelector('.custom-brand-name');
         const photosInput = card.querySelector('.area-photos');
+        const existingPhotosInput = card.querySelector('.area-existing-photos');
         
+        console.log(`📋 Alan ${index} işleniyor...`);
+        console.log(`📋 typeSelect:`, typeSelect?.value);
+        console.log(`📋 brandSelect:`, brandSelect?.value);
+        
+        // Alan tipi veya marka seçilmemişse, bu alanı atla (zaten tamamlanmamış)
         if (!typeSelect?.value || !brandSelect?.value) {
-            showAlert('Lütfen tüm alanları doldurun', 'warning');
-            throw new Error('Eksik alan');
+            console.log(`⚠️ Alan ${index} atlandı - Alan tipi veya marka seçilmemiş`);
+            continue;
         }
         
-        // Fotoğrafları yükle
-        const areaPhotos = [];
+        // Önceden yüklenen fotoğrafları al
+        let areaPhotos = [];
+        if (existingPhotosInput && existingPhotosInput.value) {
+            try {
+                const existingPhotos = JSON.parse(existingPhotosInput.value);
+                if (Array.isArray(existingPhotos)) {
+                    areaPhotos = [...existingPhotos];
+                    console.log(`📸 Area ${index} - Önceden yüklenen fotoğraflar:`, areaPhotos);
+                }
+            } catch (e) {
+                console.error('Önceden yüklenen fotoğraflar parse edilemedi:', e);
+            }
+        }
+        
+        // Yeni fotoğrafları yükle
         console.log(`🖼️ Area ${index} - Fotoğraf input:`, photosInput);
         console.log(`🖼️ Area ${index} - Dosya sayısı:`, photosInput?.files.length);
         
