@@ -32,8 +32,21 @@
                         <h4><i class="fas fa-map-marker-alt me-2"></i>Çalıştığınız Mağazayı Seçin</h4>
                     </div>
                     <div class="card-body">
+                        <!-- Departman Seçimi (İLK) -->
+                        <div class="alert alert-info mb-4">
+                            <h6><i class="fas fa-briefcase me-2"></i>Departman Seçimi</h6>
+                            <label for="department-select-top" class="form-label"><strong>Departmanınız *</strong></label>
+                            <select class="form-select" id="department-select-top" required onchange="departmentSelected()">
+                                <option value="">Lütfen departmanınızı seçin</option>
+                                <option value="Mobil ACC">Mobil ACC</option>
+                                <option value="Kulaklık">Kulaklık</option>
+                                <option value="Ortak">Ortak</option>
+                            </select>
+                            <small class="text-muted">Mağazadaki departmanınızı seçin</small>
+                        </div>
+
                         <!-- Filtreleme Alanı -->
-                        <div class="row mb-4">
+                        <div class="row mb-4" id="filters-section" style="display: none;">
                             <div class="col-md-4 mb-3">
                                 <label for="manager-select" class="form-label">Yönetici</label>
                                 <select class="form-select" id="manager-select" onchange="filterStores()">
@@ -59,12 +72,17 @@
                             <!-- Mağazalar buraya dinamik olarak eklenecek -->
                         </div>
 
-                        <!-- Seçilen Mağaza Bilgisi -->
-                        <div class="alert alert-info mt-4" id="selected-store-info" style="display: none;">
-                            <h6><i class="fas fa-info-circle me-2"></i>Seçilen Mağaza</h6>
-                            <p class="mb-2"><strong>Mağaza:</strong> <span id="selected-store-name">-</span></p>
-                            <p class="mb-2"><strong>Yönetici:</strong> <span id="selected-manager-name">-</span></p>
-                            <p class="mb-0"><strong>Kanal:</strong> <span id="selected-channel-name">-</span></p>
+                        <!-- Seçilen Mağaza Bilgisi ve Departman Seçimi -->
+                        <div class="alert alert-success mt-4" id="selected-store-info" style="display: none;">
+                            <h6><i class="fas fa-check-circle me-2"></i>Mağaza Seçildi</h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <p class="mb-2"><strong>Mağaza:</strong> <span id="selected-store-name">-</span></p>
+                                    <p class="mb-2"><strong>Yönetici:</strong> <span id="selected-manager-name">-</span></p>
+                                    <p class="mb-2"><strong>Kanal:</strong> <span id="selected-channel-name">-</span></p>
+                                    <p class="mb-0"><strong>Departman:</strong> <span id="selected-department-name">-</span></p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Devam Et Butonu -->

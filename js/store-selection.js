@@ -4,6 +4,31 @@ let allStores = [];
 let filteredStores = [];
 let selectedStore = null;
 
+// Departman seçildiğinde
+function departmentSelected() {
+    const department = document.getElementById('department-select-top').value;
+    const filtersSection = document.getElementById('filters-section');
+    const storesSection = document.getElementById('stores-container').parentElement;
+    
+    if (department) {
+        if (filtersSection) filtersSection.style.display = 'flex';
+        if (storesSection) storesSection.style.display = 'block';
+        showAlert('Departman seçildi! Şimdi mağazanızı seçin.', 'success');
+
+        // Seçilen departmanı hemen oturuma yaz
+        const user = getFromStorage('currentUser') || {};
+        user.department = department;
+        saveToStorage('currentUser', user);
+        
+        // Seçilen departmanı özet kutusunda göster
+        const depName = document.getElementById('selected-department-name');
+        if (depName) depName.textContent = department;
+    } else {
+        if (filtersSection) filtersSection.style.display = 'none';
+        if (storesSection) storesSection.style.display = 'none';
+    }
+}
+
 // Sayfa yüklendiğinde çalışacak kod
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Mağaza seçim sayfası yüklendi');
@@ -271,25 +296,64 @@ function selectStore(storeId) {
     selectedStore = allStores.find(store => store.id === storeId);
     
     if (selectedStore) {
-        // Seçilen mağaza bilgilerini göster
-        document.getElementById('selected-store-name').textContent = selectedStore.name;
-        document.getElementById('selected-manager-name').textContent = selectedStore.manager;
-        document.getElementById('selected-channel-name').textContent = selectedStore.channel;
-        document.getElementById('selected-store-info').style.display = 'block';
-        
-        // Devam et butonunu aktif et
-        document.getElementById('continue-btn').disabled = false;
+        // Departman kontrolü ve kaydı
+        const topSelectEl = document.getElementById('department-select-top');
+        let selectedDepartment = topSelectEl && topSelectEl.value ? String(topSelectEl.value).trim() : '';
+        if (!selectedDepartment) {
+            const userTmp = getFromStorage('currentUser');
+            selectedDepartment = (userTmp && userTmp.department) ? String(userTmp.department).trim() : '';
+        }
+        if (!selectedDepartment) {
+            showAlert('Lütfen departman seçiniz!', 'warning');
+            if (topSelectEl) {
+                setTimeout(() => {
+                    topSelectEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    topSelectEl.focus();
+                }, 150);
+            }
+            return;
+        }
+        // Departmanı storage'a yaz
+        const userForDep = getFromStorage('currentUser') || {};
+        userForDep.department = selectedDepartment;
+        saveToStorage('currentUser', userForDep);
+        // Önce container'ı görünür yap
+        const storeInfoBox = document.getElementById('selected-store-info');
+        if (storeInfoBox) {
+            storeInfoBox.style.display = 'block';
+            
+            // Sonra içindeki elementlere değer ver
+            const storeNameEl = document.getElementById('selected-store-name');
+            const managerNameEl = document.getElementById('selected-manager-name');
+            const channelNameEl = document.getElementById('selected-channel-name');
+            const departmentNameEl = document.getElementById('selected-department-name');
+            
+            if (storeNameEl) storeNameEl.textContent = selectedStore.name;
+            if (managerNameEl) managerNameEl.textContent = selectedStore.manager;
+            if (channelNameEl) channelNameEl.textContent = selectedStore.channel;
+            
+            // Departman bilgisini de göster
+            if (departmentNameEl) {
+                departmentNameEl.textContent = selectedDepartment || 'Belirtilmemiş';
+            }
+        }
         
         // Kartları yenile
         displayStores();
         
         // Başarı mesajı
-        showAlert(`${selectedStore.name} mağazası seçildi!`, 'success');
+        showAlert(`${selectedStore.name} mağazası seçildi! Dashboard'a yönlendiriliyorsunuz...`, 'success');
         
-        // 2 saniye sonra otomatik olarak dashboard'a geç
+        // Mağaza bilgisi kutusuna otomatik scroll
         setTimeout(() => {
-            continueToDashboard();
-        }, 2000);
+            if (storeInfoBox) {
+                storeInfoBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 200);
+        
+        // Departman seçili olduğu garanti, otomatik yönlendir
+        console.log('Departman seçili, otomatik yönlendiriliyor...');
+        continueToDashboard();
     }
 }
 
@@ -313,6 +377,14 @@ function filterStores() {
     displayStores();
 }
 
+// Departman seçilince kontrol et
+function checkCanProceed() {
+    const topSelect = document.getElementById('department-select-top');
+    const continueBtn = document.getElementById('continue-btn');
+    const department = topSelect ? topSelect.value : '';
+    if (continueBtn) continueBtn.disabled = !department;
+}
+
 // Dashboard'a devam eden fonksiyon
 function continueToDashboard() {
     if (!selectedStore) {
@@ -320,18 +392,62 @@ function continueToDashboard() {
         return;
     }
     
+    // Departman kontrolü
+    const departmentSelect = document.getElementById('department-select-top');
+    // Önce DOM'dan oku, yoksa currentUser'dan al
+    let department = departmentSelect && departmentSelect.value ? departmentSelect.value : null;
+    if (!department) {
+        const userFromStorage = getFromStorage('currentUser');
+        department = userFromStorage && userFromStorage.department ? userFromStorage.department : null;
+    }
+    if (!department) {
+        showAlert('Lütfen departman seçiniz!', 'danger');
+        if (departmentSelect) departmentSelect.focus();
+        return;
+    }
+    
     // Kullanıcı bilgilerini güncelle
     const user = getFromStorage('currentUser');
     if (user) {
         user.store = selectedStore.name;
-        user.storeId = selectedStore.id;
+        user.storeId = selectedStore.id; // camelCase
+        user.store_id = selectedStore.id; // snake_case (guard uyumluluğu)
         user.manager = selectedStore.manager;
         user.channel = selectedStore.channel;
+        user.department = department;
+    console.log('Devam et: user güncellendi', user);
         saveToStorage('currentUser', user);
+    } else {
+        console.warn('Devam et: currentUser bulunamadı, yönlendirme iptal');
+        showAlert('Oturum bulunamadı. Lütfen tekrar giriş yapın.', 'danger');
+        return;
     }
     
-    // Dashboard'a yönlendir
-    window.location.href = 'employee-dashboard.html';
+    // Dashboard'a yönlendir (popup ise ana pencereye)
+    const targetUrl = new URL('employee-dashboard.html', location.href).href;
+    if (window.opener && !window.opener.closed) {
+        try {
+            window.opener.location.href = targetUrl; // ana pencereyi yönlendir
+            window.close(); // popup'ı kapat
+            return;
+        } catch (e) {
+            console.warn('Opener yönlendirme engellendi, mevcut pencereden yönlendiriliyor');
+        }
+    }
+    
+    // normal sayfa ise mevcut pencereyi yönlendir
+    try {
+        window.location.assign(targetUrl);
+    } catch (e) {
+        window.location.href = targetUrl;
+    }
+    
+    // Fallback tekrar denemesi
+    setTimeout(() => {
+        if (!location.pathname.endsWith('employee-dashboard.html')) {
+            window.location.replace(targetUrl);
+        }
+    }, 800);
 }
 
 // Mağaza kartlarına hover efekti ekleyen fonksiyon

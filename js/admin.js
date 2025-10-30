@@ -1395,7 +1395,6 @@ async function loadUsersList() {
                     name
                 )
             `)
-            .eq('is_active', true)
             .order('created_at', { ascending: false });
         
         console.log('Supabase response:', { data: users, error });
@@ -1486,9 +1485,17 @@ function displayUsersList(users) {
         }[user.role] || user.role;
         
         const regionName = user.regions ? user.regions.name : (user.role === 'admin' ? 'Tüm Bölgeler' : 'Belirtilmemiş');
+        const statusBadge = user.is_active ? '<span class="badge bg-success">Aktif</span>' : '<span class="badge bg-secondary">Pasif</span>';
+        const toggleBtn = user.is_active
+            ? `<button class="btn btn-sm btn-outline-warning me-1" onclick="setUserActive(${user.id}, false)" title="Pasife Al">
+                    <i class="fas fa-toggle-off"></i>
+               </button>`
+            : `<button class="btn btn-sm btn-outline-success me-1" onclick="setUserActive(${user.id}, true)" title="Aktifleştir">
+                    <i class="fas fa-toggle-on"></i>
+               </button>`;
         
         return `
-            <tr>
+            <tr id="user-row-${user.id}">
                 <td>${user.name}</td>
                 <td>${user.email}</td>
                 <td>
@@ -1505,13 +1512,12 @@ function displayUsersList(users) {
                     </span>
                 </td>
                 <td>${regionName}</td>
-                <td>
-                    <span class="badge bg-success">Aktif</span>
-                </td>
+                <td>${statusBadge}</td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser(${user.id})">
                         <i class="fas fa-edit"></i>
                     </button>
+                    ${toggleBtn}
                     ${(() => {
                         const currentUser = checkUserSession();
                         return currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? 
@@ -1529,7 +1535,7 @@ function displayUsersList(users) {
 async function loadStoresList() {
     console.log('loadStoresList fonksiyonu çağrıldı!');
     try {
-        const { data: stores, error } = await supabase
+    const { data: stores, error } = await supabase
             .from('stores')
             .select(`
                 id,
@@ -1600,19 +1606,28 @@ function displayStoresList(stores) {
         const channelName = store.channels ? store.channels.name : 'Belirtilmemiş';
         const regionName = store.regions ? store.regions.name : 'Belirtilmemiş';
         
+        const statusBadge = store.is_active ? '<span class="badge bg-success">Aktif</span>' : '<span class="badge bg-secondary">Pasif</span>';
+        const toggleBtn = store.is_active
+            ? `<button class="btn btn-sm btn-outline-warning me-1" onclick="setStoreActive(${store.id}, false)" title="Pasife Al">
+                    <i class="fas fa-toggle-off"></i>
+               </button>`
+            : `<button class="btn btn-sm btn-outline-success me-1" onclick="setStoreActive(${store.id}, true)" title="Aktifleştir">
+                    <i class="fas fa-toggle-on"></i>
+               </button>`;
         return `
-            <tr>
+            <tr id="store-row-${store.id}">
                 <td>${store.name}</td>
                 <td>${channelName}</td>
                 <td>${regionName}</td>
                 <td>
-                    <span class="badge bg-success">Aktif</span>
+                    ${statusBadge}
                 </td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="editStore(${store.id})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteStore(${store.id})">
+                    ${toggleBtn}
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteStore(${store.id})" title="Sil">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -1797,6 +1812,12 @@ function getRoleBadgeClass(role) {
 // Kullanıcı düzenleme fonksiyonu
 async function editUser(userId) {
     try {
+        // Önce kullanıcı formu bölümünü göster
+        showSection('add-user');
+
+        // Bölge dropdown'ını hazırla
+        await loadRegionsForUserForm();
+
         // Kullanıcı bilgilerini getir
         const { data: user, error } = await supabase
             .from('users')
@@ -1849,8 +1870,7 @@ async function editUser(userId) {
             };
         }
         
-        // Kullanıcı Ekleme section'ına geç
-        showSection('add-user');
+        // Kullanıcı Ekleme section'ı zaten açık
         
     } catch (error) {
         console.error('Kullanıcı bilgileri alınırken hata:', error);
@@ -1938,13 +1958,17 @@ async function deleteUser(userId) {
         try {
             const { error } = await supabase
                 .from('users')
-                .update({ status: 'inactive' })
+                .update({ is_active: false })
                 .eq('id', userId);
             
             if (error) throw error;
             
-            showAlert('✅ Kullanıcı başarıyla silindi!', 'success');
-            loadUsersList(); // Listeyi yenile
+            showAlert('✅ Kullanıcı başarıyla pasife alındı!', 'success');
+            // Satırı anında kaldır
+            const row = document.getElementById(`user-row-${userId}`);
+            if (row) row.remove();
+            // Listeyi yenile
+            loadUsersList();
             
         } catch (error) {
             console.error('Kullanıcı silme hatası:', error);
@@ -1953,9 +1977,31 @@ async function deleteUser(userId) {
     }
 }
 
+// Kullanıcı aktif/pasif durumunu değiştir
+async function setUserActive(userId, isActive) {
+    try {
+        const { error } = await supabase
+            .from('users')
+            .update({ is_active: !!isActive })
+            .eq('id', userId);
+
+        if (error) throw error;
+
+        showAlert(isActive ? '✅ Kullanıcı aktifleştirildi!' : '✅ Kullanıcı pasife alındı!', 'success');
+        // Listeyi yenile
+        loadUsersList();
+    } catch (error) {
+        console.error('Kullanıcı durumu güncellenirken hata:', error);
+        showAlert('❌ Kullanıcı durumu güncellenemedi!', 'danger');
+    }
+}
+
 // Mağaza düzenleme fonksiyonu
 async function editStore(storeId) {
     try {
+        // Önce form bölümünü görünür yap ki DOM'da tüm alanlar kesin mevcut olsun
+        showSection('add-store');
+
         // Mağaza bilgilerini getir
         const { data: store, error } = await supabase
             .from('stores')
@@ -1966,38 +2012,81 @@ async function editStore(storeId) {
             `)
             .eq('id', storeId)
             .single();
-        
         if (error) throw error;
-        
+
+        // Dropdown'ların dolu olduğundan emin ol
+        await Promise.all([
+            loadChannelsForStoreForm(),
+            loadRegionsForStoreForm(),
+            loadManagersForStoreForm()
+        ]);
+
         // Form alanlarını doldur
-        document.getElementById('store-name').value = store.name;
-        document.getElementById('store-channel').value = store.channel_id;
-        document.getElementById('store-region').value = store.region_id;
-        document.getElementById('store-manager').value = store.manager_id;
-        
+        const nameInput = document.getElementById('store-name');
+        const channelSelect = document.getElementById('store-channel');
+        const regionSelect = document.getElementById('store-region');
+        const managerSelect = document.getElementById('store-manager');
+
+        if (nameInput) nameInput.value = store.name || '';
+
+        // Kanal seçeneği yoksa ekle, sonra seç
+        if (channelSelect) {
+            const hasChannelOption = Array.from(channelSelect.options).some(o => parseInt(o.value) === parseInt(store.channel_id));
+            if (!hasChannelOption && store.channel_id) {
+                const opt = document.createElement('option');
+                opt.value = String(store.channel_id);
+                opt.textContent = store.channels?.name || `Kanal #${store.channel_id}`;
+                channelSelect.appendChild(opt);
+            }
+            channelSelect.value = store.channel_id ?? '';
+        }
+
+        // Bölge seçeneği yoksa ekle, sonra seç
+        if (regionSelect) {
+            const hasRegionOption = Array.from(regionSelect.options).some(o => parseInt(o.value) === parseInt(store.region_id));
+            if (!hasRegionOption && store.region_id) {
+                const opt = document.createElement('option');
+                opt.value = String(store.region_id);
+                opt.textContent = store.regions?.name || `Bölge #${store.region_id}`;
+                regionSelect.appendChild(opt);
+            }
+            regionSelect.value = store.region_id ?? '';
+        }
+
+        // Yönetici seçeneği yoksa ekle, sonra seç
+        if (managerSelect) {
+            const hasManagerOption = Array.from(managerSelect.options).some(o => parseInt(o.value) === parseInt(store.manager_id));
+            if (!hasManagerOption && store.manager_id) {
+                const opt = document.createElement('option');
+                opt.value = String(store.manager_id);
+                opt.textContent = `Yönetici #${store.manager_id}`;
+                managerSelect.appendChild(opt);
+            }
+            managerSelect.value = store.manager_id ?? '';
+        }
+
         // Form başlığını değiştir
-        document.querySelector('#add-store-section .card-header h5').textContent = 'Mağaza Düzenle';
-        
+        const titleEl = document.querySelector('#add-store-section .card-header h5');
+        if (titleEl) titleEl.textContent = 'Mağaza Düzenle';
+
         // Submit butonunu değiştir
-        const submitBtn = document.querySelector('#add-store-form button[type="submit"]');
-        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Güncelle';
-        submitBtn.type = 'button'; // Submit olmasın
-        submitBtn.onclick = () => updateStore(storeId);
-        
+        const submitBtn = document.querySelector('#add-store-form button[type="submit"], #add-store-form button[type="button"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Güncelle';
+            submitBtn.setAttribute('type', 'button');
+            submitBtn.onclick = () => updateStore(storeId);
+        }
+
         // Form submit event'ini geçici olarak devre dışı bırak
         const form = document.getElementById('add-store-form');
         if (form) {
-            // Önceki event listener'ı temizle
-            form.removeEventListener('submit', handleAddStore);
+            try { form.removeEventListener('submit', handleAddStore); } catch (_) {}
             form.onsubmit = (e) => {
                 e.preventDefault();
                 updateStore(storeId);
             };
         }
-        
-        // Mağaza Ekleme section'ına geç
-        showSection('add-store');
-        
+
     } catch (error) {
         console.error('Mağaza bilgileri alınırken hata:', error);
         alert('❌ Mağaza bilgileri alınırken hata oluştu!');
@@ -2072,7 +2161,11 @@ async function deleteStore(storeId) {
             if (error) throw error;
             
             alert('✅ Mağaza başarıyla silindi!');
-            loadStoresList(); // Listeyi yenile
+            // Satırı anında kaldır
+            const row = document.getElementById(`store-row-${storeId}`);
+            if (row) row.remove();
+            // Listeyi yenile
+            loadStoresList();
             
             // Global mağaza listesi yenileme eventi gönder
             window.dispatchEvent(new CustomEvent('storesUpdated'));
@@ -2081,6 +2174,29 @@ async function deleteStore(storeId) {
             console.error('Mağaza silme hatası:', error);
             alert('❌ Mağaza silinirken bir hata oluştu!');
         }
+    }
+}
+
+// Mağaza aktif/pasif durumunu değiştir
+async function setStoreActive(storeId, isActive) {
+    try {
+        const { error } = await supabase
+            .from('stores')
+            .update({ is_active: !!isActive })
+            .eq('id', storeId);
+
+        if (error) throw error;
+
+        showAlert(isActive ? '✅ Mağaza aktifleştirildi!' : '✅ Mağaza pasife alındı!', 'success');
+
+        // Listeyi yenile
+        loadStoresList();
+
+        // Global mağaza listesi güncellendi
+        window.dispatchEvent(new CustomEvent('storesUpdated'));
+    } catch (error) {
+        console.error('Mağaza durumu güncellenirken hata:', error);
+        showAlert('❌ Mağaza durumu güncellenemedi!', 'danger');
     }
 }
 

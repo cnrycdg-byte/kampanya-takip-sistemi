@@ -50,6 +50,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="#sales-entry" onclick="showSection('sales-entry')">
+                                <i class="fas fa-shopping-cart me-2"></i>Satış Girişi
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="#completed" onclick="showSection('completed')">
                                 <i class="fas fa-check-circle me-2"></i>Tamamlanan
                             </a>
@@ -225,6 +230,19 @@
                     </div>
                 </div>
 
+                <!-- Satış Girişi İçeriği -->
+                <div id="sales-entry-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Satış Girişi</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Satış girişi formu yükleniyor...</p>
+                            <div id="sales-entry-content"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Profil İçeriği -->
                 <div id="profile-section" class="content-section" style="display: none;">
                     <div class="card shadow">
@@ -367,6 +385,7 @@
     <script src="js/app.js?v=6.0"></script>
     <script src="js/employee.js?v=2.0"></script>
     <script src="js/survey.js?v=6.2"></script>
+    <script src="js/sales-entry.js"></script>
     
     <!-- Service Worker Registration - DEVRE DIŞI -->
     <script>

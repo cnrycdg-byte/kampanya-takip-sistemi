@@ -1,3 +1,193 @@
+// Anket Yönetimi Raporları - İskelet ve Placeholder Uygulama
+
+(function() {
+    function renderFilters(targetId) {
+        const container = document.getElementById(targetId);
+        if (!container) return;
+        container.innerHTML = `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Kanal</label>
+                            <select class="form-select" id="filter-channel">
+                                <option value="">Tümü</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Bölge</label>
+                            <select class="form-select" id="filter-region">
+                                <option value="">Tümü</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Mağaza</label>
+                            <select class="form-select" id="filter-store">
+                                <option value="">Tümü</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tarih Aralığı</label>
+                            <div class="d-flex gap-2">
+                                <input type="date" class="form-control" id="filter-start">
+                                <input type="date" class="form-control" id="filter-end">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderPlaceholder(targetId, title, chartId, tableId) {
+        const container = document.getElementById(targetId);
+        if (!container) return;
+        const html = `
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">${title}</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="${chartId}" height="90"></canvas>
+                </div>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Detaylar</h6>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fas fa-print me-1"></i>Yazdır</button>
+                            <button class="btn btn-sm btn-outline-success" onclick="exportTableCSV('${tableId}')"><i class="fas fa-file-csv me-1"></i>CSV</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0" id="${tableId}">
+                            <thead>
+                                <tr>
+                                    <th>Mağaza</th>
+                                    <th>Kanal</th>
+                                    <th>Bölge</th>
+                                    <th>Metrix 1</th>
+                                    <th>Metrix 2</th>
+                                    <th>Metrix 3</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>-</td><td>-</td><td>-</td><td>0</td><td>0</td><td>0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function initChart(canvasId) {
+        if (!window.Chart) return;
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+        const data = {
+            labels: ['Hafta 1', 'Hafta 2', 'Hafta 3', 'Hafta 4'],
+            datasets: [{
+                label: 'Trend',
+                data: [12, 19, 7, 15],
+                borderColor: 'rgba(75,192,192,1)',
+                backgroundColor: 'rgba(75,192,192,0.2)',
+                tension: 0.3,
+                fill: true
+            }]
+        };
+        new Chart(ctx, { type: 'line', data, options: { responsive: true, maintainAspectRatio: false } });
+    }
+
+    window.exportTableCSV = function(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        let csv = [];
+        for (const row of table.querySelectorAll('tr')) {
+            const cols = Array.from(row.querySelectorAll('th,td')).map(c => '"' + (c.innerText || '').replace(/"/g, '""') + '"');
+            csv.push(cols.join(','));
+        }
+        const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = tableId + '.csv'; a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    function loadSurveyReports() {
+        const cid = 'survey-reports-container';
+        const container = document.getElementById(cid);
+        if (!container) return;
+        container.innerHTML = '';
+        renderFilters(cid);
+        renderPlaceholder(cid, 'Anket Raporları - Trend', 'surveyReportsChart', 'surveyReportsTable');
+        initChart('surveyReportsChart');
+    }
+
+    function loadPromoterReports() {
+        const cid = 'promoter-reports-container';
+        const container = document.getElementById(cid);
+        if (!container) return;
+        container.innerHTML = '';
+        renderFilters(cid);
+        renderPlaceholder(cid, 'Promotör Raporu - Performans', 'promoterReportsChart', 'promoterReportsTable');
+        initChart('promoterReportsChart');
+    }
+
+    function loadInvestmentReports() {
+        const cid = 'investment-reports-container';
+        const container = document.getElementById(cid);
+        if (!container) return;
+        container.innerHTML = '';
+        renderFilters(cid);
+        renderPlaceholder(cid, 'Yatırım Alanı Raporu - Trend', 'investmentReportsChart', 'investmentReportsTable');
+        initChart('investmentReportsChart');
+    }
+
+    function loadBasketReports() {
+        const cid = 'basket-reports-container';
+        const container = document.getElementById(cid);
+        if (!container) return;
+        container.innerHTML = '';
+        renderFilters(cid);
+        renderPlaceholder(cid, 'Sepet Raporu - Trend', 'basketReportsChart', 'basketReportsTable');
+        initChart('basketReportsChart');
+    }
+
+    function loadPriceTrackReports() {
+        const cid = 'price-track-reports-container';
+        const container = document.getElementById(cid);
+        if (!container) return;
+        container.innerHTML = '';
+        renderFilters(cid);
+        renderPlaceholder(cid, 'Fiyat Takip Raporu - Trend', 'priceTrackReportsChart', 'priceTrackReportsTable');
+        initChart('priceTrackReportsChart');
+    }
+
+    // Sekme yükleme - ilk gösterimde hazırla
+    document.addEventListener('click', function(e) {
+        const a = e.target.closest('a.nav-link');
+        if (!a) return;
+        if (a.getAttribute('href') === '#survey-reports') {
+            setTimeout(loadSurveyReports, 50);
+        } else if (a.getAttribute('href') === '#promoter-reports') {
+            setTimeout(loadPromoterReports, 50);
+        } else if (a.getAttribute('href') === '#investment-reports') {
+            setTimeout(loadInvestmentReports, 50);
+        } else if (a.getAttribute('href') === '#basket-reports') {
+            setTimeout(loadBasketReports, 50);
+        } else if (a.getAttribute('href') === '#price-track-reports') {
+            setTimeout(loadPriceTrackReports, 50);
+        }
+    });
+})();
+
 // ============================================
 // ANKET RAPORLAMA SİSTEMİ
 // ============================================
@@ -445,8 +635,8 @@ async function loadChannelFilters() {
     try {
         const { data: channels, error } = await supabase
             .from('channels')
-            .select('id, channel_name')
-            .order('channel_name');
+            .select('id, name')
+            .order('name');
         
         if (error) throw error;
         
@@ -462,8 +652,8 @@ async function loadChannelFilters() {
                 select.innerHTML = '<option value="">Tüm Kanallar</option>';
                 channels.forEach(channel => {
                     const option = document.createElement('option');
-                    option.value = channel.channel_name;
-                    option.textContent = channel.channel_name;
+                    option.value = channel.name;
+                    option.textContent = channel.name;
                     select.appendChild(option);
                 });
             }
