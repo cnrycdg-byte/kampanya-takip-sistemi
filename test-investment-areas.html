@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yatırım Alanları Test Sayfası</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            background: #f8f9fa;
+        }
+        .test-section h4 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .log-area {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-success { color: #4ec9b0; }
+        .log-error { color: #f48771; }
+        .log-info { color: #569cd6; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-flask me-2"></i>
+                    Yatırım Alanları Modülü - Test Sayfası
+                </h1>
+            </div>
+        </div>
+
+        <!-- Hızlı Test Butonları -->
+        <div class="test-section">
+            <h4><i class="fas fa-bolt me-2"></i>Hızlı Test</h4>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100" onclick="testDatabaseConnection()">
+                        <i class="fas fa-database me-2"></i>Veritabanı Bağlantısı
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-info w-100" onclick="testLoadChannels()">
+                        <i class="fas fa-list me-2"></i>Kanalları Yükle
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-success w-100" onclick="testLoadStores()">
+                        <i class="fas fa-store me-2"></i>Mağazaları Yükle
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-warning w-100" onclick="testLoadInvestmentAreas()">
+                        <i class="fas fa-building me-2"></i>Yatırım Alanlarını Yükle
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yatırım Alanı Oluşturma -->
+        <div class="test-section">
+            <h4><i class="fas fa-plus-circle me-2"></i>1. Yatırım Alanı Oluştur</h4>
+            <form id="create-area-form" onsubmit="createInvestmentArea(event)">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Mağaza *</label>
+                        <select class="form-select" id="test-store" required>
+                            <option value="">Mağaza Seçiniz</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Marka *</label>
+                        <select class="form-select" id="test-area-brand" required>
+                            <option value="">Marka Seçiniz</option>
+                            <option value="philips">Philips</option>
+                            <option value="ugreen">Ugreen</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Yatırım Alanı Adı *</label>
+                        <input type="text" class="form-control" id="test-area-name" required placeholder="Örn: Stand 1">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Yatırım Alanı Tipi *</label>
+                        <select class="form-select" id="test-area-type" required>
+                            <option value="">Tip Seçiniz</option>
+                            <option value="ada_stand">Ada Stand</option>
+                            <option value="duvar_standi">Duvar Standı</option>
+                            <option value="alinlik">Alınlık</option>
+                            <option value="reyon_giydirme">Reyon Giydirme</option>
+                            <option value="diger">Diğer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Durum</label>
+                        <select class="form-select" id="test-area-status">
+                            <option value="active">Aktif</option>
+                            <option value="planned">Planlanmış</option>
+                            <option value="removed">Kaldırılmış</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="test-area-description" rows="2"></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save me-2"></i>Yatırım Alanı Oluştur
+                </button>
+            </form>
+        </div>
+
+        <!-- Ticket Oluşturma -->
+        <div class="test-section">
+            <h4><i class="fas fa-ticket-alt me-2"></i>2. Ticket Oluştur</h4>
+            <form id="create-ticket-form" onsubmit="createTicket(event)">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Yatırım Alanı *</label>
+                        <select class="form-select" id="test-investment-area" required>
+                            <option value="">Yatırım Alanı Seçiniz</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ticket Tipi *</label>
+                        <select class="form-select" id="test-ticket-type" required>
+                            <option value="">Tip Seçiniz</option>
+                            <option value="new_stand">Yeni Stand</option>
+                            <option value="revision">Revizyon</option>
+                            <option value="correction">Düzeltme</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Durum</label>
+                        <select class="form-select" id="test-ticket-status">
+                            <option value="open">Açık</option>
+                            <option value="in_progress">Üzerinde Çalışılıyor</option>
+                            <option value="pending_approval">Onay Bekliyor</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Konu *</label>
+                        <input type="text" class="form-control" id="test-ticket-subject" required placeholder="Örn: Standda ışık bozuk">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sorumlu (User ID - opsiyonel)</label>
+                        <input type="number" class="form-control" id="test-ticket-assigned" placeholder="User ID">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Açıklama</label>
+                    <textarea class="form-control" id="test-ticket-description" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Ticket Oluştur
+                </button>
+            </form>
+        </div>
+
+        <!-- Fotoğraf Yükleme -->
+        <div class="test-section">
+            <h4><i class="fas fa-camera me-2"></i>3. Fotoğraf Yükle</h4>
+            <form id="upload-photo-form" onsubmit="uploadPhoto(event)">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Yatırım Alanı *</label>
+                        <select class="form-select" id="test-photo-area" required>
+                            <option value="">Yatırım Alanı Seçiniz</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ticket (Opsiyonel)</label>
+                        <select class="form-select" id="test-photo-ticket">
+                            <option value="">Ticket Seçiniz (Opsiyonel)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Kaynak *</label>
+                        <select class="form-select" id="test-photo-source" required>
+                            <option value="weekly_check">Haftalık Kontrol</option>
+                            <option value="ticket">Ticket</option>
+                            <option value="before">Önce</option>
+                            <option value="after">Sonra</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fotoğraf *</label>
+                    <input type="file" class="form-control" id="test-photo-file" accept="image/*" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Not</label>
+                    <textarea class="form-control" id="test-photo-note" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-info">
+                    <i class="fas fa-upload me-2"></i>Fotoğraf Yükle
+                </button>
+            </form>
+        </div>
+
+        <!-- Yorum Ekleme -->
+        <div class="test-section">
+            <h4><i class="fas fa-comment me-2"></i>4. Ticket'a Yorum Ekle</h4>
+            <form id="add-comment-form" onsubmit="addComment(event)">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Ticket ID *</label>
+                        <input type="number" class="form-control" id="test-comment-ticket" required placeholder="Ticket ID girin">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">User ID *</label>
+                        <input type="number" class="form-control" id="test-comment-user" required placeholder="User ID girin">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Yorum *</label>
+                    <textarea class="form-control" id="test-comment-text" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-paper-plane me-2"></i>Yorum Ekle
+                </button>
+            </form>
+        </div>
+
+        <!-- Veri Listeleri -->
+        <div class="test-section">
+            <h4><i class="fas fa-list me-2"></i>5. Veri Listeleri</h4>
+            <div class="row g-2 mb-3">
+                <div class="col-md-3">
+                    <button class="btn btn-outline-primary w-100" onclick="loadAllInvestmentAreas()">
+                        <i class="fas fa-building me-2"></i>Tüm Yatırım Alanları
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-info w-100" onclick="loadAllTickets()">
+                        <i class="fas fa-ticket-alt me-2"></i>Tüm Ticketlar
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-success w-100" onclick="loadAllPhotos()">
+                        <i class="fas fa-images me-2"></i>Tüm Fotoğraflar
+                    </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-warning w-100" onclick="clearLog()">
+                        <i class="fas fa-trash me-2"></i>Log Temizle
+                    </button>
+                </div>
+            </div>
+            <div id="data-list-container" class="mt-3">
+                <!-- Veriler buraya yüklenecek -->
+            </div>
+        </div>
+
+        <!-- Test Log -->
+        <div class="test-section">
+            <h4><i class="fas fa-terminal me-2"></i>Test Log</h4>
+            <div id="test-log" class="log-area">
+                <div class="log-info">Test sayfası yüklendi. Testlere başlayabilirsiniz.</div>
+            </div>
+        </div>
+
+        <!-- Sayfa Linkleri -->
+        <div class="test-section">
+            <h4><i class="fas fa-link me-2"></i>Modül Sayfaları</h4>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <a href="investment-areas.html" class="btn btn-outline-primary w-100" target="_blank">
+                        <i class="fas fa-list me-2"></i>Ana Liste
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="investment-reporting.html" class="btn btn-outline-info w-100" target="_blank">
+                        <i class="fas fa-chart-bar me-2"></i>Raporlama
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="employee-dashboard.html" class="btn btn-outline-success w-100" target="_blank">
+                        <i class="fas fa-user me-2"></i>Employee Dashboard
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-secondary w-100" onclick="openAreaDetail()">
+                        <i class="fas fa-eye me-2"></i>Detay Sayfası (ID gerekli)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/investment-areas.js"></script>
+    <script>
+        // Test log fonksiyonu
+        function addLog(message, type = 'info') {
+            const logArea = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString('tr-TR');
+            const logClass = `log-${type}`;
+            const logEntry = document.createElement('div');
+            logEntry.className = logClass;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('test-log').innerHTML = '';
+            addLog('Log temizlendi', 'info');
+        }
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', async function() {
+            addLog('Sayfa yüklendi, veriler hazırlanıyor...', 'info');
+            
+            // Supabase kontrolü
+            if (typeof supabase === 'undefined') {
+                addLog('⚠ UYARI: Supabase henüz yüklenmedi, bekleniyor...', 'error');
+                // 1 saniye bekle ve tekrar dene
+                setTimeout(async () => {
+                    if (typeof supabase === 'undefined') {
+                        addLog('✗ HATA: Supabase yüklenemedi!', 'error');
+                        addLog('   js/supabase-config.js dosyasının doğru yüklendiğinden emin olun.', 'error');
+                    } else {
+                        addLog('✓ Supabase yüklendi', 'success');
+                        await loadTestData();
+                    }
+                }, 1000);
+            } else {
+                await loadTestData();
+            }
+        });
+
+        // Test verilerini yükle
+        async function loadTestData() {
+            try {
+                // Supabase kontrolü
+                if (typeof supabase === 'undefined') {
+                    addLog('✗ Supabase yüklenmedi, veriler yüklenemiyor', 'error');
+                    return;
+                }
+
+                // Mağazaları yükle
+                const { data: stores, error: storesError } = await supabase
+                    .from('stores')
+                    .select('id, name')
+                    .eq('status', 'active')
+                    .limit(20);
+
+                if (storesError) {
+                    addLog(`Mağaza yükleme hatası: ${storesError.message}`, 'error');
+                } else if (stores && stores.length > 0) {
+                    const storeSelect = document.getElementById('test-store');
+                    stores.forEach(store => {
+                        const option = document.createElement('option');
+                        option.value = store.id;
+                        option.textContent = store.name;
+                        storeSelect.appendChild(option);
+                    });
+                    addLog(`✓ ${stores.length} mağaza yüklendi`, 'success');
+                } else {
+                    addLog('⚠ Mağaza bulunamadı', 'info');
+                }
+
+                // Yatırım alanlarını yükle
+                await loadInvestmentAreasForTest();
+
+            } catch (error) {
+                addLog(`Veri yükleme hatası: ${error.message}`, 'error');
+                console.error('loadTestData hatası:', error);
+            }
+        }
+
+        // Yatırım alanlarını test için yükle
+        async function loadInvestmentAreasForTest() {
+            try {
+                if (typeof supabase === 'undefined') {
+                    addLog('⚠ Supabase yüklenmedi, yatırım alanları yüklenemiyor', 'error');
+                    return;
+                }
+
+                const { data: areas, error } = await supabase
+                    .from('investment_areas')
+                    .select('id, name, type, brand')
+                    .order('name')
+                    .limit(50);
+
+                if (error) {
+                    if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+                        addLog('⚠ investment_areas tablosu henüz oluşturulmamış', 'error');
+                        addLog('   create_investment_areas_system.sql dosyasını çalıştırın', 'error');
+                    } else {
+                        throw error;
+                    }
+                    return;
+                }
+
+                const areaSelect = document.getElementById('test-investment-area');
+                const photoAreaSelect = document.getElementById('test-photo-area');
+                
+                [areaSelect, photoAreaSelect].forEach(select => {
+                    select.innerHTML = '<option value="">Yatırım Alanı Seçiniz</option>';
+                    if (areas && areas.length > 0) {
+                        areas.forEach(area => {
+                            const option = document.createElement('option');
+                            option.value = area.id;
+                            const brandLabel = area.brand === 'philips' ? 'Philips' : area.brand === 'ugreen' ? 'Ugreen' : '';
+                            const typeLabels = {
+                                'ada_stand': 'Ada Stand',
+                                'duvar_standi': 'Duvar Standı',
+                                'alinlik': 'Alınlık',
+                                'reyon_giydirme': 'Reyon Giydirme',
+                                'diger': 'Diğer'
+                            };
+                            option.textContent = `${area.name} ${brandLabel ? '(' + brandLabel + ')' : ''} - ${typeLabels[area.type] || area.type}`;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+
+                if (areas && areas.length > 0) {
+                    addLog(`✓ ${areas.length} yatırım alanı yüklendi`, 'success');
+                } else {
+                    addLog('⚠ Yatırım alanı bulunamadı (henüz oluşturulmamış olabilir)', 'info');
+                }
+
+            } catch (error) {
+                addLog(`✗ Yatırım alanları yükleme hatası: ${error.message}`, 'error');
+                console.error('loadInvestmentAreasForTest hatası:', error);
+            }
+        }
+
+        // Ticket'ları test için yükle
+        async function loadTicketsForTest() {
+            try {
+                const areaId = document.getElementById('test-photo-area').value;
+                if (!areaId) return;
+
+                const { data: tickets, error } = await supabase
+                    .from('investment_tickets')
+                    .select('id, subject, type')
+                    .eq('investment_area_id', areaId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const ticketSelect = document.getElementById('test-photo-ticket');
+                ticketSelect.innerHTML = '<option value="">Ticket Seçiniz (Opsiyonel)</option>';
+
+                if (tickets && tickets.length > 0) {
+                    tickets.forEach(ticket => {
+                        const option = document.createElement('option');
+                        option.value = ticket.id;
+                        option.textContent = `#${ticket.id} - ${ticket.subject}`;
+                        ticketSelect.appendChild(option);
+                    });
+                }
+
+            } catch (error) {
+                addLog(`Ticket yükleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Yatırım alanı seçildiğinde ticket'ları yükle
+        document.getElementById('test-photo-area').addEventListener('change', loadTicketsForTest);
+
+        // Test fonksiyonları
+        async function testDatabaseConnection() {
+            console.log('testDatabaseConnection fonksiyonu çağrıldı');
+            addLog('Veritabanı bağlantısı test ediliyor...', 'info');
+            
+            // Supabase değişkenini bul (hem global hem window üzerinden)
+            let supabaseClient = supabase || window.supabase;
+            
+            // Önce Supabase'in yüklü olup olmadığını kontrol et
+            if (typeof supabaseClient === 'undefined') {
+                addLog('✗ HATA: Supabase bağlantısı bulunamadı!', 'error');
+                addLog('   supabase-config.js dosyasının yüklendiğinden emin olun.', 'error');
+                console.error('Supabase tanımlı değil!');
+                console.log('window.supabase:', window.supabase);
+                console.log('typeof supabase:', typeof supabase);
+                console.log('typeof window.supabase:', typeof window.supabase);
+                return;
+            }
+            
+            console.log('Supabase bulundu:', supabaseClient);
+            addLog('Supabase bağlantısı bulundu, test ediliyor...', 'info');
+            
+            try {
+                // Önce basit bir tablo ile test et (investment_areas henüz oluşturulmamış olabilir)
+                const { data: regionsData, error: regionsError } = await supabaseClient
+                    .from('regions')
+                    .select('id')
+                    .limit(1);
+                
+                if (regionsError) {
+                    addLog(`✗ Regions tablosu hatası: ${regionsError.message}`, 'error');
+                    throw regionsError;
+                }
+                
+                addLog('✓ Regions tablosu bağlantısı başarılı', 'success');
+                
+                // Şimdi investment_areas tablosunu test et
+                try {
+                    const { data: areasData, error: areasError } = await supabaseClient
+                        .from('investment_areas')
+                        .select('id')
+                        .limit(1);
+                    
+                    if (areasError) {
+                        if (areasError.code === 'PGRST116' || areasError.message.includes('does not exist')) {
+                            addLog('⚠ investment_areas tablosu henüz oluşturulmamış', 'error');
+                            addLog('   Lütfen create_investment_areas_system.sql dosyasını Supabase SQL Editor\'da çalıştırın', 'error');
+                        } else {
+                            throw areasError;
+                        }
+                    } else {
+                        addLog('✓ investment_areas tablosu bağlantısı başarılı', 'success');
+                        addLog(`✓ Veritabanı bağlantısı tamamen başarılı!`, 'success');
+                    }
+                } catch (areasErr) {
+                    addLog(`✗ investment_areas tablosu hatası: ${areasErr.message}`, 'error');
+                }
+                
+            } catch (error) {
+                addLog(`✗ Veritabanı bağlantı hatası: ${error.message}`, 'error');
+                addLog(`   Hata detayı: ${JSON.stringify(error)}`, 'error');
+                console.error('Veritabanı bağlantı hatası:', error);
+            }
+        }
+
+        async function testLoadChannels() {
+            addLog('Kanallar yükleniyor...', 'info');
+            try {
+                const { data, error } = await supabase
+                    .from('channels')
+                    .select('id, name')
+                    .eq('status', 'active')
+                    .limit(10);
+                if (error) throw error;
+                addLog(`✓ ${data.length} kanal yüklendi: ${data.map(c => c.name).join(', ')}`, 'success');
+            } catch (error) {
+                addLog(`✗ Kanal yükleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLoadStores() {
+            addLog('Mağazalar yükleniyor...', 'info');
+            try {
+                const { data, error } = await supabase
+                    .from('stores')
+                    .select('id, name')
+                    .eq('status', 'active')
+                    .limit(10);
+                if (error) throw error;
+                addLog(`✓ ${data.length} mağaza yüklendi`, 'success');
+            } catch (error) {
+                addLog(`✗ Mağaza yükleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLoadInvestmentAreas() {
+            addLog('Yatırım alanları yükleniyor...', 'info');
+            try {
+                const { data, error } = await supabase
+                    .from('investment_areas')
+                    .select('id, name, type, brand, status')
+                    .limit(10);
+                if (error) throw error;
+                addLog(`✓ ${data.length} yatırım alanı yüklendi`, 'success');
+                if (data.length > 0) {
+                    const typeLabels = {
+                        'ada_stand': 'Ada Stand',
+                        'duvar_standi': 'Duvar Standı',
+                        'alinlik': 'Alınlık',
+                        'reyon_giydirme': 'Reyon Giydirme',
+                        'diger': 'Diğer'
+                    };
+                    data.forEach(area => {
+                        const brandLabel = area.brand === 'philips' ? 'Philips' : area.brand === 'ugreen' ? 'Ugreen' : '';
+                        addLog(`  - ${area.name} ${brandLabel ? '(' + brandLabel + ')' : ''} - ${typeLabels[area.type] || area.type} - ${area.status}`, 'info');
+                    });
+                }
+            } catch (error) {
+                addLog(`✗ Yatırım alanı yükleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Yatırım alanı oluştur
+        async function createInvestmentArea(event) {
+            event.preventDefault();
+            addLog('Yatırım alanı oluşturuluyor...', 'info');
+
+            try {
+                const storeId = document.getElementById('test-store').value;
+                const brand = document.getElementById('test-area-brand').value;
+                const name = document.getElementById('test-area-name').value;
+                const type = document.getElementById('test-area-type').value;
+                const status = document.getElementById('test-area-status').value;
+                const description = document.getElementById('test-area-description').value;
+
+                // User ID'yi al (localStorage'dan veya varsayılan 1)
+                const userId = parseInt(localStorage.getItem('userId')) || 1;
+
+                const { data, error } = await supabase
+                    .from('investment_areas')
+                    .insert({
+                        store_id: parseInt(storeId),
+                        brand: brand,
+                        name: name,
+                        type: type,
+                        status: status,
+                        description: description || null,
+                        created_by: userId
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                addLog(`✓ Yatırım alanı oluşturuldu: ${data.name} (ID: ${data.id})`, 'success');
+                
+                // Formu temizle
+                document.getElementById('create-area-form').reset();
+                
+                // Yatırım alanlarını yeniden yükle
+                await loadInvestmentAreasForTest();
+
+            } catch (error) {
+                addLog(`✗ Yatırım alanı oluşturma hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Ticket oluştur
+        async function createTicket(event) {
+            event.preventDefault();
+            addLog('Ticket oluşturuluyor...', 'info');
+
+            try {
+                const areaId = document.getElementById('test-investment-area').value;
+                const type = document.getElementById('test-ticket-type').value;
+                const status = document.getElementById('test-ticket-status').value;
+                const subject = document.getElementById('test-ticket-subject').value;
+                const description = document.getElementById('test-ticket-description').value;
+                const assignedTo = document.getElementById('test-ticket-assigned').value;
+
+                // User ID'yi al
+                const userId = parseInt(localStorage.getItem('userId')) || 1;
+
+                const insertData = {
+                    investment_area_id: parseInt(areaId),
+                    type: type,
+                    status: status,
+                    subject: subject,
+                    description: description || null,
+                    created_by: userId
+                };
+
+                if (assignedTo) {
+                    insertData.assigned_to = parseInt(assignedTo);
+                }
+
+                const { data, error } = await supabase
+                    .from('investment_tickets')
+                    .insert(insertData)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                addLog(`✓ Ticket oluşturuldu: ${data.subject} (ID: ${data.id})`, 'success');
+                
+                // Formu temizle
+                document.getElementById('create-ticket-form').reset();
+
+            } catch (error) {
+                addLog(`✗ Ticket oluşturma hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Fotoğraf yükle
+        async function uploadPhoto(event) {
+            event.preventDefault();
+            addLog('Fotoğraf yükleniyor...', 'info');
+
+            try {
+                const areaId = document.getElementById('test-photo-area').value;
+                const ticketId = document.getElementById('test-photo-ticket').value;
+                const source = document.getElementById('test-photo-source').value;
+                const note = document.getElementById('test-photo-note').value;
+                const fileInput = document.getElementById('test-photo-file');
+                const file = fileInput.files[0];
+
+                if (!file) {
+                    addLog('✗ Lütfen bir dosya seçin', 'error');
+                    return;
+                }
+
+                // User ID'yi al
+                const userId = parseInt(localStorage.getItem('userId')) || 1;
+
+                // Fotoğrafı sıkıştır (compressImage fonksiyonu employee.js'de var)
+                let compressedFile = file;
+                if (typeof compressImage === 'function') {
+                    compressedFile = await compressImage(file);
+                }
+
+                // Dosya adı oluştur
+                const timestamp = Date.now();
+                const fileName = `test_investment_${areaId}_${timestamp}_${Math.random().toString(36).substring(7)}.jpg`;
+                const filePath = `investment-areas/${areaId}/${fileName}`;
+
+                // Supabase Storage'a yükle
+                const { error: uploadError } = await supabase.storage
+                    .from('task-photos')
+                    .upload(filePath, compressedFile, {
+                        contentType: 'image/jpeg',
+                        upsert: false
+                    });
+
+                if (uploadError) throw uploadError;
+
+                // Public URL'i al
+                const { data: urlData } = supabase.storage
+                    .from('task-photos')
+                    .getPublicUrl(filePath);
+
+                // Veritabanına kaydet
+                const insertData = {
+                    investment_area_id: parseInt(areaId),
+                    photo_url: urlData.publicUrl,
+                    source: source,
+                    note: note || null,
+                    uploaded_by: userId
+                };
+
+                if (ticketId) {
+                    insertData.ticket_id = parseInt(ticketId);
+                }
+
+                const { data, error } = await supabase
+                    .from('investment_photos')
+                    .insert(insertData)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                addLog(`✓ Fotoğraf yüklendi (ID: ${data.id})`, 'success');
+                
+                // Formu temizle
+                document.getElementById('upload-photo-form').reset();
+
+            } catch (error) {
+                addLog(`✗ Fotoğraf yükleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Yorum ekle
+        async function addComment(event) {
+            event.preventDefault();
+            addLog('Yorum ekleniyor...', 'info');
+
+            try {
+                const ticketId = document.getElementById('test-comment-ticket').value;
+                const userId = document.getElementById('test-comment-user').value;
+                const comment = document.getElementById('test-comment-text').value;
+
+                const { data, error } = await supabase
+                    .from('investment_ticket_comments')
+                    .insert({
+                        ticket_id: parseInt(ticketId),
+                        user_id: parseInt(userId),
+                        comment: comment,
+                        is_system_message: false
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                addLog(`✓ Yorum eklendi (ID: ${data.id})`, 'success');
+                
+                // Formu temizle
+                document.getElementById('add-comment-form').reset();
+
+            } catch (error) {
+                addLog(`✗ Yorum ekleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Tüm yatırım alanlarını yükle
+        async function loadAllInvestmentAreas() {
+            addLog('Tüm yatırım alanları yükleniyor...', 'info');
+            try {
+                const { data, error } = await supabase
+                    .from('investment_areas')
+                    .select(`
+                        *,
+                        stores(id, name, channels(id, name), regions(id, name))
+                    `)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (error) throw error;
+
+                const container = document.getElementById('data-list-container');
+                container.innerHTML = '<h6>Yatırım Alanları:</h6>';
+
+                if (data && data.length > 0) {
+                    const typeLabels = {
+                        'ada_stand': 'Ada Stand',
+                        'duvar_standi': 'Duvar Standı',
+                        'alinlik': 'Alınlık',
+                        'reyon_giydirme': 'Reyon Giydirme',
+                        'diger': 'Diğer'
+                    };
+                    const table = document.createElement('table');
+                    table.className = 'table table-sm table-striped';
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ad</th>
+                                <th>Marka</th>
+                                <th>Tip</th>
+                                <th>Durum</th>
+                                <th>Mağaza</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(area => {
+                                const brandLabel = area.brand === 'philips' ? 'Philips' : area.brand === 'ugreen' ? 'Ugreen' : '-';
+                                return `
+                                <tr>
+                                    <td>${area.id}</td>
+                                    <td>${area.name}</td>
+                                    <td>${brandLabel}</td>
+                                    <td>${typeLabels[area.type] || area.type}</td>
+                                    <td><span class="badge bg-secondary">${area.status}</span></td>
+                                    <td>${area.stores?.name || '-'}</td>
+                                </tr>
+                            `;
+                            }).join('')}
+                        </tbody>
+                    `;
+                    container.appendChild(table);
+                    addLog(`✓ ${data.length} yatırım alanı listelendi`, 'success');
+                } else {
+                    container.innerHTML = '<p class="text-muted">Yatırım alanı bulunamadı</p>';
+                    addLog('Yatırım alanı bulunamadı', 'info');
+                }
+
+            } catch (error) {
+                addLog(`✗ Yatırım alanları yükleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Tüm ticket'ları yükle
+        async function loadAllTickets() {
+            addLog('Tüm ticketlar yükleniyor...', 'info');
+            try {
+                const { data, error } = await supabase
+                    .from('investment_tickets')
+                    .select(`
+                        *,
+                        investment_areas(id, name)
+                    `)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (error) throw error;
+
+                const container = document.getElementById('data-list-container');
+                container.innerHTML = '<h6>Ticketlar:</h6>';
+
+                if (data && data.length > 0) {
+                    const table = document.createElement('table');
+                    table.className = 'table table-sm table-striped';
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tip</th>
+                                <th>Konu</th>
+                                <th>Durum</th>
+                                <th>Yatırım Alanı</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(ticket => `
+                                <tr>
+                                    <td>#${ticket.id}</td>
+                                    <td>${ticket.type}</td>
+                                    <td>${ticket.subject}</td>
+                                    <td><span class="badge bg-secondary">${ticket.status}</span></td>
+                                    <td>${ticket.investment_areas?.name || '-'}</td>
+                                    <td>${new Date(ticket.created_at).toLocaleDateString('tr-TR')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                    container.appendChild(table);
+                    addLog(`✓ ${data.length} ticket listelendi`, 'success');
+                } else {
+                    container.innerHTML = '<p class="text-muted">Ticket bulunamadı</p>';
+                    addLog('Ticket bulunamadı', 'info');
+                }
+
+            } catch (error) {
+                addLog(`✗ Ticket yükleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Tüm fotoğrafları yükle
+        async function loadAllPhotos() {
+            addLog('Tüm fotoğraflar yükleniyor...', 'info');
+            try {
+                const { data, error } = await supabase
+                    .from('investment_photos')
+                    .select(`
+                        *,
+                        investment_areas(id, name)
+                    `)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (error) throw error;
+
+                const container = document.getElementById('data-list-container');
+                container.innerHTML = '<h6>Fotoğraflar:</h6>';
+
+                if (data && data.length > 0) {
+                    const grid = document.createElement('div');
+                    grid.className = 'row g-2';
+                    
+                    data.forEach(photo => {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-3';
+                        col.innerHTML = `
+                            <div class="card">
+                                <img src="${photo.photo_url}" class="card-img-top" style="height: 150px; object-fit: cover;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'150\'%3E%3Crect fill=\'%23ddd\' width=\'200\' height=\'150\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'14\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3EResim Yüklenemedi%3C/text%3E%3C/svg%3E'">
+                                <div class="card-body p-2">
+                                    <small class="text-muted">${photo.investment_areas?.name || '-'}</small><br>
+                                    <small class="text-muted">${photo.source}</small>
+                                </div>
+                            </div>
+                        `;
+                        grid.appendChild(col);
+                    });
+                    
+                    container.appendChild(grid);
+                    addLog(`✓ ${data.length} fotoğraf listelendi`, 'success');
+                } else {
+                    container.innerHTML = '<p class="text-muted">Fotoğraf bulunamadı</p>';
+                    addLog('Fotoğraf bulunamadı', 'info');
+                }
+
+            } catch (error) {
+                addLog(`✗ Fotoğraf yükleme hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Detay sayfasını aç
+        function openAreaDetail() {
+            const areaId = prompt('Yatırım Alanı ID girin:');
+            if (areaId) {
+                window.open(`investment-area-detail.html?id=${areaId}`, '_blank');
+            }
+        }
+    </script>
+</body>
+</html>
+

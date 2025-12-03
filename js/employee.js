@@ -789,6 +789,9 @@ function showSection(sectionName) {
         case 'price-tracking':
             // Fiyat takibi verisi zaten yüklü
             break;
+        case 'investment-photos':
+            showInvestmentPhotosSection();
+            break;
         case 'profile':
             // Profil bilgileri zaten yüklü
             break;
@@ -905,3 +908,346 @@ window.addEventListener('resize', function() {
         sidebar.classList.remove('show');
     }
 });
+
+// ========== YATIRIM ALANLARI FOTOĞRAF YÜKLEME ==========
+
+let investmentPhotoFiles = [];
+
+// Yatırım alanları fotoğraf bölümü gösterildiğinde
+function showInvestmentPhotosSection() {
+    loadInvestmentPhotoFilters();
+    loadWeeklyProgress();
+    
+    // Dosya seçimi event'ini ekle
+    const fileInput = document.getElementById('photo-file');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleInvestmentPhotoSelection);
+    }
+}
+
+// Yatırım alanları fotoğraf filtrelerini yükle
+async function loadInvestmentPhotoFilters() {
+    try {
+        const user = checkUserSession();
+        if (!user || !user.storeId) {
+            showAlert('Mağaza bilgisi bulunamadı', 'warning');
+            return;
+        }
+
+        // Kullanıcının mağazasını al
+        const { data: userStore, error: storeError } = await supabase
+            .from('stores')
+            .select('id, name, channel_id, region_id, channels(id, name), regions(id, name)')
+            .eq('id', user.storeId)
+            .single();
+
+        if (storeError) throw storeError;
+
+        // Kanal dropdown'ını doldur
+        const channelSelect = document.getElementById('photo-channel');
+        channelSelect.innerHTML = '<option value="">Kanal Seçiniz</option>';
+        
+        if (userStore.channels) {
+            const option = document.createElement('option');
+            option.value = userStore.channel_id;
+            option.textContent = userStore.channels.name;
+            option.selected = true;
+            channelSelect.appendChild(option);
+        }
+
+        // Bölge dropdown'ını doldur
+        const regionSelect = document.getElementById('photo-region');
+        regionSelect.innerHTML = '<option value="">Bölge Seçiniz</option>';
+        
+        if (userStore.regions) {
+            const option = document.createElement('option');
+            option.value = userStore.region_id;
+            option.textContent = userStore.regions.name;
+            option.selected = true;
+            regionSelect.appendChild(option);
+        }
+
+        // Mağaza dropdown'ını doldur
+        const storeSelect = document.getElementById('photo-store');
+        storeSelect.innerHTML = '<option value="">Mağaza Seçiniz</option>';
+        
+        const option = document.createElement('option');
+        option.value = userStore.id;
+        option.textContent = userStore.name;
+        option.selected = true;
+        storeSelect.appendChild(option);
+
+        // Yatırım alanlarını yükle
+        await loadPhotoInvestmentAreas();
+
+    } catch (error) {
+        console.error('Filtre yükleme hatası:', error);
+        showAlert('Filtreler yüklenirken hata oluştu', 'danger');
+    }
+}
+
+// Bölgeleri yükle (employee için genelde sadece kendi bölgesi)
+async function loadPhotoRegions() {
+    const channelId = document.getElementById('photo-channel').value;
+    if (!channelId) return;
+
+    // Employee için genelde sadece kendi bölgesi gösterilir
+    // Burada basit bir implementasyon yapıyoruz
+}
+
+// Mağazaları yükle (employee için genelde sadece kendi mağazası)
+async function loadPhotoStores() {
+    const regionId = document.getElementById('photo-region').value;
+    if (!regionId) return;
+
+    // Employee için genelde sadece kendi mağazası gösterilir
+}
+
+// Yatırım alanlarını yükle
+async function loadPhotoInvestmentAreas() {
+    try {
+        const storeId = document.getElementById('photo-store').value;
+        if (!storeId) {
+            document.getElementById('photo-investment-area').innerHTML = '<option value="">Yatırım Alanı Seçiniz</option>';
+            return;
+        }
+
+        const { data: areas, error } = await supabase
+            .from('investment_areas')
+            .select('id, name, type')
+            .eq('store_id', storeId)
+            .eq('status', 'active')
+            .order('name');
+
+        if (error) throw error;
+
+        const areaSelect = document.getElementById('photo-investment-area');
+        areaSelect.innerHTML = '<option value="">Yatırım Alanı Seçiniz</option>';
+
+        if (areas && areas.length > 0) {
+            areas.forEach(area => {
+                const option = document.createElement('option');
+                option.value = area.id;
+                option.textContent = `${area.name} (${area.type})`;
+                areaSelect.appendChild(option);
+            });
+        } else {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Yatırım alanı bulunamadı';
+            option.disabled = true;
+            areaSelect.appendChild(option);
+        }
+
+    } catch (error) {
+        console.error('Yatırım alanları yükleme hatası:', error);
+        showAlert('Yatırım alanları yüklenirken hata oluştu', 'danger');
+    }
+}
+
+// Fotoğraf seçimi
+function handleInvestmentPhotoSelection(event) {
+    const files = Array.from(event.target.files);
+    investmentPhotoFiles = files;
+    
+    // Önizleme oluştur
+    const container = document.getElementById('photo-preview-container');
+    container.innerHTML = '';
+
+    files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const col = document.createElement('div');
+            col.className = 'col-md-3 mb-2';
+            col.innerHTML = `
+                <div class="position-relative">
+                    <img src="${e.target.result}" class="img-thumbnail" style="width: 100%; height: 150px; object-fit: cover;">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute" style="top: 5px; right: 5px;" onclick="removeInvestmentPhoto(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(col);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Fotoğraf kaldır
+function removeInvestmentPhoto(index) {
+    investmentPhotoFiles.splice(index, 1);
+    handleInvestmentPhotoSelection({ target: { files: investmentPhotoFiles } });
+}
+
+// Yatırım alanı fotoğrafı yükle
+async function uploadInvestmentPhoto(event) {
+    event.preventDefault();
+
+    try {
+        const areaId = document.getElementById('photo-investment-area').value;
+        const note = document.getElementById('photo-note').value;
+
+        if (!areaId) {
+            showAlert('Lütfen yatırım alanı seçin', 'warning');
+            return;
+        }
+
+        if (investmentPhotoFiles.length === 0) {
+            showAlert('Lütfen en az bir fotoğraf seçin', 'warning');
+            return;
+        }
+
+        const userId = parseInt(localStorage.getItem('userId'));
+        if (!userId) {
+            showAlert('Kullanıcı bilgisi bulunamadı', 'danger');
+            return;
+        }
+
+        showAlert('Fotoğraflar yükleniyor...', 'info');
+
+        // Her fotoğrafı yükle
+        for (const file of investmentPhotoFiles) {
+            // Fotoğrafı sıkıştır
+            const compressedFile = await compressImage(file);
+
+            // Dosya adı oluştur
+            const timestamp = Date.now();
+            const fileName = `investment_${areaId}_${timestamp}_${Math.random().toString(36).substring(7)}.jpg`;
+            const filePath = `investment-areas/${areaId}/${fileName}`;
+
+            // Supabase Storage'a yükle
+            const { error: uploadError } = await supabase.storage
+                .from('task-photos')
+                .upload(filePath, compressedFile, {
+                    contentType: 'image/jpeg',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error('Fotoğraf yükleme hatası:', uploadError);
+                continue;
+            }
+
+            // Public URL'i al
+            const { data: urlData } = supabase.storage
+                .from('task-photos')
+                .getPublicUrl(filePath);
+
+            // Veritabanına kaydet
+            const { error: dbError } = await supabase
+                .from('investment_photos')
+                .insert({
+                    investment_area_id: parseInt(areaId),
+                    photo_url: urlData.publicUrl,
+                    source: 'weekly_check',
+                    note: note || null,
+                    uploaded_by: userId
+                });
+
+            if (dbError) {
+                console.error('Veritabanı kayıt hatası:', dbError);
+            }
+        }
+
+        showAlert('Fotoğraflar başarıyla yüklendi', 'success');
+        
+        // Formu temizle
+        document.getElementById('investment-photo-form').reset();
+        investmentPhotoFiles = [];
+        document.getElementById('photo-preview-container').innerHTML = '';
+        
+        // Haftalık ilerlemeyi yenile
+        await loadWeeklyProgress();
+
+    } catch (error) {
+        console.error('Fotoğraf yükleme hatası:', error);
+        showAlert('Fotoğraflar yüklenirken hata oluştu', 'danger');
+    }
+}
+
+// Haftalık ilerlemeyi yükle
+async function loadWeeklyProgress() {
+    try {
+        const container = document.getElementById('weekly-progress-container');
+        const storeId = parseInt(localStorage.getItem('storeId'));
+
+        if (!storeId) {
+            container.innerHTML = '<p class="text-muted">Mağaza bilgisi bulunamadı</p>';
+            return;
+        }
+
+        // Bu haftanın başlangıcı
+        const now = new Date();
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        // Bu mağazaya ait yatırım alanlarını al
+        const { data: areas, error: areasError } = await supabase
+            .from('investment_areas')
+            .select('id, name, type')
+            .eq('store_id', storeId)
+            .eq('status', 'active');
+
+        if (areasError) throw areasError;
+
+        if (!areas || areas.length === 0) {
+            container.innerHTML = '<p class="text-muted">Bu mağazada yatırım alanı bulunamadı</p>';
+            return;
+        }
+
+        const areaIds = areas.map(a => a.id);
+
+        // Bu hafta yüklenen fotoğrafları al
+        const { data: photos, error: photosError } = await supabase
+            .from('investment_photos')
+            .select('investment_area_id, created_at')
+            .in('investment_area_id', areaIds)
+            .eq('source', 'weekly_check')
+            .gte('created_at', startOfWeek.toISOString());
+
+        if (photosError) throw photosError;
+
+        // Her alan için fotoğraf sayısını hesapla
+        const photoCounts = {};
+        photos.forEach(photo => {
+            if (!photoCounts[photo.investment_area_id]) {
+                photoCounts[photo.investment_area_id] = 0;
+            }
+            photoCounts[photo.investment_area_id]++;
+        });
+
+        // Progress kartlarını oluştur
+        container.innerHTML = '';
+
+        areas.forEach(area => {
+            const count = photoCounts[area.id] || 0;
+            const progress = Math.min((count / 2) * 100, 100);
+            const statusClass = count >= 2 ? 'success' : count >= 1 ? 'warning' : 'danger';
+
+            const card = document.createElement('div');
+            card.className = 'card mb-2';
+            card.innerHTML = `
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="mb-0">${area.name}</h6>
+                            <small class="text-muted">${area.type}</small>
+                        </div>
+                        <span class="badge bg-${statusClass}">${count}/2</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-${statusClass}" role="progressbar" style="width: ${progress}%"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error('Haftalık ilerleme yükleme hatası:', error);
+        document.getElementById('weekly-progress-container').innerHTML = 
+            '<p class="text-danger">İlerleme yüklenirken hata oluştu</p>';
+    }
+}
+
+// showSection fonksiyonu zaten yukarıda tanımlı, investment-photos case'i eklendi

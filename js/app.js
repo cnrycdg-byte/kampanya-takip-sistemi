@@ -215,23 +215,45 @@ function redirectToDashboard(role) {
         case 'employee':
             window.location.href = 'store-selection.html'; // Önce mağaza seçimi
             break;
+        case 'marketing':
+            window.location.href = 'marketing-dashboard.html';
+            break;
         default:
             console.log('Bilinmeyen rol:', role);
             showAlert('Geçersiz rol seçimi!', 'danger');
     }
 }
 
-// Alert mesajı gösteren fonksiyon
-function showAlert(message, type) {
-    // Önceki alert'i kaldır
-    const existingAlert = document.querySelector('.alert');
-    if (existingAlert) {
-        existingAlert.remove();
+// Alert mesajı gösteren fonksiyon (tekrar önleme ile)
+let lastAlertMessageApp = '';
+let lastAlertTimeApp = 0;
+const ALERT_COOLDOWN_APP = 2000;
+
+function showAlert(message, type = 'info') {
+    // Aynı mesajın çok sık gösterilmesini önle
+    const now = Date.now();
+    if (message === lastAlertMessageApp && (now - lastAlertTimeApp) < ALERT_COOLDOWN_APP) {
+        return;
     }
+    
+    lastAlertMessageApp = message;
+    lastAlertTimeApp = now;
+    
+    // Önceki alert'leri kaldır (tüm custom alert'ler)
+    const existingAlerts = document.querySelectorAll('.custom-alert-app, .custom-alert, .custom-alert-detail, .custom-alert-areas');
+    existingAlerts.forEach(alert => {
+        alert.style.transition = 'opacity 0.3s';
+        alert.style.opacity = '0';
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 300);
+    });
     
     // Yeni alert oluştur
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.className = `alert alert-${type} custom-alert-app`;
     alertDiv.style.position = 'fixed';
     alertDiv.style.top = '20px';
     alertDiv.style.right = '20px';
@@ -240,19 +262,28 @@ function showAlert(message, type) {
     alertDiv.style.maxWidth = '500px';
     alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     alertDiv.style.borderRadius = '8px';
-    alertDiv.style.fontWeight = '500';
-    // X butonu için renk belirle (alert tipine göre)
+    alertDiv.style.padding = '12px 16px';
+    alertDiv.style.display = 'flex';
+    alertDiv.style.alignItems = 'center';
+    alertDiv.style.justifyContent = 'space-between';
+    alertDiv.style.gap = '12px';
+    
+    // X butonu için renk belirle
     let closeButtonColor = '#333';
-    if (type === 'danger') closeButtonColor = '#000';
+    if (type === 'danger') closeButtonColor = '#721c24';
     else if (type === 'success') closeButtonColor = '#155724';
     else if (type === 'warning') closeButtonColor = '#856404';
     else if (type === 'info') closeButtonColor = '#004085';
     
     alertDiv.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center">
-            <span>${message}</span>
-            <button type="button" class="btn-close-custom" aria-label="Close" style="background: none; border: none; font-size: 1.8rem; font-weight: bold; color: ${closeButtonColor}; opacity: 0.8; cursor: pointer; padding: 0 0.75rem; line-height: 1; transition: opacity 0.3s;">&times;</button>
-        </div>
+        <span style="flex: 1;">${message}</span>
+        <button type="button" class="btn-close-alert-app" aria-label="Kapat" 
+                style="background: none; border: none; font-size: 1.5rem; font-weight: bold; 
+                       color: ${closeButtonColor}; opacity: 0.7; cursor: pointer; 
+                       padding: 0; line-height: 1; transition: opacity 0.2s; 
+                       width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+            &times;
+        </button>
     `;
     
     // Mobil için özel stil
@@ -262,30 +293,26 @@ function showAlert(message, type) {
         alertDiv.style.left = '10px';
         alertDiv.style.minWidth = 'auto';
         alertDiv.style.maxWidth = 'none';
-        alertDiv.style.fontSize = '14px';
-        alertDiv.style.padding = '12px 16px';
     }
     
     // Alert'i body'ye ekle
     document.body.appendChild(alertDiv);
     
     // Kapat butonuna tıklama eventi ekle
-    const closeBtn = alertDiv.querySelector('.btn-close-custom');
+    const closeBtn = alertDiv.querySelector('.btn-close-alert-app');
     if (closeBtn) {
         // Hover efekti
         closeBtn.addEventListener('mouseenter', function() {
             this.style.opacity = '1';
         });
         closeBtn.addEventListener('mouseleave', function() {
-            this.style.opacity = '0.8';
+            this.style.opacity = '0.7';
         });
         
         // Click eventi
         closeBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('✅ X butonuna tıklandı');
-            // Fade out animasyonu başlat
             alertDiv.style.transition = 'opacity 0.3s';
             alertDiv.style.opacity = '0';
             setTimeout(() => {
@@ -298,20 +325,19 @@ function showAlert(message, type) {
     
     // 5 saniye sonra otomatik kaldır
     const autoCloseTimer = setTimeout(() => {
-        console.log('5 saniye doldu, alert kapanıyor');
         if (alertDiv.parentNode) {
-            alertDiv.classList.remove('show'); // Fade out animasyonu için
+            alertDiv.style.transition = 'opacity 0.3s';
+            alertDiv.style.opacity = '0';
             setTimeout(() => {
                 if (alertDiv.parentNode) {
                     alertDiv.remove();
                 }
-            }, 150);
+            }, 300);
         }
     }, 5000);
     
     // X butonuna tıklanınca timer'ı iptal et
     if (closeBtn) {
-        const originalClickHandler = closeBtn.onclick;
         closeBtn.addEventListener('click', function() {
             clearTimeout(autoCloseTimer);
         });

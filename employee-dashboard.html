@@ -71,6 +71,16 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="#investment-photos" onclick="showSection('investment-photos')">
+                                <i class="fas fa-camera me-2"></i>Yatırım Alanları Fotoğraf
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#product-check" onclick="showSection('product-check')">
+                                <i class="fas fa-check-square me-2"></i>Ürün Kontrolü
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="#profile" onclick="showSection('profile')">
                                 <i class="fas fa-user me-2"></i>Profil
                             </a>
@@ -243,6 +253,130 @@
                     </div>
                 </div>
 
+                <!-- Yatırım Alanları Fotoğraf Yükleme İçeriği -->
+                <div id="investment-photos-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-camera me-2"></i>Yatırım Alanları Haftalık Fotoğraf Yükleme
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Haftada 2 kere yatırım alanlarınızın fotoğraflarını yükleyin. Fotoğraflar otomatik olarak ilgili yatırım alanına ve haftalık kayda bağlanacaktır.
+                            </div>
+
+                            <form id="investment-photo-form" onsubmit="uploadWeeklyInvestmentPhoto(event)">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Yatırım Alanı *</label>
+                                        <select class="form-select" id="photo-investment-area" required onchange="loadWeeklyProducts()">
+                                            <option value="">Yatırım Alanı Seçiniz</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Hafta *</label>
+                                        <select class="form-select" id="photo-week" required>
+                                            <option value="">Hafta Seçiniz</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Yıl *</label>
+                                        <select class="form-select" id="photo-year" required>
+                                            <option value="">Yıl Seçiniz</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Fotoğraf *</label>
+                                    <input type="file" class="form-control" id="photo-file" accept="image/*" required multiple>
+                                    <small class="form-text text-muted">Birden fazla fotoğraf seçebilirsiniz</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Not (Opsiyonel)</label>
+                                    <textarea class="form-control" id="photo-note" rows="2" placeholder="Fotoğraf hakkında kısa bir not ekleyebilirsiniz..."></textarea>
+                                </div>
+
+                                <div id="photo-preview-container" class="mb-3">
+                                    <!-- Fotoğraf önizlemeleri buraya eklenecek -->
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload me-2"></i>Fotoğrafları Yükle
+                                </button>
+                            </form>
+
+                            <!-- Haftalık İlerleme -->
+                            <div class="mt-4">
+                                <h6>Bu Hafta Yüklenen Fotoğraflar</h6>
+                                <div id="weekly-progress-container">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Yükleniyor...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ürün Kontrolü İçeriği -->
+                <div id="product-check-section" class="content-section" style="display: none;">
+                    <div class="card shadow">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-check-square me-2"></i>Yatırım Alanı Ürün Kontrolü
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Yatırım alanındaki planlanan ürünlerin mevcut durumunu kontrol edin. Eksik ürünler için neden belirtin.
+                            </div>
+
+                            <form id="product-check-form" onsubmit="submitProductCheck(event)">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Yatırım Alanı *</label>
+                                        <select class="form-select" id="check-investment-area" required onchange="loadProductsForCheck()">
+                                            <option value="">Yatırım Alanı Seçiniz</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Hafta *</label>
+                                        <select class="form-select" id="check-week" required>
+                                            <option value="">Hafta Seçiniz</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Yıl *</label>
+                                        <select class="form-select" id="check-year" required>
+                                            <option value="">Yıl Seçiniz</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="products-check-container" class="mb-3">
+                                    <!-- Ürünler buraya dinamik olarak eklenecek -->
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Genel Yorum (Opsiyonel)</label>
+                                    <textarea class="form-control" id="check-comment" rows="3" placeholder="Yatırım alanı hakkında genel bir yorum ekleyebilirsiniz..."></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-2"></i>Kontrolü Kaydet
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Profil İçeriği -->
                 <div id="profile-section" class="content-section" style="display: none;">
                     <div class="card shadow">
@@ -384,6 +518,7 @@
     <script src="js/loading-system.js"></script>
     <script src="js/app.js?v=6.0"></script>
     <script src="js/employee.js?v=2.0"></script>
+    <script src="js/employee-investment.js"></script>
     <script src="js/survey.js?v=6.2"></script>
     <script src="js/sales-entry.js"></script>
     

@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yatırım Alanları - Kampanya Takip Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .filter-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .table-hover tbody tr {
+            cursor: pointer;
+        }
+        .badge-ticket {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .status-badge {
+            padding: 0.35rem 0.65rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .status-planned { background-color: #ffc107; color: #000; }
+        .status-active { background-color: #28a745; color: #fff; }
+        .status-removed { background-color: #dc3545; color: #fff; }
+    </style>
+</head>
+<body>
+    <!-- Üst Menü -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-building me-2"></i>
+                Yatırım Alanları Yönetimi
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="user-info">
+                    <i class="fas fa-user me-1"></i>
+                    <span id="user-name">Kullanıcı Adı</span>
+                </span>
+                <a class="nav-link" href="#" onclick="goBack()">
+                    <i class="fas fa-arrow-left me-1"></i>Geri
+                </a>
+                <a class="nav-link" href="#" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i>Çıkış
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Yatırım Alanı Oluşturma Butonu -->
+        <div class="mb-3">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createAreaModal">
+                <i class="fas fa-plus me-2"></i>Yeni Yatırım Alanı Oluştur
+            </button>
+        </div>
+
+        <!-- Filtreler -->
+        <div class="filter-card">
+            <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Filtreler</h5>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Kanal</label>
+                    <select class="form-select" id="filter-channel">
+                        <option value="">Tüm Kanallar</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Bölge</label>
+                    <select class="form-select" id="filter-region">
+                        <option value="">Tüm Bölgeler</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Mağaza</label>
+                    <select class="form-select" id="filter-store">
+                        <option value="">Tüm Mağazalar</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Marka</label>
+                    <select class="form-select" id="filter-brand">
+                        <option value="">Tüm Markalar</option>
+                        <option value="philips">Philips</option>
+                        <option value="ugreen">Ugreen</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Yatırım Alanı Tipi</label>
+                    <select class="form-select" id="filter-type">
+                        <option value="">Tüm Tipler</option>
+                        <option value="ada_stand">Ada Stand</option>
+                        <option value="duvar_standi">Duvar Standı</option>
+                        <option value="alinlik">Alınlık</option>
+                        <option value="reyon_giydirme">Reyon Giydirme</option>
+                        <option value="gondol_basi">Gondol Başı</option>
+                        <option value="diger">Diğer</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ticket Durumu</label>
+                    <select class="form-select" id="filter-ticket-status">
+                        <option value="">Hepsi</option>
+                        <option value="has_open">Açık Ticket Var</option>
+                        <option value="no_open">Açık Ticket Yok</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Alan Durumu</label>
+                    <select class="form-select" id="filter-area-status">
+                        <option value="">Hepsi</option>
+                        <option value="planned">Planlanmış</option>
+                        <option value="active">Aktif</option>
+                        <option value="removed">Kaldırılmış</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Personel Durumu</label>
+                    <select class="form-select" id="filter-personnel">
+                        <option value="">Hepsi</option>
+                        <option value="with_personnel">Personelli</option>
+                        <option value="without_personnel">Personelsiz</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button class="btn btn-primary" onclick="applyFilters()">
+                            <i class="fas fa-search me-2"></i>Filtrele
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearFilters()">
+                            <i class="fas fa-times me-2"></i>Temizle
+                        </button>
+                        <button class="btn btn-success" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Excel İndir
+                        </button>
+                        <a href="investment-reporting.html" class="btn btn-info">
+                            <i class="fas fa-chart-bar me-2"></i>Raporlama
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yatırım Alanları Tablosu -->
+        <div class="card shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Yatırım Alanları
+                </h5>
+                <span class="badge bg-primary" id="total-count">0</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="investment-areas-table">
+                        <thead>
+                            <tr>
+                                <th>Kanal</th>
+                                <th>Bölge</th>
+                                <th>Mağaza</th>
+                                <th>Yatırım Alanı Adı</th>
+                                <th>Marka</th>
+                                <th>Tipi</th>
+                                <th>Personel</th>
+                                <th>Durum</th>
+                                <th>Son Fotoğraf Tarihi</th>
+                                <th>Açık Ticket</th>
+                                <th>Yeni Stand</th>
+                                <th>Revizyon</th>
+                                <th>Düzeltme</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="investment-areas-tbody">
+                            <tr>
+                                <td colspan="14" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Yükleniyor...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yatırım Alanı Oluşturma Modal -->
+    <div class="modal fade" id="createAreaModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createAreaModalTitle">Yeni Yatırım Alanı Oluştur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="resetCreateForm()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-area-form" onsubmit="createInvestmentArea(event)">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Kanal *</label>
+                                <select class="form-select" id="create-area-channel" required onchange="loadCreateAreaRegions()">
+                                    <option value="">Kanal Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Bölge *</label>
+                                <select class="form-select" id="create-area-region" required onchange="loadCreateAreaStores()" disabled>
+                                    <option value="">Önce Kanal Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Mağaza *</label>
+                                <select class="form-select" id="create-area-store" required disabled>
+                                    <option value="">Önce Bölge Seçiniz</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Marka *</label>
+                                <select class="form-select" id="create-area-brand" required>
+                                    <option value="">Marka Seçiniz</option>
+                                    <option value="philips">Philips</option>
+                                    <option value="ugreen">Ugreen</option>
+                                </select>
+                            </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Yatırım Alanı Tipi *</label>
+                                <select class="form-select" id="create-area-type" required>
+                                    <option value="">Tip Seçiniz</option>
+                                    <option value="ada_stand">Ada Stand</option>
+                                    <option value="duvar_standi">Duvar Standı</option>
+                                    <option value="alinlik">Alınlık</option>
+                                    <option value="reyon_giydirme">Reyon Giydirme</option>
+                                    <option value="gondol_basi">Gondol Başı</option>
+                                    <option value="diger">Diğer</option>
+                                 </select>
+                             </div>
+                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Durum</label>
+                                <select class="form-select" id="create-area-status">
+                                    <option value="active">Aktif</option>
+                                    <option value="planned">Planlanmış</option>
+                                    <option value="removed">Kaldırılmış</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Kurulum Tarihi</label>
+                                <input type="date" class="form-control" id="create-area-installation-date">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Kiralama Bedeli (TL)</label>
+                                <input type="number" class="form-control" id="create-area-rental-fee" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Açıklama</label>
+                                <textarea class="form-control" id="create-area-description" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Kiralama Başlangıç Tarihi</label>
+                                <input type="date" class="form-control" id="create-area-rental-start-date">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Kiralama Bitiş Tarihi</label>
+                                <input type="date" class="form-control" id="create-area-rental-end-date">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="create-area-rental-indefinite" onchange="toggleRentalEndDate()">
+                                    <label class="form-check-label" for="create-area-rental-indefinite">
+                                        Süresi belli değil
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Planlanan Ürünler</label>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div id="planned-products-container">
+                                            <p class="text-muted small mb-2">Bu yatırım alanında teşhir edilmesi planlanan ürünleri ekleyin.</p>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addProductRow()">
+                                            <i class="fas fa-plus me-1"></i>Ürün Ekle
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="resetCreateForm()">İptal</button>
+                            <button type="submit" class="btn btn-success" id="create-area-submit-btn">
+                                <i class="fas fa-save me-2"></i>Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/investment-areas.js"></script>
+    <script>
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserInfo();
+            loadFilters();
+            loadInvestmentAreas();
+            loadChannelsForCreateForm();
+            
+            // Modal kapanışında formu sıfırla
+            const createAreaModal = document.getElementById('createAreaModal');
+            if (createAreaModal) {
+                createAreaModal.addEventListener('hidden.bs.modal', function() {
+                    resetCreateForm();
+                });
+            }
+            
+            // "Yeni Yatırım Alanı Oluştur" butonuna tıklandığında formu sıfırla
+            const createAreaBtn = document.querySelector('[data-bs-target="#createAreaModal"]');
+            if (createAreaBtn) {
+                createAreaBtn.addEventListener('click', function() {
+                    resetCreateForm();
+                });
+            }
+        });
+
+        function goBack() {
+            const userRole = localStorage.getItem('userRole');
+            if (userRole === 'admin' || userRole === 'manager') {
+                window.location.href = 'admin-dashboard.html';
+            } else {
+                window.location.href = 'employee-dashboard.html';
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        async function loadUserInfo() {
+            const userName = localStorage.getItem('userName');
+            if (userName) {
+                document.getElementById('user-name').textContent = userName;
+            }
+        }
+
+        // Yatırım alanı oluşturma formu için kanalları yükle
+        async function loadChannelsForCreateForm() {
+            try {
+                const { data: channels, error } = await supabase
+                    .from('channels')
+                    .select('id, name')
+                    .order('name');
+
+                if (error) throw error;
+
+                const channelSelect = document.getElementById('create-area-channel');
+                if (channels && channels.length > 0) {
+                    channels.forEach(channel => {
+                        const option = document.createElement('option');
+                        option.value = channel.id;
+                        option.textContent = channel.name;
+                        channelSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Kanal yükleme hatası:', error);
+            }
+        }
+
+        // Kanal seçildiğinde bölgeleri yükle
+        async function loadCreateAreaRegions() {
+            const channelId = document.getElementById('create-area-channel').value;
+            const regionSelect = document.getElementById('create-area-region');
+            const storeSelect = document.getElementById('create-area-store');
+            
+            // Bölge ve mağaza dropdown'larını temizle
+            regionSelect.innerHTML = '<option value="">Bölge Seçiniz</option>';
+            storeSelect.innerHTML = '<option value="">Önce Bölge Seçiniz</option>';
+            
+            if (!channelId) {
+                // Kanal seçilmediyse bölge ve mağaza dropdown'larını devre dışı bırak
+                regionSelect.disabled = true;
+                storeSelect.disabled = true;
+                return;
+            }
+            
+            // Kanal seçildiyse bölge dropdown'ını aktif et
+            regionSelect.disabled = false;
+            storeSelect.disabled = true;
+
+            try {
+                // Seçilen kanala ait mağazaları al
+                const { data: stores, error } = await supabase
+                    .from('stores')
+                    .select(`
+                        id,
+                        name,
+                        region_id,
+                        regions!inner(
+                            id,
+                            name
+                        )
+                    `)
+                    .eq('channel_id', channelId)
+                    .eq('is_active', true);
+
+                if (error) throw error;
+
+                // Bölgeleri unique olarak topla
+                const uniqueRegions = {};
+                if (stores && stores.length > 0) {
+                    stores.forEach(store => {
+                        if (store.regions && !uniqueRegions[store.regions.id]) {
+                            uniqueRegions[store.regions.id] = store.regions;
+                        }
+                    });
+                }
+
+                // Bölge dropdown'ını doldur
+                Object.values(uniqueRegions).forEach(region => {
+                    const option = document.createElement('option');
+                    option.value = region.id;
+                    option.textContent = region.name;
+                    regionSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Bölge yükleme hatası:', error);
+            }
+        }
+
+        // Bölge seçildiğinde mağazaları yükle
+        async function loadCreateAreaStores() {
+            const channelId = document.getElementById('create-area-channel').value;
+            const regionId = document.getElementById('create-area-region').value;
+            const storeSelect = document.getElementById('create-area-store');
+            
+            // Mağaza dropdown'ını temizle
+            storeSelect.innerHTML = '<option value="">Mağaza Seçiniz</option>';
+            
+            if (!channelId || !regionId) {
+                if (!channelId) {
+                    storeSelect.innerHTML = '<option value="">Önce Kanal Seçiniz</option>';
+                } else if (!regionId) {
+                    storeSelect.innerHTML = '<option value="">Önce Bölge Seçiniz</option>';
+                }
+                storeSelect.disabled = true;
+                return;
+            }
+            
+            // Bölge seçildiyse mağaza dropdown'ını aktif et
+            storeSelect.disabled = false;
+
+            try {
+                // Seçilen kanal ve bölgeye ait mağazaları al
+                const { data: stores, error } = await supabase
+                    .from('stores')
+                    .select('id, name')
+                    .eq('channel_id', channelId)
+                    .eq('region_id', regionId)
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (error) throw error;
+
+                // Mağaza dropdown'ını doldur
+                if (stores && stores.length > 0) {
+                    stores.forEach(store => {
+                        const option = document.createElement('option');
+                        option.value = store.id;
+                        option.textContent = store.name;
+                        storeSelect.appendChild(option);
+                    });
+                } else {
+                    storeSelect.innerHTML = '<option value="">Bu kanal ve bölgede mağaza bulunamadı</option>';
+                }
+            } catch (error) {
+                console.error('Mağaza yükleme hatası:', error);
+                showAlert('Mağazalar yüklenirken hata oluştu: ' + error.message, 'danger');
+            }
+        }
+
+        // Ürün satırı ekle
+        function addProductRow() {
+            const container = document.getElementById('planned-products-container');
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'row mb-2 product-row';
+            rowDiv.innerHTML = `
+                <div class="col-md-5">
+                    <input type="text" class="form-control form-control-sm product-name" placeholder="Ürün Adı *" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm product-code" placeholder="Ürün Kodu (Opsiyonel)">
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeProductRow(this)">
+                        <i class="fas fa-times"></i> Sil
+                    </button>
+                </div>
+            `;
+            container.appendChild(rowDiv);
+        }
+
+        // Ürün satırını kaldır
+        function removeProductRow(button) {
+            button.closest('.product-row').remove();
+        }
+
+        // Kiralama bitiş tarihi kontrolü
+        function toggleRentalEndDate() {
+            const indefiniteCheckbox = document.getElementById('create-area-rental-indefinite');
+            const endDateInput = document.getElementById('create-area-rental-end-date');
+            
+            if (indefiniteCheckbox.checked) {
+                endDateInput.disabled = true;
+                endDateInput.value = '';
+            } else {
+                endDateInput.disabled = false;
+            }
+        }
+
+        // Düzenleme modu için global değişkenler
+        let editingAreaId = null;
+        let editingAreaName = null; // Düzenleme modunda mevcut ismi sakla
+
+        // Yatırım alanı oluştur veya güncelle
+        async function createInvestmentArea(event) {
+            event.preventDefault();
+
+            try {
+                const storeId = document.getElementById('create-area-store').value;
+                const brand = document.getElementById('create-area-brand').value;
+                const type = document.getElementById('create-area-type').value;
+                
+                // İsim belirleme: Düzenleme modunda mevcut ismi koru, yeni oluşturmada otomatik oluştur
+                let name;
+                if (editingAreaId && editingAreaName) {
+                    // Düzenleme modunda mevcut ismi kullan
+                    name = editingAreaName;
+                } else {
+                    // Yeni oluşturmada otomatik isim oluştur: Marka - Tip
+                    const brandLabels = {
+                        'philips': 'Philips',
+                        'ugreen': 'Ugreen'
+                    };
+                    const typeLabels = {
+                        'ada_stand': 'Ada Stand',
+                        'duvar_standi': 'Duvar Standı',
+                        'alinlik': 'Alınlık',
+                        'reyon_giydirme': 'Reyon Giydirme',
+                        'gondol_basi': 'Gondol Başı',
+                        'diger': 'Diğer'
+                    };
+                    name = `${brandLabels[brand] || brand} - ${typeLabels[type] || type}`;
+                }
+                const status = document.getElementById('create-area-status').value;
+                const installationDate = document.getElementById('create-area-installation-date').value;
+                const rentalFee = document.getElementById('create-area-rental-fee').value;
+                const rentalStartDate = document.getElementById('create-area-rental-start-date').value;
+                const rentalEndDate = document.getElementById('create-area-rental-end-date').value;
+                const rentalIndefinite = document.getElementById('create-area-rental-indefinite').checked;
+                const description = document.getElementById('create-area-description').value;
+
+                const userId = parseInt(localStorage.getItem('userId')) || 1;
+
+                const dataToSave = {
+                    store_id: parseInt(storeId),
+                    brand: brand,
+                    name: name,
+                    type: type,
+                    status: status,
+                    description: description || null
+                };
+
+                // Kurulum tarihi varsa ekle
+                if (installationDate) {
+                    dataToSave.installation_date = installationDate;
+                } else {
+                    dataToSave.installation_date = null;
+                }
+
+                // Kiralama bedeli varsa ekle
+                if (rentalFee && rentalFee.trim() !== '') {
+                    dataToSave.rental_fee = parseFloat(rentalFee);
+                } else {
+                    dataToSave.rental_fee = null;
+                }
+
+                // Kiralama başlangıç tarihi varsa ekle
+                if (rentalStartDate) {
+                    dataToSave.rental_start_date = rentalStartDate;
+                } else {
+                    dataToSave.rental_start_date = null;
+                }
+
+                // Kiralama bitiş tarihi varsa ekle (süresi belli değilse null)
+                if (rentalIndefinite) {
+                    dataToSave.rental_end_date = null;
+                    dataToSave.rental_indefinite = true;
+                } else {
+                    dataToSave.rental_end_date = rentalEndDate || null;
+                    dataToSave.rental_indefinite = false;
+                }
+
+                let data;
+                if (editingAreaId) {
+                    // Güncelleme modu
+                    const { data: updateData, error } = await supabase
+                        .from('investment_areas')
+                        .update(dataToSave)
+                        .eq('id', editingAreaId)
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+                    data = updateData;
+
+                    // Mevcut ürünleri sil
+                    await supabase
+                        .from('investment_area_products')
+                        .delete()
+                        .eq('investment_area_id', editingAreaId);
+                } else {
+                    // Yeni oluşturma modu
+                    dataToSave.created_by = userId;
+                    const { data: insertData, error } = await supabase
+                        .from('investment_areas')
+                        .insert(dataToSave)
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+                    data = insertData;
+                }
+
+                // Planlanan ürünleri ekle
+                const productRows = document.querySelectorAll('.product-row');
+                if (productRows.length > 0) {
+                    const products = [];
+                    productRows.forEach((row, index) => {
+                        const productName = row.querySelector('.product-name').value.trim();
+                        const productCode = row.querySelector('.product-code').value.trim();
+                        if (productName) {
+                            products.push({
+                                investment_area_id: data.id,
+                                product_name: productName,
+                                product_code: productCode || null,
+                                display_order: index
+                            });
+                        }
+                    });
+                    
+                    if (products.length > 0) {
+                        const { error: productsError } = await supabase
+                            .from('investment_area_products')
+                            .insert(products);
+                        
+                        if (productsError) {
+                            console.error('Ürünler eklenirken hata:', productsError);
+                        }
+                    }
+                }
+
+                showAlert(editingAreaId ? 'Yatırım alanı başarıyla güncellendi' : 'Yatırım alanı başarıyla oluşturuldu', 'success');
+                
+                // Modal'ı kapat
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createAreaModal'));
+                modal.hide();
+                
+                // Formu temizle ve düzenleme modunu sıfırla
+                resetCreateForm();
+                
+                // Listeyi yenile
+                await loadInvestmentAreas();
+
+            } catch (error) {
+                console.error('Yatırım alanı kaydetme hatası:', error);
+                showAlert('Yatırım alanı kaydedilirken hata oluştu: ' + error.message, 'danger');
+            }
+        }
+
+        // Formu sıfırla
+        function resetCreateForm() {
+            editingAreaId = null;
+            editingAreaName = null;
+            document.getElementById('create-area-form').reset();
+            document.getElementById('planned-products-container').innerHTML = '<p class="text-muted small mb-2">Bu yatırım alanında teşhir edilmesi planlanan ürünleri ekleyin.</p>';
+            document.getElementById('create-area-region').innerHTML = '<option value="">Önce Kanal Seçiniz</option>';
+            document.getElementById('create-area-region').disabled = true;
+            document.getElementById('create-area-store').innerHTML = '<option value="">Önce Bölge Seçiniz</option>';
+            document.getElementById('create-area-store').disabled = true;
+            
+            // Kiralama tarihlerini sıfırla
+            document.getElementById('create-area-rental-indefinite').checked = false;
+            document.getElementById('create-area-rental-end-date').disabled = false;
+            
+            // Modal başlığını güncelle
+            const modalTitle = document.querySelector('#createAreaModal .modal-title');
+            if (modalTitle) {
+                modalTitle.textContent = 'Yeni Yatırım Alanı Oluştur';
+            }
+            
+            // Submit butonunu güncelle
+            const submitBtn = document.querySelector('#create-area-form button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Kaydet';
+            }
+        }
+
+        // Yatırım alanını düzenle
+        async function editInvestmentArea(areaId) {
+            try {
+                editingAreaId = areaId;
+                editingAreaName = null; // Önce sıfırla
+                
+                // Yatırım alanı bilgilerini getir
+                const { data: area, error } = await supabase
+                    .from('investment_areas')
+                    .select(`
+                        *,
+                        stores (
+                            id,
+                            name,
+                            channel_id,
+                            region_id,
+                            channels (id, name),
+                            regions (id, name)
+                        )
+                    `)
+                    .eq('id', areaId)
+                    .single();
+
+                if (error) throw error;
+
+                // Mevcut ismi sakla (düzenleme modunda korunacak)
+                editingAreaName = area.name || null;
+
+                // Mağaza bilgilerini al
+                const store = area.stores;
+                const channel = store?.channels;
+                const region = store?.regions;
+
+                // Dropdown'ları doldur
+                await loadChannelsForCreateForm();
+                if (channel) {
+                    document.getElementById('create-area-channel').value = channel.id;
+                    await loadCreateAreaRegions();
+                }
+                if (region) {
+                    document.getElementById('create-area-region').value = region.id;
+                    await loadCreateAreaStores();
+                }
+                if (store) {
+                    document.getElementById('create-area-store').value = store.id;
+                }
+
+                // Form alanlarını doldur
+                document.getElementById('create-area-brand').value = area.brand || '';
+                document.getElementById('create-area-type').value = area.type || '';
+                // Not: name alanı kaldırıldı, yeni oluşturmalarda otomatik oluşturuluyor
+                // Düzenleme modunda mevcut name korunacak
+                document.getElementById('create-area-status').value = area.status || 'active';
+                document.getElementById('create-area-installation-date').value = area.installation_date || '';
+                document.getElementById('create-area-rental-fee').value = area.rental_fee || '';
+                document.getElementById('create-area-rental-start-date').value = area.rental_start_date || '';
+                document.getElementById('create-area-rental-end-date').value = area.rental_end_date || '';
+                document.getElementById('create-area-rental-indefinite').checked = area.rental_indefinite || false;
+                document.getElementById('create-area-description').value = area.description || '';
+                
+                // Kiralama bitiş tarihi kontrolünü uygula
+                toggleRentalEndDate();
+
+                // Planlanan ürünleri getir
+                const { data: products, error: productsError } = await supabase
+                    .from('investment_area_products')
+                    .select('*')
+                    .eq('investment_area_id', areaId)
+                    .order('display_order');
+
+                if (!productsError && products && products.length > 0) {
+                    const container = document.getElementById('planned-products-container');
+                    container.innerHTML = '';
+                    products.forEach(product => {
+                        addProductRow();
+                        const rows = container.querySelectorAll('.product-row');
+                        const lastRow = rows[rows.length - 1];
+                        lastRow.querySelector('.product-name').value = product.product_name || '';
+                        lastRow.querySelector('.product-code').value = product.product_code || '';
+                    });
+                } else {
+                    document.getElementById('planned-products-container').innerHTML = '<p class="text-muted small mb-2">Bu yatırım alanında teşhir edilmesi planlanan ürünleri ekleyin.</p>';
+                }
+
+                // Modal başlığını güncelle
+                const modalTitle = document.querySelector('#createAreaModal .modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = 'Yatırım Alanı Düzenle';
+                }
+
+                // Submit butonunu güncelle
+                const submitBtn = document.querySelector('#create-area-form button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Güncelle';
+                }
+
+                // Modal'ı aç
+                const modal = new bootstrap.Modal(document.getElementById('createAreaModal'));
+                modal.show();
+
+            } catch (error) {
+                console.error('Yatırım alanı düzenleme hatası:', error);
+                showAlert('Yatırım alanı bilgileri yüklenirken hata oluştu: ' + error.message, 'danger');
+            }
+        }
+
+        // Yatırım alanını sil
+        async function deleteInvestmentArea(areaId) {
+            if (!confirm('Bu yatırım alanını silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!')) {
+                return;
+            }
+
+            try {
+                // Önce yatırım alanı adını al (onay mesajı için)
+                const { data: area, error: areaError } = await supabase
+                    .from('investment_areas')
+                    .select('name')
+                    .eq('id', areaId)
+                    .single();
+
+                if (areaError) throw areaError;
+
+                // Yatırım alanını sil (cascade ile ilişkili kayıtlar da silinir)
+                const { error } = await supabase
+                    .from('investment_areas')
+                    .delete()
+                    .eq('id', areaId);
+
+                if (error) throw error;
+
+                showAlert(`"${area.name}" yatırım alanı başarıyla silindi`, 'success');
+                
+                // Listeyi yenile
+                await loadInvestmentAreas();
+
+            } catch (error) {
+                console.error('Yatırım alanı silme hatası:', error);
+                showAlert('Yatırım alanı silinirken hata oluştu: ' + error.message, 'danger');
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Kampanya Takip Sistemi</title>
+    <title>Pazarlama Paneli - Kampanya Takip Sistemi</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -55,8 +55,8 @@
             </button>
             <a class="navbar-brand" href="#">
                 <i class="fas fa-store me-2"></i>
-                <span class="d-none d-sm-inline">Kampanya Takip Sistemi - Admin Panel</span>
-                <span class="d-inline d-sm-none">Admin Panel</span>
+                <span class="d-none d-sm-inline">Kampanya Takip Sistemi - Pazarlama Paneli</span>
+                <span class="d-inline d-sm-none">Pazarlama Paneli</span>
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="#" onclick="logout()">
@@ -82,31 +82,6 @@
                                 <i class="fas fa-tasks me-2"></i>Görevler
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#create-task" onclick="console.log('Görev Oluştur tıklandı'); showSection('create-task')">
-                                <i class="fas fa-plus me-2"></i>Görev Oluştur
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#stores" onclick="console.log('Mağazalar tıklandı'); showSection('stores')">
-                                <i class="fas fa-store me-2"></i>Mağazalar
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#users" onclick="showSection('users')">
-                                <i class="fas fa-users me-2"></i>Kullanıcılar
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#channels" onclick="showSection('channels')">
-                                <i class="fas fa-sitemap me-2"></i>Kanallar
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#regions" onclick="showSection('regions')">
-                                <i class="fas fa-map-marker-alt me-2"></i>Bölgeler
-                            </a>
-                        </li>
                         
                         <!-- YATIRIM ALANLARI -->
                         <li class="nav-item mt-3">
@@ -125,37 +100,11 @@
                             </a>
                         </li>
                         
-                        <li class="nav-item" id="add-user-menu">
-                            <a class="nav-link" href="#add-user" onclick="showSection('add-user')">
-                                <i class="fas fa-user-plus me-2"></i>Kullanıcı Ekle
-                            </a>
-                        </li>
-                        <li class="nav-item" id="add-store-menu">
-                            <a class="nav-link" href="#add-store" onclick="showSection('add-store')">
-                                <i class="fas fa-store-plus me-2"></i>Mağaza Ekle
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#add-channel" onclick="showSection('add-channel')">
-                                <i class="fas fa-plus-circle me-2"></i>Kanal Ekle
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#add-region" onclick="showSection('add-region')">
-                                <i class="fas fa-map-marked-alt me-2"></i>Bölge Ekle
-                            </a>
-                        </li>
-                        
                         <!-- ANKET YÖNETİMİ -->
                         <li class="nav-item mt-3">
                             <h6 class="sidebar-heading px-3 text-muted">
                                 ANKET YÖNETİMİ
                             </h6>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#create-survey" onclick="showSection('create-survey')">
-                                <i class="fas fa-plus-square me-2"></i>Anket Oluştur
-                            </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#surveys-list" onclick="showSection('surveys-list')">
@@ -180,33 +129,6 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#basket-report" onclick="showSection('basket-report')">
                                 <i class="fas fa-shopping-basket me-2"></i>Sepet Raporu
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#price-report" onclick="showSection('price-report')">
-                                <i class="fas fa-tags me-2"></i>Fiyat Takip Raporu
-                            </a>
-                        </li>
-                        
-                        <!-- SATIŞ TAKİBİ -->
-                        <li class="nav-item mt-3">
-                            <h6 class="sidebar-heading px-3 text-muted">
-                                SATIŞ TAKİBİ
-                            </h6>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#sales-targets" onclick="showSection('sales-targets')">
-                                <i class="fas fa-bullseye me-2"></i>Hedef Girişi
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#sales-reports" onclick="showSection('sales-reports')">
-                                <i class="fas fa-chart-line me-2"></i>Satış Raporları
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#attendance-reports" onclick="showSection('attendance-reports')">
-                                <i class="fas fa-calendar-check me-2"></i>Çalışma Raporları
                             </a>
                         </li>
 
@@ -397,25 +319,10 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="task-personnel-filter" class="form-label">Personel Durumu</label>
-                                            <select class="form-select" id="task-personnel-filter">
-                                                <option value="all">Tüm Mağazalar</option>
-                                                <option value="with_personnel">Personelli Mağazalar</option>
-                                                <option value="without_personnel">Personelsiz Mağazalar</option>
-                                            </select>
-                                            <small class="text-muted">Görevin atanacağı mağazaların personel durumunu seçin</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
                                             <label for="task-stores" class="form-label">Mağazalar *</label>
                                             <select class="form-select" id="task-stores" multiple required>
                                                 <option value="all">Tüm Mağazalar</option>
                                             </select>
-                                            <small class="text-muted">Personel durumu filtresine göre mağazalar listelenir</small>
                                         </div>
                                     </div>
                                 </div>
@@ -482,9 +389,6 @@
                             </button>
                             <button class="btn btn-success me-2" onclick="exportTasksToExcel()">
                                 <i class="fas fa-file-excel me-2"></i>Görevler Excel
-                            </button>
-                            <button class="btn btn-primary" onclick="showSection('create-task')">
-                                <i class="fas fa-plus me-2"></i>Yeni Görev
                             </button>
                         </div>
                     </div>
@@ -605,21 +509,11 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-3">
                                     <div class="mb-3">
                                         <label for="store-region-filter" class="form-label">Bölge Filtresi</label>
                                         <select class="form-select" id="store-region-filter">
                                             <option value="">Tüm Bölgeler</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        <label for="store-personnel-filter" class="form-label">Personel Filtresi</label>
-                                        <select class="form-select" id="store-personnel-filter">
-                                            <option value="">Hepsi</option>
-                                            <option value="true">Personelli</option>
-                                            <option value="false">Personelsiz</option>
                                         </select>
                                     </div>
                                 </div>
@@ -644,14 +538,13 @@
                                             <th>Mağaza Adı</th>
                                             <th>Kanal</th>
                                             <th>Bölge</th>
-                                            <th>Personel</th>
                                             <th>Durum</th>
                                             <th>İşlemler</th>
                                         </tr>
                                     </thead>
                                     <tbody id="stores-table-body">
                                         <tr>
-                                            <td colspan="6" class="text-center">
+                                            <td colspan="5" class="text-center">
                                                 <div class="spinner-border text-primary" role="status">
                                                     <span class="visually-hidden">Yükleniyor...</span>
                                                 </div>
@@ -771,7 +664,6 @@
                                             <option value="admin">Admin</option>
                                             <option value="manager">Yönetici</option>
                                             <option value="employee">Mağaza Çalışanı</option>
-                                            <option value="marketing">Pazarlama Ekibi</option>
                                         </select>
                                     </div>
                                 </div>
@@ -934,20 +826,6 @@
                                             <select class="form-select" id="store-manager">
                                                 <option value="">Yönetici Seçiniz</option>
                                             </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="store-has-personnel" checked>
-                                                <label class="form-check-label" for="store-has-personnel">
-                                                    <i class="fas fa-users me-1"></i>Personelli Mağaza
-                                                </label>
-                                            </div>
-                                            <small class="text-muted">İşaretli ise mağazada personel bulunmaktadır</small>
                                         </div>
                                     </div>
                                 </div>
@@ -1133,18 +1011,11 @@
                                                     <strong>Bölgeye Göre</strong> - Sadece seçili bölgelere ata
                                                 </label>
                                             </div>
-                                            <div class="form-check mb-2">
+                                            <div class="form-check">
                                                 <input class="form-check-input" type="radio" name="assignment-type" 
                                                        id="assign-by-store" value="store" onchange="toggleAssignmentOptions()">
                                                 <label class="form-check-label" for="assign-by-store">
                                                     <strong>Mağazaya Göre</strong> - Sadece seçili mağazalara ata
-                                                </label>
-                                            </div>
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="radio" name="assignment-type" 
-                                                       id="assign-by-personnel" value="personnel" onchange="toggleAssignmentOptions()">
-                                                <label class="form-check-label" for="assign-by-personnel">
-                                                    <strong>Personel Durumuna Göre</strong> - Sadece personelli/personelsiz mağazalara ata
                                                 </label>
                                             </div>
 
@@ -1175,15 +1046,6 @@
                                                     <!-- Dinamik olarak doldurulacak -->
                                                 </select>
                                                 <small class="text-muted">Birden fazla seçmek için Ctrl tuşuna basılı tutun</small>
-                                            </div>
-
-                                            <!-- Personel Durumu Seçimi -->
-                                            <div id="personnel-selection" class="mt-3" style="display: none;">
-                                                <label class="form-label">Personel Durumu Seçin:</label>
-                                                <select class="form-select" id="selected-personnel-status">
-                                                    <option value="has_personnel">Personelli Mağazalar</option>
-                                                    <option value="no_personnel">Personelsiz Mağazalar</option>
-                                                </select>
                                             </div>
                                         </div>
                                     </div>
@@ -1242,9 +1104,6 @@
                 <div id="surveys-list-section" class="content-section" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3>Anketler</h3>
-                        <button class="btn btn-primary" onclick="showSection('create-survey')">
-                            <i class="fas fa-plus me-2"></i>Yeni Anket
-                        </button>
                     </div>
                     
                     <div class="card shadow">
@@ -2167,7 +2026,7 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/app.js?v=4.4"></script>
-    <script src="js/admin.js?v=4.3"></script>
+    <script src="js/marketing.js"></script>
     <script src="js/admin-survey.js?v=2.5"></script>
     <script src="js/admin-survey-helpers.js?v=1.2"></script>
     <script src="js/survey-reports-simple.js?v=3.6"></script>
@@ -2674,7 +2533,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- supabase-config ve admin.js üstte yüklendi; tekrar yüklemeyelim -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/marketing.js"></script>
+    <script src="js/survey-reports-new.js"></script>
     <script src="js/sales-targets.js"></script>
 
 </body>

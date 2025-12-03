@@ -76,6 +76,7 @@ function toggleAssignmentOptions() {
     document.getElementById('channel-selection').style.display = 'none';
     document.getElementById('region-selection').style.display = 'none';
     document.getElementById('store-selection').style.display = 'none';
+    document.getElementById('personnel-selection').style.display = 'none';
     
     // Seçilen türe göre göster
     switch (selectedType) {
@@ -90,6 +91,10 @@ function toggleAssignmentOptions() {
         case 'store':
             document.getElementById('store-selection').style.display = 'block';
             loadStores();
+            break;
+        case 'personnel':
+            document.getElementById('personnel-selection').style.display = 'block';
+            // No specific load function needed, options are static
             break;
     }
 }
@@ -246,6 +251,24 @@ async function getAssignedStoreIds() {
                 throw new Error('Lütfen en az bir mağaza seçin');
             }
             return selectedStores;
+            
+        case 'personnel':
+            // Personel durumuna göre mağazalar
+            const personnelStatus = document.getElementById('selected-personnel-status').value;
+            let personnelQuery = supabase
+                .from('stores')
+                .select('id')
+                .eq('is_active', true);
+            
+            if (personnelStatus === 'has_personnel') {
+                personnelQuery = personnelQuery.eq('has_personnel', true);
+            } else if (personnelStatus === 'no_personnel') {
+                personnelQuery = personnelQuery.eq('has_personnel', false);
+            }
+            
+            const { data: personnelStores, error: personnelError } = await personnelQuery;
+            if (personnelError) throw personnelError;
+            return personnelStores.map(s => s.id);
             
         default:
             throw new Error('Geçersiz atama tipi');

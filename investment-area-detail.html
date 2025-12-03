@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yatırım Alanı Detay - Kampanya Takip Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .detail-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        .summary-card {
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .nav-tabs .nav-link {
+            color: #667eea;
+        }
+        .nav-tabs .nav-link.active {
+            color: #667eea;
+            font-weight: bold;
+            border-bottom: 3px solid #667eea;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .photo-item {
+            position: relative;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .photo-item:hover {
+            transform: scale(1.05);
+        }
+        .photo-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .photo-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            color: white;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .timeline-item {
+            border-left: 2px solid #667eea;
+            padding-left: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+        .timeline-wrapper {
+            position: relative;
+        }
+        .timeline-item-comment {
+            position: relative;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 15px;
+            width: 2px;
+            background: #dee2e6;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: 8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px;
+            z-index: 1;
+        }
+        .timeline-item-comment.system-message .timeline-dot {
+            background: #6c757d;
+            box-shadow: 0 0 0 2px #6c757d;
+        }
+        .comment-photos img {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .comment-photos img:hover {
+            transform: scale(1.1);
+            z-index: 10;
+            position: relative;
+        }
+        .ticket-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .ticket-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        #ticket-photo-preview img {
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Üst Menü -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-building me-2"></i>
+                Yatırım Alanı Detay
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="investment-areas.html">
+                    <i class="fas fa-arrow-left me-1"></i>Geri
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Header -->
+        <div class="detail-header" id="area-header">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2 id="area-name">Yatırım Alanı Adı</h2>
+                    <p class="mb-0" id="area-location">Kanal / Bölge / Mağaza</p>
+                    <p class="mb-0 mt-2">
+                        <span class="badge bg-light text-dark me-2" id="area-type">Marka - Tip</span>
+                        <span class="badge bg-light text-dark me-2" id="area-status">Durum</span>
+                        <span class="badge bg-light text-dark me-2" id="area-installation-date" style="display: none;"></span>
+                        <span class="badge bg-light text-dark" id="area-rental-fee" style="display: none;"></span>
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light" onclick="createNewTicket()">
+                        <i class="fas fa-plus me-2"></i>Yeni Ticket
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Özet -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="summary-card">
+                    <h6 class="text-muted mb-2">Toplam Ticket</h6>
+                    <h3 id="total-tickets">0</h3>
+                    <small class="text-muted">
+                        <span id="open-tickets">0</span> Açık / 
+                        <span id="closed-tickets">0</span> Kapalı
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="summary-card">
+                    <h6 class="text-muted mb-2">Son 30 Günde Fotoğraf</h6>
+                    <h3 id="recent-photos">0</h3>
+                    <small class="text-muted">Haftalık kontrol fotoğrafları</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="summary-card">
+                    <h6 class="text-muted mb-2">Son İşlem Tarihi</h6>
+                    <h3 id="last-activity">-</h3>
+                    <small class="text-muted" id="last-activity-desc">-</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mb-4" id="detail-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tickets-tab" data-bs-toggle="tab" data-bs-target="#tickets" type="button" role="tab">
+                    <i class="fas fa-ticket-alt me-2"></i>Ticketlar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="photos-tab" data-bs-toggle="tab" data-bs-target="#photos" type="button" role="tab">
+                    <i class="fas fa-images me-2"></i>Fotoğraflar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button" role="tab">
+                    <i class="fas fa-history me-2"></i>Zaman Çizelgesi
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="weekly-comparison-tab" data-bs-toggle="tab" data-bs-target="#weekly-comparison" type="button" role="tab">
+                    <i class="fas fa-calendar-week me-2"></i>Haftalık Karşılaştırma
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="detail-tab-content">
+            <!-- Ticketlar Sekmesi -->
+            <div class="tab-pane fade show active" id="tickets" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Ticketlar</h5>
+                        <div class="d-flex gap-2">
+                            <select class="form-select form-select-sm d-inline-block" style="width: auto;" id="ticket-filter-status" onchange="loadTickets()">
+                                <option value="">Tüm Durumlar</option>
+                                <option value="open">Açık</option>
+                                <option value="in_progress">Üzerinde Çalışılıyor</option>
+                                <option value="pending_approval">Onay Bekliyor</option>
+                                <option value="completed">Tamamlandı</option>
+                                <option value="cancelled">İptal</option>
+                            </select>
+                            <select class="form-select form-select-sm d-inline-block" style="width: auto;" id="ticket-filter-assigned" onchange="loadTickets()">
+                                <option value="">Tüm Ticketlar</option>
+                                <option value="assigned">Atama Yapılanlar</option>
+                                <option value="unassigned">Atanmamış</option>
+                                <option value="my_assigned">Bana Atananlar</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body" id="tickets-container">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fotoğraflar Sekmesi -->
+            <div class="tab-pane fade" id="photos" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Fotoğraflar</h5>
+                        <div>
+                            <select class="form-select form-select-sm d-inline-block" style="width: auto;" id="photo-filter-source" onchange="loadPhotos()">
+                                <option value="">Tüm Kaynaklar</option>
+                                <option value="weekly_check">Haftalık Kontrol</option>
+                                <option value="ticket">Ticket</option>
+                                <option value="before">Önce</option>
+                                <option value="after">Sonra</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="photo-grid" id="photos-container">
+                            <div class="text-center w-100">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline Sekmesi -->
+            <div class="tab-pane fade" id="timeline" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="timeline-container">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Haftalık Karşılaştırma Sekmesi -->
+            <div class="tab-pane fade" id="weekly-comparison" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Haftalık Karşılaştırma</h5>
+                        <div class="d-flex gap-2">
+                            <select class="form-select form-select-sm" id="weekly-year-select" onchange="loadWeeklyComparison()">
+                                <option value="">Yıl Seçiniz</option>
+                            </select>
+                            <select class="form-select form-select-sm" id="weekly-week-select" onchange="loadWeeklyComparison()">
+                                <option value="">Hafta Seçiniz</option>
+                            </select>
+                            <button class="btn btn-sm btn-success" onclick="exportWeeklyToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>Excel İndir
+                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="createWeeklyPresentation()">
+                                <i class="fas fa-file-powerpoint me-1"></i>Sunum Oluştur
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="weekly-comparison-container">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yeni Ticket Oluşturma Modal -->
+    <div class="modal fade" id="createTicketModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni Ticket Oluştur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-ticket-form" onsubmit="handleCreateTicket(event)">
+                        <div class="mb-3">
+                            <label class="form-label">Ticket Türü *</label>
+                            <select class="form-select" id="ticket-type" required>
+                                <option value="">Ticket Türü Seçiniz</option>
+                                <option value="new_stand">Yeni Stand</option>
+                                <option value="revision">Revizyon</option>
+                                <option value="correction">Düzeltme</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Konu *</label>
+                            <input type="text" class="form-control" id="ticket-subject" required placeholder="Örn: Standda ışık bozuk">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Açıklama *</label>
+                            <textarea class="form-control" id="ticket-description" rows="4" required placeholder="Ticket hakkında detaylı açıklama..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Sorumlu (Opsiyonel)</label>
+                            <select class="form-select" id="ticket-assigned-to">
+                                <option value="">Atanmamış</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fotoğraflar (Opsiyonel)</label>
+                            <input type="file" class="form-control" id="ticket-photos" accept="image/*" multiple onchange="handleTicketPhotoSelection(event)">
+                            <small class="form-text text-muted">Birden fazla fotoğraf seçebilirsiniz</small>
+                            <div id="ticket-photo-preview" class="mt-2 d-flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Ticket Oluştur
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket Detay Modal -->
+    <div class="modal fade" id="ticketDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ticket-modal-title">Ticket Detayı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="ticket-modal-body">
+                    <!-- Ticket detay içeriği buraya yüklenecek -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fotoğraf Modal -->
+    <div class="modal fade" id="photoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Fotoğraf Detayı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="photo-modal-body">
+                    <!-- Fotoğraf detay içeriği buraya yüklenecek -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/investment-areas.js"></script>
+    <script src="js/investment-area-detail.js"></script>
+    <script>
+        // URL'den area ID'yi al
+        const urlParams = new URLSearchParams(window.location.search);
+        const areaId = urlParams.get('id');
+
+        if (!areaId) {
+            alert('Yatırım alanı ID bulunamadı');
+            window.location.href = 'investment-areas.html';
+        }
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAreaDetail(areaId);
+        });
+    </script>
+</body>
+</html>
+

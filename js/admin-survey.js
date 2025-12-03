@@ -171,6 +171,13 @@ async function createSurvey() {
             return;
         }
         
+        // Atama tipi ve personel durumunu al
+        const assignmentType = document.querySelector('input[name="assignment-type"]:checked')?.value || 'all';
+        let personnelStatus = null;
+        if (assignmentType === 'personnel') {
+            personnelStatus = document.getElementById('selected-personnel-status')?.value || null;
+        }
+        
         // Anketi oluştur
         const { data: survey, error: surveyError } = await supabase
             .from('surveys')
@@ -180,12 +187,38 @@ async function createSurvey() {
                 month,
                 year,
                 status: 'active',
-                created_by: user.id
+                created_by: user.id,
+                assignment_type: assignmentType,
+                personnel_status: personnelStatus
             })
             .select()
             .single();
             
         if (surveyError) throw surveyError;
+        
+        // Mağazalara atama yap
+        try {
+            const storeIds = await getAssignedStoreIds();
+            if (storeIds && storeIds.length > 0) {
+                const assignments = storeIds.map(storeId => ({
+                    survey_id: survey.id,
+                    store_id: storeId
+                }));
+                
+                const { error: assignmentError } = await supabase
+                    .from('survey_store_assignments')
+                    .insert(assignments);
+                    
+                if (assignmentError) {
+                    console.error('Mağaza atama hatası:', assignmentError);
+                    // Atama hatası anket oluşturmayı engellemez, sadece uyarı verir
+                    showAlert('Anket oluşturuldu ancak mağaza atamalarında hata oluştu: ' + assignmentError.message, 'warning');
+                }
+            }
+        } catch (assignmentErr) {
+            console.error('Mağaza atama hatası:', assignmentErr);
+            showAlert('Anket oluşturuldu ancak mağaza atamalarında hata oluştu: ' + assignmentErr.message, 'warning');
+        }
         
         // Soruları ekle
         const questionsWithSurveyId = questions.map(q => ({ ...q, survey_id: survey.id }));

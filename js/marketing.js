@@ -81,8 +81,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Admin yetkisi kontrolü
-    if (user.role !== 'admin' && user.role !== 'manager' && user.role !== 'marketing') {
+    // Pazarlama ekibi yetkisi kontrolü
+    if (user.role !== 'marketing') {
         showAlert('Bu sayfaya erişim yetkiniz yok!', 'danger');
         setTimeout(() => {
             window.location.href = 'index.html';
@@ -90,19 +90,39 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Yönetici ise sadece kendi bölgesindeki mağazaları göster
-    if (user.role === 'manager') {
-        loadManagerData(user);
-    }
+    // Pazarlama ekibi için gereksiz section'ları gizle
+    const hiddenSections = [
+        'create-task-section',
+        'stores-section',
+        'users-section',
+        'channels-section',
+        'regions-section',
+        'add-user-section',
+        'add-store-section',
+        'add-channel-section',
+        'add-region-section',
+        'create-survey-section',
+        'price-report-section',
+        'sales-targets-section',
+        'sales-reports-section',
+        'attendance-reports-section'
+    ];
     
-    // Pazarlama ekibi ise pazarlama dashboard'ına yönlendir
-    if (user.role === 'marketing') {
-        window.location.href = 'marketing-dashboard.html';
-        return;
-    }
+    hiddenSections.forEach(sectionId => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+            section.style.display = 'none';
+        }
+    });
     
-    // Menü öğelerini kullanıcı rolüne göre ayarla
-    setupMenuForUser(user);
+    // Anket Listesi'nden "Yeni Anket" butonunu kaldır
+    const surveysListSection = document.getElementById('surveys-list-section');
+    if (surveysListSection) {
+        const newSurveyBtn = surveysListSection.querySelector('button[onclick*="create-survey"]');
+        if (newSurveyBtn) {
+            newSurveyBtn.style.display = 'none';
+        }
+    }
     
     // Dashboard verilerini yükle ve göster
     loadDashboardData();
@@ -1262,7 +1282,7 @@ function toggleRegionField() {
     const roleSelect = document.getElementById('user-role');
     const regionField = document.getElementById('region-field');
     
-    if (roleSelect.value === 'admin' || roleSelect.value === 'marketing') {
+    if (roleSelect.value === 'admin') {
         regionField.style.display = 'none';
     } else {
         regionField.style.display = 'block';
@@ -1296,12 +1316,6 @@ async function handleAddUser(event) {
             throw new Error('Bu e-posta adresi zaten kullanılıyor!');
         }
         
-        // region_id'yi düzgün şekilde ayarla (boş string yerine null)
-        let regionId = null;
-        if (formData.role === 'manager' || formData.role === 'employee') {
-            regionId = formData.region_id && formData.region_id !== '' ? parseInt(formData.region_id) : null;
-        }
-        
         const { data, error } = await supabase
             .from('users')
             .insert([{
@@ -1309,7 +1323,7 @@ async function handleAddUser(event) {
                 email: formData.email,
                 password: formData.password, // Gerçek uygulamada hash'lenmeli
                 role: formData.role,
-                region_id: regionId
+                region_id: formData.role === 'admin' ? null : formData.region_id
             }]);
         
         if (error) throw error;
@@ -1329,29 +1343,7 @@ async function handleAddUser(event) {
         
     } catch (error) {
         console.error('Kullanıcı ekleme hatası:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Error hint:', error.hint);
-        console.error('Error details:', error.details);
-        
-        let errorMessage = 'Kullanıcı eklenirken bir hata oluştu!';
-        
-        if (error.message) {
-            errorMessage += '\n\nDetay: ' + error.message;
-        }
-        
-        if (error.code === '23514' || error.message?.includes('check constraint')) {
-            errorMessage = 'Hata: Pazarlama rolü veritabanında tanımlı değil. Lütfen "fix_users_role_constraint.sql" scriptini Supabase SQL Editor\'da çalıştırın.';
-        } else if (error.message?.includes('email') || error.message?.includes('unique')) {
-            errorMessage = 'Bu e-posta adresi zaten kullanılıyor!';
-        } else if (error.code === '400' || error.message?.includes('400')) {
-            errorMessage = 'Hata: Geçersiz istek. Lütfen tüm alanların doğru doldurulduğundan emin olun. Hata detayı: ' + (error.message || 'Bilinmeyen hata');
-        } else if (error.hint) {
-            errorMessage += '\n\nİpucu: ' + error.hint;
-        }
-        
-        showAlert(errorMessage, 'danger');
+        showAlert('Kullanıcı eklenirken bir hata oluştu!', 'danger');
     }
 }
 
@@ -1363,8 +1355,7 @@ async function handleAddStore(event) {
         name: document.getElementById('store-name').value,
         channel_id: document.getElementById('store-channel').value,
         region_id: document.getElementById('store-region').value,
-        manager_id: document.getElementById('store-manager').value,
-        has_personnel: document.getElementById('store-has-personnel').checked
+        manager_id: document.getElementById('store-manager').value
     };
     
     try {
@@ -1374,8 +1365,7 @@ async function handleAddStore(event) {
                 name: formData.name,
                 channel_id: formData.channel_id,
                 region_id: formData.region_id,
-                manager_id: formData.manager_id || null,
-                has_personnel: formData.has_personnel
+                manager_id: formData.manager_id || null
             }]);
         
         if (error) throw error;
@@ -1517,8 +1507,7 @@ function displayUsersList(users) {
         const roleText = {
             'admin': 'Admin',
             'manager': 'Yönetici',
-            'employee': 'Saha Satış Uzmanı',
-            'marketing': 'Pazarlama Ekibi'
+            'employee': 'Saha Satış Uzmanı'
         }[user.role] || user.role;
         
         const regionName = user.regions ? user.regions.name : (user.role === 'admin' ? 'Tüm Bölgeler' : 'Belirtilmemiş');
@@ -1572,8 +1561,7 @@ function displayUsersList(users) {
 async function loadStoresList() {
     console.log('loadStoresList fonksiyonu çağrıldı!');
     try {
-        // Önce has_personnel kolonu ile deneyelim
-        let query = supabase
+    const { data: stores, error } = await supabase
             .from('stores')
             .select(`
                 id,
@@ -1582,7 +1570,6 @@ async function loadStoresList() {
                 region_id,
                 manager_id,
                 is_active,
-                has_personnel,
                 created_at,
                 channels (
                     id,
@@ -1596,61 +1583,22 @@ async function loadStoresList() {
             .eq('is_active', true)
             .order('created_at', { ascending: false });
         
-        let { data: stores, error } = await query;
-        
-        // Eğer has_personnel kolonu yoksa, kolonu sorgudan çıkarıp tekrar deneyelim
-        if (error && error.message && error.message.includes('has_personnel')) {
-            console.warn('has_personnel kolonu bulunamadı, kolon olmadan tekrar deneniyor...');
-            query = supabase
-                .from('stores')
-                .select(`
-                    id,
-                    name,
-                    channel_id,
-                    region_id,
-                    manager_id,
-                    is_active,
-                    created_at,
-                    channels (
-                        id,
-                        name
-                    ),
-                    regions (
-                        id,
-                        name
-                    )
-                `)
-                .eq('is_active', true)
-                .order('created_at', { ascending: false });
-            
-            const result = await query;
-            stores = result.data;
-            error = result.error;
-            
-            // has_personnel kolonu yoksa, tüm mağazaları personelli olarak işaretle
-            if (stores) {
-                stores = stores.map(store => ({ ...store, has_personnel: true }));
-            }
-        }
-        
         if (error) {
             console.error('Mağaza listesi yükleme hatası:', error);
-            showAlert('❌ Mağaza listesi yüklenirken hata oluştu: ' + error.message, 'danger');
             displayStoresList([]);
             return;
         }
         
-        console.log('Supabase\'den mağazalar çekildi:', stores ? stores.length : 0, 'mağaza');
+        console.log('Supabase\'den mağazalar çekildi:', stores.length, 'mağaza');
         console.log('Mağaza verileri:', stores);
-        allStores = stores || []; // Global değişkene kaydet
-        displayStoresList(stores || []);
+        allStores = stores; // Global değişkene kaydet
+        displayStoresList(stores);
         
         // Filtreleme dropdown'larını doldur
         loadStoreFilterOptions();
         
     } catch (error) {
         console.error('Mağaza listesi yükleme hatası:', error);
-        showAlert('❌ Mağaza listesi yüklenirken hata oluştu: ' + error.message, 'danger');
         displayStoresList([]);
     }
 }
@@ -1684,23 +1632,6 @@ function displayStoresList(stores) {
         const channelName = store.channels ? store.channels.name : 'Belirtilmemiş';
         const regionName = store.regions ? store.regions.name : 'Belirtilmemiş';
         
-        // has_personnel kolonu varsa kullan, yoksa true (personelli) kabul et
-        const hasPersonnel = store.has_personnel !== undefined ? store.has_personnel !== false : true;
-        const personnelBadge = hasPersonnel 
-            ? '<span class="badge bg-success"><i class="fas fa-users me-1"></i>Personelli</span>' 
-            : '<span class="badge bg-warning"><i class="fas fa-user-slash me-1"></i>Personelsiz</span>';
-        
-        // has_personnel kolonu varsa toggle butonu göster
-        const personnelToggleBtn = typeof store.has_personnel !== 'undefined'
-            ? (hasPersonnel
-                ? `<button class="btn btn-sm btn-outline-warning me-1" onclick="toggleStorePersonnel(${store.id}, false)" title="Personelsiz Yap">
-                        <i class="fas fa-user-slash"></i>
-                   </button>`
-                : `<button class="btn btn-sm btn-outline-success me-1" onclick="toggleStorePersonnel(${store.id}, true)" title="Personelli Yap">
-                        <i class="fas fa-users"></i>
-                   </button>`)
-            : '<span class="text-muted small">N/A</span>';
-        
         const statusBadge = store.is_active ? '<span class="badge bg-success">Aktif</span>' : '<span class="badge bg-secondary">Pasif</span>';
         const toggleBtn = store.is_active
             ? `<button class="btn btn-sm btn-outline-warning me-1" onclick="setStoreActive(${store.id}, false)" title="Pasife Al">
@@ -1714,10 +1645,6 @@ function displayStoresList(stores) {
                 <td>${store.name}</td>
                 <td>${channelName}</td>
                 <td>${regionName}</td>
-                <td>
-                    ${personnelBadge}
-                    ${personnelToggleBtn}
-                </td>
                 <td>
                     ${statusBadge}
                 </td>
@@ -1903,8 +1830,7 @@ function getRoleBadgeClass(role) {
     const classes = {
         'admin': 'bg-danger',
         'manager': 'bg-warning',
-        'employee': 'bg-info',
-        'marketing': 'bg-primary'
+        'employee': 'bg-info'
     };
     return classes[role] || 'bg-secondary';
 }
@@ -1943,7 +1869,7 @@ async function editUser(userId) {
                 }
             }
         } else {
-            // Admin ve Pazarlama için bölge alanını gizle
+            // Admin için bölge alanını gizle
             const regionField = document.getElementById('region-field');
             if (regionField) {
                 regionField.style.display = 'none';
@@ -1996,7 +1922,7 @@ async function updateUser(userId) {
         if (role === 'manager' || role === 'employee') {
             updateData.region_id = regionId;
         } else {
-            // Admin ve Pazarlama için region_id'yi null yap
+            // Admin için region_id'yi null yap
             updateData.region_id = null;
         }
         
@@ -2165,12 +2091,6 @@ async function editStore(storeId) {
             managerSelect.value = store.manager_id ?? '';
         }
 
-        // Personel durumu checkbox'ını doldur
-        const hasPersonnelCheckbox = document.getElementById('store-has-personnel');
-        if (hasPersonnelCheckbox) {
-            hasPersonnelCheckbox.checked = store.has_personnel !== false; // null veya undefined ise true
-        }
-
         // Form başlığını değiştir
         const titleEl = document.querySelector('#add-store-section .card-header h5');
         if (titleEl) titleEl.textContent = 'Mağaza Düzenle';
@@ -2205,7 +2125,6 @@ async function updateStore(storeId) {
     const channelId = document.getElementById('store-channel').value;
     const regionId = document.getElementById('store-region').value;
     const managerId = document.getElementById('store-manager').value;
-    const hasPersonnel = document.getElementById('store-has-personnel').checked;
     
     try {
         const { error } = await supabase
@@ -2214,8 +2133,7 @@ async function updateStore(storeId) {
                 name: name,
                 channel_id: channelId,
                 region_id: regionId,
-                manager_id: managerId || null,
-                has_personnel: hasPersonnel
+                manager_id: managerId || null
             })
             .eq('id', storeId);
         
@@ -2305,29 +2223,6 @@ async function setStoreActive(storeId, isActive) {
     } catch (error) {
         console.error('Mağaza durumu güncellenirken hata:', error);
         showAlert('❌ Mağaza durumu güncellenemedi!', 'danger');
-    }
-}
-
-// Mağaza personel durumunu değiştir
-async function toggleStorePersonnel(storeId, hasPersonnel) {
-    try {
-        const { error } = await supabase
-            .from('stores')
-            .update({ has_personnel: !!hasPersonnel })
-            .eq('id', storeId);
-
-        if (error) throw error;
-
-        showAlert(hasPersonnel ? '✅ Mağaza personelli olarak işaretlendi!' : '✅ Mağaza personelsiz olarak işaretlendi!', 'success');
-
-        // Listeyi yenile
-        loadStoresList();
-
-        // Global mağaza listesi güncellendi
-        window.dispatchEvent(new CustomEvent('storesUpdated'));
-    } catch (error) {
-        console.error('Mağaza personel durumu güncellenirken hata:', error);
-        showAlert('❌ Mağaza personel durumu güncellenemedi!', 'danger');
     }
 }
 
@@ -2600,11 +2495,6 @@ document.addEventListener('DOMContentLoaded', function() {
         storeRegionFilter.addEventListener('change', filterStores);
     }
     
-    const storePersonnelFilter = document.getElementById('store-personnel-filter');
-    if (storePersonnelFilter) {
-        storePersonnelFilter.addEventListener('change', filterStores);
-    }
-    
     // Görev oluşturma formu
     const createTaskForm = document.getElementById('create-task-form');
     if (createTaskForm) {
@@ -2615,12 +2505,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const taskChannel = document.getElementById('task-channel');
     if (taskChannel) {
         taskChannel.addEventListener('change', updateTaskStores);
-    }
-    
-    // Personel durumu değiştiğinde mağazaları filtrele
-    const taskPersonnelFilter = document.getElementById('task-personnel-filter');
-    if (taskPersonnelFilter) {
-        taskPersonnelFilter.addEventListener('change', updateTaskStores);
     }
     
     // Yanıt türü değiştiğinde fotoğraf limitini göster/gizle
@@ -2670,7 +2554,6 @@ function filterStores() {
     const searchTerm = document.getElementById('store-search').value.toLowerCase();
     const channelFilter = document.getElementById('store-channel-filter').value;
     const regionFilter = document.getElementById('store-region-filter').value;
-    const personnelFilter = document.getElementById('store-personnel-filter').value;
     
     const filteredStores = allStores.filter(store => {
         const matchesSearch = !searchTerm || 
@@ -2679,14 +2562,7 @@ function filterStores() {
         const matchesChannel = !channelFilter || store.channel_id == channelFilter;
         const matchesRegion = !regionFilter || store.region_id == regionFilter;
         
-        // Personel filtresi
-        let matchesPersonnel = true;
-        if (personnelFilter) {
-            const hasPersonnel = store.has_personnel !== false; // null veya undefined ise true
-            matchesPersonnel = personnelFilter === 'true' ? hasPersonnel : !hasPersonnel;
-        }
-        
-        return matchesSearch && matchesChannel && matchesRegion && matchesPersonnel;
+        return matchesSearch && matchesChannel && matchesRegion;
     });
     
     displayStoresList(filteredStores);
@@ -2697,7 +2573,6 @@ function clearStoreFilters() {
     document.getElementById('store-search').value = '';
     document.getElementById('store-channel-filter').value = '';
     document.getElementById('store-region-filter').value = '';
-    document.getElementById('store-personnel-filter').value = '';
     filterStores();
 }
 
@@ -2861,36 +2736,24 @@ async function handleCreateTask(event) {
         
         if (taskError) throw taskError;
         
-        // Personel durumu filtresini al
-        const personnelFilter = document.getElementById('task-personnel-filter')?.value || 'all';
-        
         // Mağaza atamalarını oluştur
         if (formData.stores.includes('all')) {
-            // Tüm mağazaları al (personel durumu filtresine göre)
-            let storesQuery = supabase
+            // Tüm mağazaları al
+            const { data: allStores, error: storesError } = await supabase
                 .from('stores')
                 .select('id')
                 .eq('channel_id', formData.channel_id)
                 .eq('is_active', true);
             
-            // Personel durumu filtresi
-            if (personnelFilter === 'with_personnel') {
-                storesQuery = storesQuery.eq('has_personnel', true);
-            } else if (personnelFilter === 'without_personnel') {
-                storesQuery = storesQuery.eq('has_personnel', false);
-            }
-            
-            const { data: allStores, error: storesError } = await storesQuery;
-            
             if (storesError) throw storesError;
             
-            // Tüm mağazalara görev ata
-            const storeAssignments = allStores.map(store => ({
-                task_id: task.id,
-                store_id: store.id,
-                status: 'assigned',
-                created_at: new Date().toISOString()
-            }));
+                       // Tüm mağazalara görev ata
+                       const storeAssignments = allStores.map(store => ({
+                           task_id: task.id,
+                           store_id: store.id,
+                           status: 'assigned',
+                           created_at: new Date().toISOString()
+                       }));
             
             const { error: assignmentError } = await supabase
                 .from('task_assignments')
@@ -2898,13 +2761,13 @@ async function handleCreateTask(event) {
             
             if (assignmentError) throw assignmentError;
         } else {
-            // Seçili mağazalara görev ata
-            const storeAssignments = formData.stores.map(storeId => ({
-                task_id: task.id,
-                store_id: storeId,
-                status: 'assigned',
-                created_at: new Date().toISOString()
-            }));
+                       // Seçili mağazalara görev ata
+                       const storeAssignments = formData.stores.map(storeId => ({
+                           task_id: task.id,
+                           store_id: storeId,
+                           status: 'assigned',
+                           created_at: new Date().toISOString()
+                       }));
             
             const { error: assignmentError } = await supabase
                 .from('task_assignments')
@@ -2927,10 +2790,9 @@ async function handleCreateTask(event) {
     }
 }
 
-// Kanal veya personel durumu değiştiğinde mağazaları güncelle
+// Kanal değiştiğinde mağazaları güncelle
 async function updateTaskStores() {
     const channelId = document.getElementById('task-channel').value;
-    const personnelFilter = document.getElementById('task-personnel-filter')?.value || 'all';
     const storesSelect = document.getElementById('task-stores');
     
     if (!channelId) {
@@ -2939,21 +2801,12 @@ async function updateTaskStores() {
     }
     
     try {
-        let query = supabase
+        const { data: stores, error } = await supabase
             .from('stores')
-            .select('id, name, has_personnel')
+            .select('id, name')
             .eq('channel_id', channelId)
-            .eq('is_active', true);
-        
-        // Personel durumu filtresi
-        if (personnelFilter === 'with_personnel') {
-            query = query.eq('has_personnel', true);
-        } else if (personnelFilter === 'without_personnel') {
-            query = query.eq('has_personnel', false);
-        }
-        // 'all' durumunda filtre yok
-        
-        const { data: stores, error } = await query.order('name');
+            .eq('is_active', true)
+            .order('name');
         
         if (error) throw error;
         
@@ -2961,8 +2814,7 @@ async function updateTaskStores() {
         stores.forEach(store => {
             const option = document.createElement('option');
             option.value = store.id;
-            const personnelLabel = store.has_personnel !== false ? ' (Personelli)' : ' (Personelsiz)';
-            option.textContent = store.name + personnelLabel;
+            option.textContent = store.name;
             storesSelect.appendChild(option);
         });
         
