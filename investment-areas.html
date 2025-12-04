@@ -167,6 +167,7 @@
                                 <th>Mağaza</th>
                                 <th>Yatırım Alanı Adı</th>
                                 <th>Marka</th>
+                                <th>Üretici</th>
                                 <th>Tipi</th>
                                 <th>Personel</th>
                                 <th>Durum</th>
@@ -180,7 +181,7 @@
                         </thead>
                         <tbody id="investment-areas-tbody">
                             <tr>
-                                <td colspan="14" class="text-center">
+                                <td colspan="15" class="text-center">
                                     <div class="spinner-border text-primary" role="status">
                                         <span class="visually-hidden">Yükleniyor...</span>
                                     </div>
@@ -232,6 +233,11 @@
                                     <option value="ugreen">Ugreen</option>
                                 </select>
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Üretici</label>
+                                <input type="text" class="form-control" id="create-area-manufacturer" placeholder="Üretici adı">
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">Yatırım Alanı Tipi *</label>
@@ -554,6 +560,7 @@
                 const storeId = document.getElementById('create-area-store').value;
                 const brand = document.getElementById('create-area-brand').value;
                 const type = document.getElementById('create-area-type').value;
+                const manufacturer = document.getElementById('create-area-manufacturer').value;
                 
                 // İsim belirleme: Düzenleme modunda mevcut ismi koru, yeni oluşturmada otomatik oluştur
                 let name;
@@ -592,7 +599,8 @@
                     name: name,
                     type: type,
                     status: status,
-                    description: description || null
+                    description: description || null,
+                    manufacturer: manufacturer || null
                 };
 
                 // Kurulum tarihi varsa ekle
@@ -780,6 +788,7 @@
                 // Form alanlarını doldur
                 document.getElementById('create-area-brand').value = area.brand || '';
                 document.getElementById('create-area-type').value = area.type || '';
+                document.getElementById('create-area-manufacturer').value = area.manufacturer || '';
                 // Not: name alanı kaldırıldı, yeni oluşturmalarda otomatik oluşturuluyor
                 // Düzenleme modunda mevcut name korunacak
                 document.getElementById('create-area-status').value = area.status || 'active';

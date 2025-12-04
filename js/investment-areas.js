@@ -122,6 +122,7 @@ async function loadInvestmentAreas() {
                 name,
                 type,
                 brand,
+                manufacturer,
                 status,
                 store_id,
                 stores!inner(
@@ -261,7 +262,7 @@ async function loadInvestmentAreas() {
         tbody.innerHTML = '';
 
         if (filteredAreas.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted">Yatırım alanı bulunamadı</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted">Yatırım alanı bulunamadı</td></tr>';
             document.getElementById('total-count').textContent = '0';
             return;
         }
@@ -315,6 +316,7 @@ async function loadInvestmentAreas() {
                 <td>${store?.name || '-'}</td>
                 <td><strong>${area.name}</strong></td>
                 <td>${brandLabels[area.brand] || '-'}</td>
+                <td>${area.manufacturer || '-'}</td>
                 <td>${typeLabels[area.type] || area.type}</td>
                 <td>${personnelBadge}</td>
                 <td><span class="status-badge status-${area.status}">${statusLabels[area.status] || area.status}</span></td>
@@ -440,6 +442,7 @@ async function exportToExcel() {
                 'Mağaza': store?.name || '',
                 'Yatırım Alanı': area.name,
                 'Marka': brandLabels[area.brand] || '',
+                'Üretici': area.manufacturer || '',
                 'Tip': typeLabels[area.type] || area.type,
                 'Durum': area.status,
                 'Açık Ticket': openTickets.length,
