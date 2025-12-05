@@ -91,12 +91,37 @@ function getWeekDateRange(weekNumber, year) {
     };
 }
 
-// Tarihi formatla (DD.MM.YYYY)
-function formatDate(date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}.${month}.${year}`;
+// Tarihi formatla (DD.MM.YYYY) - hem string hem Date objesi kabul eder
+function formatDate(dateInput) {
+    if (!dateInput) return '-';
+    
+    let date;
+    
+    // Eğer zaten Date objesi ise direkt kullan
+    if (dateInput instanceof Date) {
+        date = dateInput;
+    } 
+    // String ise Date'e çevir
+    else if (typeof dateInput === 'string') {
+        date = new Date(dateInput);
+        // Geçersiz tarih kontrolü
+        if (isNaN(date.getTime())) {
+            return '-';
+        }
+    } 
+    else {
+        return '-';
+    }
+    
+    try {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+    } catch (error) {
+        console.error('Tarih formatlama hatası:', error, dateInput);
+        return '-';
+    }
 }
 
 // Hafta dropdown'larını doldur

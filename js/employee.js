@@ -142,17 +142,20 @@ async function loadTasks() {
         return;
     }
     
+    let loadingId = null;
+    
     try {
         isLoadingTasks = true;
         const user = checkUserSession();
         
         // Loading başlat
-        const loadingId = showLoading('Görevler Yükleniyor', 'Görev listesi çekiliyor...');
+        loadingId = showLoading('Görevler Yükleniyor', 'Görev listesi çekiliyor...');
         
         if (!user) {
             console.error('Kullanıcı oturumu bulunamadı');
             displayTasks([]);
-            hideLoading(loadingId);
+            if (loadingId) hideLoading(loadingId);
+            isLoadingTasks = false;
             return;
         }
         
@@ -160,7 +163,7 @@ async function loadTasks() {
         if (!storeId) {
             console.error('Kullanıcı mağaza ID\'si bulunamadı');
             displayTasks([]);
-            hideLoading(loadingId);
+            if (loadingId) hideLoading(loadingId);
             isLoadingTasks = false;
             return;
         }
@@ -193,7 +196,7 @@ async function loadTasks() {
         }
 
         // Görevleri işle - Kapanmış ve arşivlenmiş görevleri filtrele
-        const tasks = taskAssignments
+        const tasks = (taskAssignments || [])
             .filter(assignment => assignment.tasks) // Görev silinmemiş olanları filtrele
             .filter(assignment => {
                 const task = assignment.tasks;
@@ -229,14 +232,15 @@ async function loadTasks() {
         displayTasks(tasks);
         
         // Loading kapat
-        hideLoading(loadingId);
+        if (loadingId) hideLoading(loadingId);
         isLoadingTasks = false;
         
     } catch (error) {
         console.error('Görevler yüklenirken hata:', error);
+        console.error('Hata detayları:', error.stack);
         showAlert('Görevler yüklenirken hata oluştu: ' + error.message, 'danger');
         displayTasks([]);
-        hideLoading(loadingId);
+        if (loadingId) hideLoading(loadingId);
         isLoadingTasks = false;
     }
 }
@@ -706,16 +710,51 @@ function calculateDaysLeft(endDate) {
 }
 
 // Tarih formatlayan fonksiyon
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+// Tarih formatla fonksiyonu - hem string hem Date objesi kabul eder
+function formatDate(dateInput) {
+    if (!dateInput) return '-';
+    
+    let date;
+    
+    // Eğer zaten Date objesi ise direkt kullan
+    if (dateInput instanceof Date) {
+        date = dateInput;
+    } 
+    // String ise Date'e çevir
+    else if (typeof dateInput === 'string') {
+        // ISO format veya diğer formatları destekle
+        date = new Date(dateInput);
+        
+        // Geçersiz tarih kontrolü
+        if (isNaN(date.getTime())) {
+            console.warn('Geçersiz tarih formatı:', dateInput);
+            return '-';
+        }
+    } 
+    // Sayı ise timestamp olarak kabul et
+    else if (typeof dateInput === 'number') {
+        date = new Date(dateInput);
+    }
+    else {
+        console.warn('Desteklenmeyen tarih tipi:', typeof dateInput, dateInput);
+        return '-';
+    }
+    
+    // Geçerli bir tarih mi kontrol et
+    if (isNaN(date.getTime())) {
+        return '-';
+    }
+    
+    // Türkçe format: DD.MM.YYYY
+    try {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+    } catch (error) {
+        console.error('Tarih formatlama hatası:', error, dateInput);
+        return '-';
+    }
 }
 
 // Fotoğraf boyutunu kontrol eden fonksiyon
