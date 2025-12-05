@@ -92,6 +92,7 @@ function getWeekDateRange(weekNumber, year) {
 }
 
 // Tarihi formatla (DD.MM.YYYY) - hem string hem Date objesi kabul eder
+// NOT: employee.js'deki formatDate fonksiyonunu kullanır, eğer yoksa bu fonksiyonu kullanır
 function formatDate(dateInput) {
     if (!dateInput) return '-';
     
@@ -106,10 +107,24 @@ function formatDate(dateInput) {
         date = new Date(dateInput);
         // Geçersiz tarih kontrolü
         if (isNaN(date.getTime())) {
+            console.warn('Geçersiz tarih formatı:', dateInput);
             return '-';
         }
     } 
+    // Sayı ise timestamp olarak kabul et
+    else if (typeof dateInput === 'number') {
+        date = new Date(dateInput);
+        if (isNaN(date.getTime())) {
+            return '-';
+        }
+    }
     else {
+        console.warn('Desteklenmeyen tarih tipi:', typeof dateInput, dateInput);
+        return '-';
+    }
+    
+    // Geçerli bir tarih mi kontrol et
+    if (isNaN(date.getTime())) {
         return '-';
     }
     
