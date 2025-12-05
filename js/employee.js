@@ -41,17 +41,45 @@ document.addEventListener('DOMContentLoaded', function() {
                                    document.referrer.includes('store-selection');
         
         if (fromStoreSelection) {
-            // Store-selection'dan geliyorsa, localStorage'ı tekrar kontrol et
-            const updatedUser = getFromStorage('currentUser');
-            if (updatedUser && (updatedUser.storeId || updatedUser.store_id) && updatedUser.department) {
-                console.log('Kullanıcı bilgileri bulundu, sayfa yenileniyor (parametresiz)');
-                // URL parametresini temizle ve yeniden yükle
-                window.location.replace('employee-dashboard.html');
-                return;
+            // Store-selection'dan geliyorsa, localStorage'ı birkaç kez kontrol et (yazılması gecikebilir)
+            let attempts = 0;
+            const checkUserData = setInterval(() => {
+                attempts++;
+                const updatedUser = getFromStorage('currentUser');
+                
+                if (updatedUser && (updatedUser.storeId || updatedUser.store_id) && updatedUser.department) {
+                    console.log('✅ Kullanıcı bilgileri bulundu, sayfa yenileniyor');
+                    clearInterval(checkUserData);
+                    // URL parametresini temizle ve yeniden yükle
+                    window.location.replace('employee-dashboard.html');
+                    return;
+                }
+                
+                // 10 denemeden sonra vazgeç (2 saniye)
+                if (attempts >= 10) {
+                    console.warn('⚠️ Kullanıcı bilgileri yüklenemedi, store-selection\'a yönlendiriliyor');
+                    clearInterval(checkUserData);
+                    window.location.replace('store-selection.html');
+                    return;
+                }
+            }, 200);
+            
+            // Loading göster (kullanıcıya bilgi ver)
+            const container = document.getElementById('tasks-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Mağaza bilgileri yükleniyor...</p>
+                    </div>
+                `;
             }
+            return; // Kontrol tamamlanana kadar bekle
         }
         
-        // Mağaza/departman yoksa direkt store-selection'a yönlendir
+        // Store-selection'dan gelmiyorsa direkt yönlendir
         console.log('Mağaza/departman seçilmemiş, store-selection\'a yönlendiriliyor');
         window.location.replace('store-selection.html');
         return;
