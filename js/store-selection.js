@@ -432,20 +432,30 @@ function continueToDashboard() {
     
     // Kullanıcı bilgilerini kaydet
     console.log('Kullanıcı bilgileri kaydediliyor:', user);
-    saveToStorage('currentUser', user);
     
-    // Hemen kontrol et (bekleme yok)
-    const savedUser = getFromStorage('currentUser');
-    if (!savedUser || (!savedUser.storeId && !savedUser.store_id)) {
-        console.error('Kullanıcı bilgileri kaydedilemedi!');
+    // localStorage'a direkt yaz (hemen kaydet)
+    try {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        console.log('✅ Kullanıcı bilgileri localStorage\'a kaydedildi');
+    } catch (e) {
+        console.error('❌ localStorage kayıt hatası:', e);
         showAlert('Bir hata oluştu. Lütfen tekrar deneyin.', 'danger');
         return;
     }
     
-    console.log('Kullanıcı bilgileri kaydedildi, yönlendiriliyor:', savedUser);
+    // Hemen kontrol et
+    const savedUser = getFromStorage('currentUser');
+    if (!savedUser || (!savedUser.storeId && !savedUser.store_id)) {
+        console.error('❌ Kullanıcı bilgileri kaydedilemedi!');
+        showAlert('Bir hata oluştu. Lütfen tekrar deneyin.', 'danger');
+        return;
+    }
     
-    // Dashboard'a yönlendir (from parametresi olmadan, çünkü bilgiler hazır)
-    const targetUrl = new URL('employee-dashboard.html', location.href).href;
+    console.log('✅ Kullanıcı bilgileri doğrulandı, yönlendiriliyor:', savedUser);
+    
+    // Dashboard'a yönlendir - HEMEN (from parametresi olmadan)
+    const targetUrl = 'employee-dashboard.html';
+    
     if (window.opener && !window.opener.closed) {
         try {
             window.opener.location.href = targetUrl;
@@ -456,7 +466,7 @@ function continueToDashboard() {
         }
     }
     
-    // Normal sayfa ise mevcut pencereyi yönlendir
+    // Normal sayfa ise mevcut pencereyi yönlendir - HEMEN
     window.location.replace(targetUrl);
 }
 
