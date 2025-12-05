@@ -12,20 +12,21 @@
     <!-- Üst Menü -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
+            <button class="navbar-toggler d-lg-none me-2" type="button" onclick="toggleSidebar()" aria-label="Toggle navigation" style="border: none; background: none; color: white; font-size: 20px;">
+                ☰
+            </button>
             <a class="navbar-brand" href="#">
                 <i class="fas fa-store me-2"></i>
-                Kampanya Takip Sistemi - Mağaza Paneli
+                <span class="d-none d-sm-inline">Kampanya Takip Sistemi - Mağaza Paneli</span>
+                <span class="d-inline d-sm-none">Mağaza Paneli</span>
             </a>
-            <button class="navbar-toggler d-md-none" type="button" onclick="toggleSidebar()">
-                <span class="navbar-toggler-icon"></span>
-            </button>
             <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="user-info">
+                <span class="navbar-text me-3 d-none d-md-inline" id="user-info">
                     <i class="fas fa-user me-1"></i>
                     <span id="user-name">Kullanıcı Adı</span>
                 </span>
                 <a class="nav-link" href="#" onclick="logout()">
-                    <i class="fas fa-sign-out-alt me-1"></i>Çıkış
+                    <i class="fas fa-sign-out-alt me-1"></i><span class="d-none d-sm-inline">Çıkış</span>
                 </a>
             </div>
         </div>
@@ -242,13 +243,12 @@
 
                 <!-- Satış Girişi İçeriği -->
                 <div id="sales-entry-section" class="content-section" style="display: none;">
-                    <div class="card shadow">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">Satış Girişi</h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-muted">Satış girişi formu yükleniyor...</p>
-                            <div id="sales-entry-content"></div>
+                    <div id="sales-entry-content">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Satış girişi formu yükleniyor...</p>
                         </div>
                     </div>
                 </div>
@@ -520,7 +520,7 @@
     <script src="js/employee.js?v=2.0"></script>
     <script src="js/employee-investment.js"></script>
     <script src="js/survey.js?v=6.2"></script>
-    <script src="js/sales-entry.js"></script>
+    <script src="js/sales-entry-new.js"></script>
     
     <!-- Service Worker Registration - DEVRE DIŞI -->
     <script>

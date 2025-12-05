@@ -33,9 +33,14 @@ function departmentSelected() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Mağaza seçim sayfası yüklendi');
     
-    // Kullanıcı oturumunu kontrol et
-    const user = checkUserSession();
+    // Kullanıcı oturumunu kontrol et (redirectOnFail = false, çünkü kendimiz yöneteceğiz)
+    const user = checkUserSession(false);
     if (!user) {
+        console.log('Kullanıcı oturumu bulunamadı, giriş sayfasına yönlendiriliyor');
+        showAlert('Oturum bulunamadı. Lütfen giriş yapın.', 'warning');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
         return;
     }
     
@@ -47,6 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 2000);
         return;
     }
+    
+    console.log('Kullanıcı oturumu doğrulandı:', user);
     
     // Mağaza verilerini yükle
     loadStores();
@@ -423,31 +430,34 @@ function continueToDashboard() {
         return;
     }
     
-    // Dashboard'a yönlendir (popup ise ana pencereye)
+    // Kullanıcı bilgilerini kaydet
+    console.log('Kullanıcı bilgileri kaydediliyor:', user);
+    saveToStorage('currentUser', user);
+    
+    // Hemen kontrol et (bekleme yok)
+    const savedUser = getFromStorage('currentUser');
+    if (!savedUser || (!savedUser.storeId && !savedUser.store_id)) {
+        console.error('Kullanıcı bilgileri kaydedilemedi!');
+        showAlert('Bir hata oluştu. Lütfen tekrar deneyin.', 'danger');
+        return;
+    }
+    
+    console.log('Kullanıcı bilgileri kaydedildi, yönlendiriliyor:', savedUser);
+    
+    // Dashboard'a yönlendir (from parametresi olmadan, çünkü bilgiler hazır)
     const targetUrl = new URL('employee-dashboard.html', location.href).href;
     if (window.opener && !window.opener.closed) {
         try {
-            window.opener.location.href = targetUrl; // ana pencereyi yönlendir
-            window.close(); // popup'ı kapat
+            window.opener.location.href = targetUrl;
+            window.close();
             return;
         } catch (e) {
             console.warn('Opener yönlendirme engellendi, mevcut pencereden yönlendiriliyor');
         }
     }
     
-    // normal sayfa ise mevcut pencereyi yönlendir
-    try {
-        window.location.assign(targetUrl);
-    } catch (e) {
-        window.location.href = targetUrl;
-    }
-    
-    // Fallback tekrar denemesi
-    setTimeout(() => {
-        if (!location.pathname.endsWith('employee-dashboard.html')) {
-            window.location.replace(targetUrl);
-        }
-    }, 800);
+    // Normal sayfa ise mevcut pencereyi yönlendir
+    window.location.replace(targetUrl);
 }
 
 // Mağaza kartlarına hover efekti ekleyen fonksiyon

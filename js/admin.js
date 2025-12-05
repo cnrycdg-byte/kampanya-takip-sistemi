@@ -866,6 +866,7 @@ function showSection(sectionName) {
             'users': 'Kullanıcılar',
             'channels': 'Kanallar',
             'regions': 'Bölgeler',
+            'sales-targets': 'Satış Hedefleri',
         };
         pageTitle.textContent = titles[sectionName] || 'Dashboard';
     }
@@ -931,6 +932,32 @@ function showSection(sectionName) {
                 regionsSection.style.display = 'block';
                 console.log('regions-section gösterildi');
             }
+            break;
+        case 'sales-targets':
+            console.log('Satış Hedefleri section\'ı seçildi');
+            // Yeni hedef giriş sistemini başlat
+            // Biraz gecikme ile çağır çünkü script henüz yüklenmemiş olabilir
+            setTimeout(function() {
+                if (typeof window.initializeSalesTargets === 'function') {
+                    console.log('initializeSalesTargets çağrılıyor');
+                    window.initializeSalesTargets();
+                } else if (typeof initializeSalesTargets === 'function') {
+                    console.log('initializeSalesTargets (local) çağrılıyor');
+                    initializeSalesTargets();
+                } else {
+                    console.error('initializeSalesTargets fonksiyonu bulunamadı!');
+                    // Manuel olarak container'ı kontrol et
+                    const container = document.getElementById('targets-container');
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Modül yükleniyor... Lütfen sayfayı yenileyin.
+                            </div>
+                        `;
+                    }
+                }
+            }, 100);
             break;
         case 'add-user':
             console.log('add-user case\'i çalıştı');

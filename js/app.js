@@ -431,7 +431,7 @@ function getFromStorage(key) {
 }
 
 // Kullanıcı oturumunu kontrol eden fonksiyon
-function checkUserSession() {
+function checkUserSession(redirectOnFail = true) {
     // Infinite loop önleme - çok güçlü
     if (window.checkingSession) {
         return window.lastUserSession || false;
@@ -450,7 +450,14 @@ function checkUserSession() {
         const user = getFromStorage('currentUser');
         
         if (!user) {
-            window.location.href = 'index.html';
+            if (redirectOnFail) {
+                // Sadece employee-dashboard veya store-selection sayfalarında değilse yönlendir
+                const currentPage = window.location.pathname;
+                if (!currentPage.includes('employee-dashboard') && 
+                    !currentPage.includes('store-selection')) {
+                    window.location.href = 'index.html';
+                }
+            }
             return false;
         }
         

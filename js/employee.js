@@ -5,11 +5,18 @@ let selectedPhotos = [];
 
 // Sayfa yüklendiğinde çalışacak kod
 document.addEventListener('DOMContentLoaded', function() {
-    // Kullanıcı oturumunu kontrol et
-    const user = checkUserSession();
+    console.log('Employee dashboard yükleniyor...');
+    
+    // Kullanıcı oturumunu kontrol et (redirectOnFail = false, çünkü kendimiz yöneteceğiz)
+    const user = checkUserSession(false);
     if (!user) {
+        console.log('Kullanıcı oturumu bulunamadı, store-selection\'a yönlendiriliyor');
+        // Store-selection sayfasına yönlendir, orada giriş kontrolü yapılacak
+        window.location.href = 'store-selection.html';
         return;
     }
+    
+    console.log('Kullanıcı oturumu bulundu:', user);
     
     // Mağaza çalışanı yetkisi kontrolü
     if (user.role !== 'employee') {
@@ -20,14 +27,38 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    // Mağaza ve departman kontrolü - daha esnek kontrol
+    // Önce storeId kontrolü, yoksa store_id kontrolü, yoksa yönlendir
+    const storeId = user.storeId || user.store_id;
+    const department = user.department;
+    
+    if (!storeId || !department) {
+        console.log('Mağaza veya departman eksik:', { storeId, department });
+        
+        // Store-selection sayfasından geliyorsa, localStorage'ı hemen kontrol et
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromStoreSelection = urlParams.get('from') === 'store-selection' || 
+                                   document.referrer.includes('store-selection');
+        
+        if (fromStoreSelection) {
+            // Store-selection'dan geliyorsa, localStorage'ı tekrar kontrol et
+            const updatedUser = getFromStorage('currentUser');
+            if (updatedUser && (updatedUser.storeId || updatedUser.store_id) && updatedUser.department) {
+                console.log('Kullanıcı bilgileri bulundu, sayfa yenileniyor (parametresiz)');
+                // URL parametresini temizle ve yeniden yükle
+                window.location.replace('employee-dashboard.html');
+                return;
+            }
+        }
+        
+        // Mağaza/departman yoksa direkt store-selection'a yönlendir
+        console.log('Mağaza/departman seçilmemiş, store-selection\'a yönlendiriliyor');
+        window.location.replace('store-selection.html');
+        return;
+    }
+    
     // Kullanıcı bilgilerini göster
     displayUserInfo(user);
-    
-    // Mağaza kontrolü
-    if (!user.storeId) {
-        // Mağaza seçilmemişse mağaza seçim sayfasına yönlendir
-        window.location.href = 'store-selection.html';
-    }
     
     // Fotoğraf yükleme olayını dinle
     const galleryUpload = document.getElementById('gallery-upload');
@@ -44,6 +75,13 @@ document.addEventListener('DOMContentLoaded', function() {
             displayUserInfo(user);
         }
     });
+    
+    // Sayfa yüklendiğinde görevleri yükle
+    setTimeout(() => {
+        if (typeof loadTasks === 'function') {
+            loadTasks();
+        }
+    }, 300);
 });
 
 // Kullanıcı bilgilerini gösteren fonksiyon
@@ -90,10 +128,12 @@ async function loadTasks() {
             return;
         }
         
-        if (!user.storeId) {
+        const storeId = user.storeId || user.store_id;
+        if (!storeId) {
             console.error('Kullanıcı mağaza ID\'si bulunamadı');
             displayTasks([]);
             hideLoading(loadingId);
+            isLoadingTasks = false;
             return;
         }
         
@@ -117,7 +157,7 @@ async function loadTasks() {
                     channels(name)
                 )
             `)
-            .eq('store_id', user.storeId);
+            .eq('store_id', storeId);
 
         if (error) {
             console.error('Supabase hatası:', error);
@@ -777,6 +817,12 @@ function showSection(sectionName) {
     
     // Bölüme özel veri yükleme
     switch(sectionName) {
+        case 'tasks':
+            // Görevler bölümü gösterildiğinde görevleri yükle
+            if (typeof loadTasks === 'function') {
+                loadTasks();
+            }
+            break;
         case 'tasks':
             loadTasks();
             break;
