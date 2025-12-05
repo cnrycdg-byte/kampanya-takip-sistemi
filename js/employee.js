@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }, 200);
             
-            // Loading göster (kullanıcıya bilgi ver)
+            // Loading mesajı göster (kullanıcıya bilgi ver)
             const container = document.getElementById('tasks-container');
             if (container) {
                 container.innerHTML = `
@@ -72,11 +72,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Yükleniyor...</span>
                         </div>
-                        <p class="mt-3 text-muted">Mağaza bilgileri yükleniyor...</p>
+                        <p class="mt-3 text-muted">Mağaza bilgileri yükleniyor, lütfen bekleyin...</p>
                     </div>
                 `;
             }
-            return; // Kontrol tamamlanana kadar bekle
+            return; // Kontrol tamamlanana kadar bekle (yönlendirme yapılacak)
         }
         
         // Store-selection'dan gelmiyorsa direkt yönlendir
