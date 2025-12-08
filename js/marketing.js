@@ -3,13 +3,32 @@
 // Mobil menü kontrolü
 function toggleMobileMenu() {
     const sidebar = document.getElementById('sidebarMenu');
+    const fabButton = document.getElementById('mobile-menu-fab');
+    const fabIcon = document.getElementById('mobile-menu-icon');
+    
     if (sidebar) {
-        if (sidebar.style.left === '0px' || sidebar.classList.contains('show')) {
+        const isOpen = sidebar.style.left === '0px' || sidebar.classList.contains('show');
+        
+        if (isOpen) {
             sidebar.style.left = '-250px';
             sidebar.classList.remove('show');
+            // Alt menü butonunu güncelle
+            if (fabButton) {
+                fabButton.classList.remove('active');
+            }
+            if (fabIcon) {
+                fabIcon.className = 'fas fa-bars';
+            }
         } else {
             sidebar.style.left = '0px';
             sidebar.classList.add('show');
+            // Alt menü butonunu güncelle
+            if (fabButton) {
+                fabButton.classList.add('active');
+            }
+            if (fabIcon) {
+                fabIcon.className = 'fas fa-times';
+            }
         }
     }
 }

@@ -293,12 +293,55 @@ function displayTasks(tasks) {
     if (tasks.length === 0) {
         container.innerHTML = `
             <div class="col-12">
-                <div class="alert alert-info text-center">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Henüz atanmış görev bulunmuyor.
+                <div class="alert alert-info text-center" style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="flex: 1; text-align: center;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Henüz atanmış görev bulunmuyor.
+                    </span>
+                    <button type="button" class="btn-close" aria-label="Kapat" style="margin-left: 10px; opacity: 0.7;"></button>
                 </div>
             </div>
         `;
+        
+        // Otomatik kapanma ekle
+        const alertDiv = container.querySelector('.alert-info');
+        if (alertDiv) {
+            const closeBtn = alertDiv.querySelector('.btn-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    alertDiv.style.transition = 'opacity 0.3s, transform 0.3s';
+                    alertDiv.style.opacity = '0';
+                    alertDiv.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) {
+                            alertDiv.remove();
+                        }
+                    }, 300);
+                });
+            }
+            
+            // 5 saniye sonra otomatik kapat
+            const autoCloseTimer = setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.style.transition = 'opacity 0.3s, transform 0.3s';
+                    alertDiv.style.opacity = '0';
+                    alertDiv.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) {
+                            alertDiv.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+            
+            // Kapat butonuna tıklandığında timer'ı iptal et
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    clearTimeout(autoCloseTimer);
+                });
+            }
+        }
+        
         return;
     }
     
@@ -992,7 +1035,25 @@ function viewCompletedTask(taskId) {
 // Mobil menüyü açıp kapatan fonksiyon
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
+    const fabButton = document.getElementById('mobile-menu-fab');
+    const fabIcon = document.getElementById('mobile-menu-icon');
+    
     sidebar.classList.toggle('show');
+    
+    // Alt menü butonunu güncelle
+    if (fabButton) {
+        if (sidebar.classList.contains('show')) {
+            fabButton.classList.add('active');
+            if (fabIcon) {
+                fabIcon.className = 'fas fa-times';
+            }
+        } else {
+            fabButton.classList.remove('active');
+            if (fabIcon) {
+                fabIcon.className = 'fas fa-bars';
+            }
+        }
+    }
 }
 
 // Mağaza değiştirme fonksiyonu
@@ -1006,11 +1067,21 @@ function changeStore() {
 document.addEventListener('click', function(event) {
     const sidebar = document.getElementById('sidebar');
     const menuButton = document.querySelector('[onclick="toggleSidebar()"]');
+    const fabButton = document.getElementById('mobile-menu-fab');
+    const fabIcon = document.getElementById('mobile-menu-icon');
     
     if (window.innerWidth <= 768 && 
         !sidebar.contains(event.target) && 
-        !menuButton.contains(event.target)) {
+        !menuButton.contains(event.target) &&
+        (!fabButton || !fabButton.contains(event.target))) {
         sidebar.classList.remove('show');
+        // Alt menü butonunu güncelle
+        if (fabButton) {
+            fabButton.classList.remove('active');
+        }
+        if (fabIcon) {
+            fabIcon.className = 'fas fa-bars';
+        }
     }
 });
 

@@ -50,8 +50,8 @@
     <!-- Üst Menü -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <button class="navbar-toggler d-lg-none" type="button" onclick="toggleMobileMenu()" aria-label="Toggle navigation" style="border: none; background: none; color: white; font-size: 20px;">
-                ☰
+            <button class="navbar-toggler d-lg-none" type="button" onclick="toggleMobileMenu()" aria-label="Toggle navigation" style="border: none; background: rgba(255, 255, 255, 0.2); color: white; font-size: 24px; padding: 8px 12px; border-radius: 6px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-bars"></i>
             </button>
             <a class="navbar-brand" href="#">
                 <i class="fas fa-store me-2"></i>
@@ -2538,6 +2538,11 @@
     <script src="js/marketing.js"></script>
     <script src="js/survey-reports-new.js"></script>
     <script src="js/sales-targets.js"></script>
+
+    <!-- Alt Menü Butonu (Mobil) -->
+    <button class="mobile-menu-fab" onclick="toggleMobileMenu()" aria-label="Menüyü Aç/Kapat" id="mobile-menu-fab">
+        <i class="fas fa-bars" id="mobile-menu-icon"></i>
+    </button>
 
 </body>
 </html>

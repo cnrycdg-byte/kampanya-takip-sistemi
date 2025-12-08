@@ -1755,16 +1755,37 @@ function showAlert(message, type = 'info') {
         document.body.appendChild(alertContainer);
     }
     
-    alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+    // Yeni alert oluştur
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+    
+    alertContainer.appendChild(alertDiv);
     
     // 5 saniye sonra otomatik kapat
-    setTimeout(() => {
-        const alert = alertContainer.lastElementChild;
-        if (alert) {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+    const autoCloseTimer = setTimeout(() => {
+        if (alertDiv && alertDiv.parentNode) {
+            try {
+                const bsAlert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+                bsAlert.close();
+            } catch (e) {
+                // Bootstrap Alert API çalışmazsa manuel kapat
+                alertDiv.style.transition = 'opacity 0.3s';
+                alertDiv.style.opacity = '0';
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 300);
+            }
         }
     }, 5000);
+    
+    // Alert kapandığında timer'ı temizle
+    alertDiv.addEventListener('closed.bs.alert', () => {
+        clearTimeout(autoCloseTimer);
+    });
 }
 
 // Sunum sistemi

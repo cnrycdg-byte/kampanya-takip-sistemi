@@ -20,7 +20,7 @@
     <!-- Üst Menü -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <button class="navbar-toggler" type="button" onclick="toggleMobileMenu()" aria-label="Toggle navigation" style="border: none; background: none; color: white !important; font-size: 20px; padding: 8px 12px; margin-right: 10px; cursor: pointer; display: block !important; z-index: 1060;">
+            <button class="navbar-toggler" type="button" onclick="toggleMobileMenu()" aria-label="Toggle navigation" style="border: none; background: rgba(255, 255, 255, 0.2); color: white !important; font-size: 24px; padding: 8px 12px; margin-right: 10px; cursor: pointer; display: block !important; z-index: 1060; border-radius: 6px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;">
                 <i class="fas fa-bars" style="color: white !important;"></i>
             </button>
             <a class="navbar-brand" href="#">
@@ -371,6 +371,12 @@
             loadReportingFilters();
         });
     </script>
+
+    <!-- Alt Menü Butonu (Mobil) -->
+    <button class="mobile-menu-fab" onclick="toggleMobileMenu()" aria-label="Menüyü Aç/Kapat" id="mobile-menu-fab">
+        <i class="fas fa-bars" id="mobile-menu-icon"></i>
+    </button>
+
 </body>
 </html>
 

@@ -298,6 +298,19 @@ function showAlert(message, type = 'info') {
     // Alert'i body'ye ekle
     document.body.appendChild(alertDiv);
     
+    // 5 saniye sonra otomatik kaldır - Timer'ı önce tanımla
+    let autoCloseTimer = setTimeout(() => {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.style.transition = 'opacity 0.3s';
+            alertDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+    
     // Kapat butonuna tıklama eventi ekle
     const closeBtn = alertDiv.querySelector('.btn-close-alert-app');
     if (closeBtn) {
@@ -309,37 +322,18 @@ function showAlert(message, type = 'info') {
             this.style.opacity = '0.7';
         });
         
-        // Click eventi
+        // Click eventi - Timer'ı iptal et ve alert'i kapat
         closeBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            alertDiv.style.transition = 'opacity 0.3s';
-            alertDiv.style.opacity = '0';
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 300);
-        });
-    }
-    
-    // 5 saniye sonra otomatik kaldır
-    const autoCloseTimer = setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.style.transition = 'opacity 0.3s';
-            alertDiv.style.opacity = '0';
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 300);
-        }
-    }, 5000);
-    
-    // X butonuna tıklanınca timer'ı iptal et
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
             clearTimeout(autoCloseTimer);
+            alertDiv.style.transition = 'opacity 0.3s';
+            alertDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 300);
         });
     }
 }
@@ -607,3 +601,103 @@ async function apiCall(url, method = 'GET', data = null) {
         throw error;
     }
 }
+
+// Tüm statik alert-info'ları otomatik kapanan hale getir
+function initAutoCloseAlerts() {
+    // Sayfa yüklendiğinde çalış
+    setTimeout(() => {
+        const staticAlerts = document.querySelectorAll('.alert-info:not(.custom-alert-app):not(.custom-alert):not(.custom-alert-detail):not(.custom-alert-areas):not(.custom-alert-survey-reports)');
+        
+        staticAlerts.forEach(alert => {
+            // Eğer zaten kapat butonu varsa ve otomatik kapanma eklenmişse, tekrar ekleme
+            if (alert.dataset.autoCloseAdded === 'true') {
+                return;
+            }
+            
+            // Kapat butonu yoksa ekle
+            if (!alert.querySelector('.btn-close')) {
+                const closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'btn-close';
+                closeBtn.setAttribute('aria-label', 'Kapat');
+                closeBtn.style.marginLeft = 'auto';
+                closeBtn.style.opacity = '0.7';
+                
+                // Alert'in içeriğini flex container yap
+                if (alert.style.display !== 'flex') {
+                    const originalContent = alert.innerHTML;
+                    alert.style.display = 'flex';
+                    alert.style.alignItems = 'center';
+                    alert.style.justifyContent = 'space-between';
+                    alert.innerHTML = `<span style="flex: 1;">${originalContent}</span>`;
+                    alert.appendChild(closeBtn);
+                } else {
+                    alert.appendChild(closeBtn);
+                }
+            }
+            
+            // 5 saniye sonra otomatik kapat
+            const autoCloseTimer = setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.style.transition = 'opacity 0.3s, transform 0.3s';
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+            
+            // Kapat butonuna tıklama eventi
+            const closeBtn = alert.querySelector('.btn-close');
+            if (closeBtn) {
+                const closeHandler = function() {
+                    clearTimeout(autoCloseTimer);
+                    alert.style.transition = 'opacity 0.3s, transform 0.3s';
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 300);
+                };
+                
+                closeBtn.addEventListener('click', closeHandler);
+            }
+            
+            // İşaretle ki tekrar eklenmesin
+            alert.dataset.autoCloseAdded = 'true';
+        });
+    }, 100);
+}
+
+// Sayfa yüklendiğinde ve DOM değişikliklerinde çalıştır
+document.addEventListener('DOMContentLoaded', function() {
+    initAutoCloseAlerts();
+    
+    // MutationObserver ile dinamik eklenen alert'leri de yakala
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length > 0) {
+                // Yeni eklenen alert'leri kontrol et
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.classList && node.classList.contains('alert-info')) {
+                            setTimeout(initAutoCloseAlerts, 50);
+                        } else if (node.querySelector && node.querySelector('.alert-info')) {
+                            setTimeout(initAutoCloseAlerts, 50);
+                        }
+                    }
+                });
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});

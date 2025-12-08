@@ -4,6 +4,9 @@
 // Mobil menü kontrolü - Tüm ekran boyutları için
 function toggleMobileMenu() {
     const sidebar = document.getElementById('sidebarMenu');
+    const fabButton = document.getElementById('mobile-menu-fab');
+    const fabIcon = document.getElementById('mobile-menu-icon');
+    
     if (sidebar) {
         const isOpen = sidebar.style.left === '0px' || sidebar.classList.contains('show');
         
@@ -12,11 +15,25 @@ function toggleMobileMenu() {
             sidebar.style.left = '-250px';
             sidebar.classList.remove('show');
             document.body.classList.remove('sidebar-open');
+            // Alt menü butonunu güncelle
+            if (fabButton) {
+                fabButton.classList.remove('active');
+            }
+            if (fabIcon) {
+                fabIcon.className = 'fas fa-bars';
+            }
         } else {
             // Menüyü aç
             sidebar.style.left = '0px';
             sidebar.classList.add('show');
             document.body.classList.add('sidebar-open');
+            // Alt menü butonunu güncelle
+            if (fabButton) {
+                fabButton.classList.add('active');
+            }
+            if (fabIcon) {
+                fabIcon.className = 'fas fa-times';
+            }
         }
     }
 }
@@ -25,11 +42,21 @@ function toggleMobileMenu() {
 document.addEventListener('click', function(event) {
     const sidebar = document.getElementById('sidebarMenu');
     const toggler = document.querySelector('.navbar-toggler');
+    const fabButton = document.getElementById('mobile-menu-fab');
+    const fabIcon = document.getElementById('mobile-menu-icon');
     
-    if (sidebar && toggler && !sidebar.contains(event.target) && !toggler.contains(event.target)) {
+    if (sidebar && toggler && !sidebar.contains(event.target) && !toggler.contains(event.target) && (!fabButton || !fabButton.contains(event.target))) {
         sidebar.classList.remove('show');
         if (sidebar.style) {
             sidebar.style.left = '-250px';
+        }
+        document.body.classList.remove('sidebar-open');
+        // Alt menü butonunu güncelle
+        if (fabButton) {
+            fabButton.classList.remove('active');
+        }
+        if (fabIcon) {
+            fabIcon.className = 'fas fa-bars';
         }
     }
 });

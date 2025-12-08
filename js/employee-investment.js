@@ -738,6 +738,19 @@ function showAlert(message, type = 'info') {
     // Alert'i body'ye ekle
     document.body.appendChild(alertDiv);
     
+    // 5 saniye sonra otomatik kaldır - Timer'ı önce tanımla
+    let autoCloseTimer = setTimeout(() => {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.style.transition = 'opacity 0.3s';
+            alertDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+    
     // Kapat butonuna tıklama eventi ekle
     const closeBtn = alertDiv.querySelector('.btn-close-alert');
     if (closeBtn) {
@@ -749,37 +762,18 @@ function showAlert(message, type = 'info') {
             this.style.opacity = '0.7';
         });
         
-        // Click eventi
+        // Click eventi - Timer'ı iptal et ve alert'i kapat
         closeBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            alertDiv.style.transition = 'opacity 0.3s';
-            alertDiv.style.opacity = '0';
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 300);
-        });
-    }
-    
-    // 5 saniye sonra otomatik kaldır
-    const autoCloseTimer = setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.style.transition = 'opacity 0.3s';
-            alertDiv.style.opacity = '0';
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 300);
-        }
-    }, 5000);
-    
-    // X butonuna tıklanınca timer'ı iptal et
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
             clearTimeout(autoCloseTimer);
+            alertDiv.style.transition = 'opacity 0.3s';
+            alertDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 300);
         });
     }
 }
