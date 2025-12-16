@@ -1125,7 +1125,7 @@ function openPhotoModal(photoUrl, note, date, uploader, ticketSubject, photoId =
 async function deleteInvestmentPhoto(photoId, photoUrl) {
     try {
         // Admin kontrolü
-        const userRole = getCurrentUserRole();
+        const userRole = getUserRole();
         if (userRole !== 'admin') {
             showAlert('Fotoğraf silme yetkiniz yok! Sadece admin hesapları fotoğraf silebilir.', 'danger');
             return;
