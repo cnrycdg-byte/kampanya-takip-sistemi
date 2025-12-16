@@ -151,6 +151,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     menuItem.style.display = 'none';
                 }
             });
+            // Manager için yatırım alanları ve yatırım raporları menülerini göster
+            const investmentMenus = ['investment-areas-menu', 'investment-reporting-menu', 'investment-report-menu'];
+            investmentMenus.forEach(menuId => {
+                const menuItem = document.getElementById(menuId);
+                if (menuItem) {
+                    menuItem.style.display = 'block';
+                }
+            });
         } else {
             // Employee için daha kısıtlı menü
             const restrictedMenus = ['add-user-menu', 'add-store-menu'];
