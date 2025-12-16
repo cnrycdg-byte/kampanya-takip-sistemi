@@ -245,22 +245,43 @@ async function uploadWeeklyInvestmentPhoto(event) {
             return;
         }
         
-        const areaId = document.getElementById('photo-investment-area').value;
+        // Yatırım alanı ID'sini formdan al - her seferinde fresh al
+        const areaSelect = document.getElementById('photo-investment-area');
+        if (!areaSelect) {
+            showAlert('Yatırım alanı seçimi bulunamadı', 'danger');
+            return;
+        }
+        
+        const areaId = areaSelect.value;
         const weekNumber = parseInt(document.getElementById('photo-week').value);
         const year = parseInt(document.getElementById('photo-year').value);
         const note = document.getElementById('photo-note').value;
         const files = document.getElementById('photo-file').files;
+        
+        // Debug: Seçilen yatırım alanını kontrol et
+        console.log('Seçilen Yatırım Alanı ID:', areaId);
+        console.log('Seçilen Yatırım Alanı Adı:', areaSelect.options[areaSelect.selectedIndex]?.text);
         
         if (!areaId || !weekNumber || !year || files.length === 0) {
             showAlert('Lütfen tüm gerekli alanları doldurun', 'warning');
             return;
         }
         
+        // areaId'yi integer'a çevir ve kontrol et
+        const investmentAreaId = parseInt(areaId);
+        if (isNaN(investmentAreaId)) {
+            showAlert('Geçersiz yatırım alanı seçimi', 'danger');
+            return;
+        }
+        
+        console.log('Kullanılacak Yatırım Alanı ID:', investmentAreaId);
+        
         // Haftalık fotoğraf kaydı oluştur
-        const { data: weeklyPhoto, error: weeklyError } = await supabase
+        let weeklyPhoto;
+        const { data: weeklyPhotoData, error: weeklyError } = await supabase
             .from('investment_weekly_photos')
             .insert({
-                investment_area_id: parseInt(areaId),
+                investment_area_id: investmentAreaId,
                 week_number: weekNumber,
                 year: year,
                 uploaded_by: user.id,
@@ -275,7 +296,7 @@ async function uploadWeeklyInvestmentPhoto(event) {
                 const { data: existing } = await supabase
                     .from('investment_weekly_photos')
                     .select('id')
-                    .eq('investment_area_id', areaId)
+                    .eq('investment_area_id', investmentAreaId)
                     .eq('week_number', weekNumber)
                     .eq('year', year)
                     .single();
@@ -288,6 +309,8 @@ async function uploadWeeklyInvestmentPhoto(event) {
             } else {
                 throw weeklyError;
             }
+        } else {
+            weeklyPhoto = weeklyPhotoData;
         }
         
         // Fotoğrafları yükle
@@ -301,7 +324,9 @@ async function uploadWeeklyInvestmentPhoto(event) {
                 // Dosya adı oluştur
                 const timestamp = Date.now();
                 const fileName = `weekly_${weeklyPhoto.id}_${timestamp}_${i}_${Math.random().toString(36).substring(7)}.jpg`;
-                const filePath = `investment-areas/${areaId}/weekly/${year}/week-${weekNumber}/${fileName}`;
+                const filePath = `investment-areas/${investmentAreaId}/weekly/${year}/week-${weekNumber}/${fileName}`;
+                
+                console.log(`Fotoğraf ${i + 1} yükleniyor - Yatırım Alanı ID: ${investmentAreaId}, Dosya Yolu: ${filePath}`);
                 
                 // Supabase Storage'a yükle
                 const { error: uploadError } = await supabase.storage
@@ -321,17 +346,24 @@ async function uploadWeeklyInvestmentPhoto(event) {
                     .from('task-photos')
                     .getPublicUrl(filePath);
                 
-                // Veritabanına kaydet
+                // Veritabanına kaydet - investmentAreaId kullan
+                console.log(`Fotoğraf ${i + 1} veritabanına kaydediliyor - Yatırım Alanı ID: ${investmentAreaId}`);
                 const { error: photoError } = await supabase
                     .from('investment_photos')
                     .insert({
-                        investment_area_id: parseInt(areaId),
+                        investment_area_id: investmentAreaId,
                         weekly_photo_id: weeklyPhoto.id,
                         photo_url: urlData.publicUrl,
                         source: 'weekly_check',
                         uploaded_by: user.id,
                         note: note || null
                     });
+                
+                if (photoError) {
+                    console.error('Veritabanı kayıt hatası:', photoError);
+                } else {
+                    console.log(`Fotoğraf ${i + 1} başarıyla kaydedildi - Yatırım Alanı ID: ${investmentAreaId}`);
+                }
                 
                 if (!photoError) {
                     uploadedPhotos.push(urlData.publicUrl);
@@ -603,7 +635,7 @@ async function loadWeeklyProgress() {
     }
 }
 
-// Fotoğraf sıkıştırma (employee.js'den kopyalandı)
+// Fotoğraf sıkıştırma - Yüksek kalite için optimize edildi
 async function compressImage(file) {
     return new Promise((resolve, reject) => {
         const canvas = document.createElement('canvas');
@@ -612,34 +644,36 @@ async function compressImage(file) {
         
         img.onload = () => {
             try {
-                const maxWidth = 1024;
-                const maxHeight = 768;
+                // Yüksek çözünürlük için maksimum boyutları artırdık
+                const maxWidth = 2560;
+                const maxHeight = 1920;
                 
                 let { width, height } = img;
                 
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height = (height * maxWidth) / width;
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width = (width * maxHeight) / height;
-                        height = maxHeight;
-                    }
+                // Orijinal boyutları koru, sadece çok büyükse küçült
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = width * ratio;
+                    height = height * ratio;
                 }
                 
                 canvas.width = width;
                 canvas.height = height;
+                
+                // Yüksek kaliteli çizim için imageSmoothingEnabled ayarları
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
                 ctx.drawImage(img, 0, 0, width, height);
                 
+                // Kaliteyi 0.95'e yükselttik (0.9'dan) - daha az sıkıştırma, daha iyi kalite
                 canvas.toBlob((blob) => {
                     if (blob) {
                         resolve(blob);
                     } else {
                         reject(new Error('Fotoğraf sıkıştırılamadı'));
                     }
-                }, 'image/jpeg', 0.9);
+                }, 'image/jpeg', 0.95);
                 
             } catch (error) {
                 reject(error);

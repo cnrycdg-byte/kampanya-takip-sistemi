@@ -1053,7 +1053,7 @@ async function loadPhotos() {
 function createPhotoItem(photo) {
     const div = document.createElement('div');
     div.className = 'photo-item';
-    div.onclick = () => openPhotoModal(photo.photo_url, photo.note || '', formatDate(photo.created_at), photo.users?.name || '', photo.investment_tickets?.subject || '');
+    div.onclick = () => openPhotoModal(photo.photo_url, photo.note || '', formatDate(photo.created_at), photo.users?.name || '', photo.investment_tickets?.subject || '', photo.id);
 
     const sourceLabels = {
         'weekly_check': 'Haftalık Kontrol',
@@ -1062,8 +1062,21 @@ function createPhotoItem(photo) {
         'after': 'Sonra'
     };
 
+    // Admin kontrolü - sadece admin fotoğraf silebilir
+    const userRole = getCurrentUserRole();
+    const isAdmin = userRole === 'admin';
+    const deleteButton = isAdmin ? `
+        <button type="button" class="btn btn-danger btn-sm position-absolute" 
+                style="top: 5px; right: 5px; z-index: 10; padding: 4px 8px;" 
+                onclick="event.stopPropagation(); deleteInvestmentPhoto(${photo.id}, '${photo.photo_url}')" 
+                title="Fotoğrafı Sil">
+            <i class="fas fa-trash"></i>
+        </button>
+    ` : '';
+
     div.innerHTML = `
         <img src="${photo.photo_url}" alt="Fotoğraf" loading="lazy">
+        ${deleteButton}
         <div class="photo-overlay">
             <div><strong>${sourceLabels[photo.source] || photo.source}</strong></div>
             <div>${formatDate(photo.created_at)}</div>
@@ -1075,8 +1088,20 @@ function createPhotoItem(photo) {
 }
 
 // Fotoğraf modal'ını aç
-function openPhotoModal(photoUrl, note, date, uploader, ticketSubject) {
+function openPhotoModal(photoUrl, note, date, uploader, ticketSubject, photoId = null) {
     const modalBody = document.getElementById('photo-modal-body');
+    
+    // Admin kontrolü - sadece admin fotoğraf silebilir
+    const userRole = getCurrentUserRole();
+    const isAdmin = userRole === 'admin';
+    const deleteButton = isAdmin && photoId ? `
+        <div class="text-center mt-3">
+            <button type="button" class="btn btn-danger" onclick="deleteInvestmentPhoto(${photoId}, '${photoUrl}'); bootstrap.Modal.getInstance(document.getElementById('photoModal')).hide();">
+                <i class="fas fa-trash me-2"></i>Fotoğrafı Sil
+            </button>
+        </div>
+    ` : '';
+
     modalBody.innerHTML = `
         <div class="text-center mb-3">
             <img src="${photoUrl}" alt="Fotoğraf" class="img-fluid rounded">
@@ -1089,10 +1114,67 @@ function openPhotoModal(photoUrl, note, date, uploader, ticketSubject) {
                 ${note ? `<p><strong>Not:</strong> ${note}</p>` : ''}
             </div>
         </div>
+        ${deleteButton}
     `;
 
     const modal = new bootstrap.Modal(document.getElementById('photoModal'));
     modal.show();
+}
+
+// Yatırım fotoğrafını sil (sadece admin)
+async function deleteInvestmentPhoto(photoId, photoUrl) {
+    try {
+        // Admin kontrolü
+        const userRole = getCurrentUserRole();
+        if (userRole !== 'admin') {
+            showAlert('Fotoğraf silme yetkiniz yok! Sadece admin hesapları fotoğraf silebilir.', 'danger');
+            return;
+        }
+
+        // Onay iste
+        if (!confirm('Bu fotoğrafı silmek istediğinizden emin misiniz?')) {
+            return;
+        }
+
+        // Fotoğraf URL'inden dosya yolunu çıkar
+        // Örnek: https://xxx.supabase.co/storage/v1/object/public/task-photos/investment-areas/123/...
+        let filePath = '';
+        if (photoUrl.includes('/storage/v1/object/public/task-photos/')) {
+            filePath = photoUrl.split('/storage/v1/object/public/task-photos/')[1];
+        } else if (photoUrl.includes('task-photos/')) {
+            filePath = photoUrl.split('task-photos/')[1];
+        }
+
+        // Veritabanından sil
+        const { error: dbError } = await supabase
+            .from('investment_photos')
+            .delete()
+            .eq('id', photoId);
+
+        if (dbError) {
+            throw dbError;
+        }
+
+        // Storage'dan sil (eğer dosya yolu bulunduysa)
+        if (filePath) {
+            const { error: storageError } = await supabase.storage
+                .from('task-photos')
+                .remove([filePath]);
+
+            if (storageError) {
+                console.warn('Storage silme hatası (fotoğraf veritabanından silindi):', storageError);
+            }
+        }
+
+        showAlert('Fotoğraf başarıyla silindi', 'success');
+        
+        // Fotoğrafları yeniden yükle
+        await loadPhotos();
+
+    } catch (error) {
+        console.error('Fotoğraf silme hatası:', error);
+        showAlert('Fotoğraf silinirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
+    }
 }
 
 // Timeline yükle
@@ -1306,34 +1388,36 @@ async function compressImage(file) {
         
         img.onload = () => {
             try {
-                const maxWidth = 1024;
-                const maxHeight = 768;
+                // Yüksek çözünürlük için maksimum boyutları artırdık
+                const maxWidth = 2560;
+                const maxHeight = 1920;
                 
                 let { width, height } = img;
                 
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height = (height * maxWidth) / width;
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width = (width * maxHeight) / height;
-                        height = maxHeight;
-                    }
+                // Orijinal boyutları koru, sadece çok büyükse küçült
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = width * ratio;
+                    height = height * ratio;
                 }
                 
                 canvas.width = width;
                 canvas.height = height;
+                
+                // Yüksek kaliteli çizim için imageSmoothingEnabled ayarları
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
                 ctx.drawImage(img, 0, 0, width, height);
                 
+                // Kaliteyi 0.95'e yükselttik - daha az sıkıştırma, daha iyi kalite
                 canvas.toBlob((blob) => {
                     if (blob) {
                         resolve(blob);
                     } else {
                         reject(new Error('Fotoğraf sıkıştırılamadı'));
                     }
-                }, 'image/jpeg', 0.9);
+                }, 'image/jpeg', 0.95);
                 
             } catch (error) {
                 reject(error);
@@ -1464,6 +1548,7 @@ window.handleAddComment = handleAddComment;
 window.loadUsersForCommentAssignment = loadUsersForCommentAssignment;
 window.handleCommentPhotoSelection = handleCommentPhotoSelection;
 window.removeCommentPhoto = removeCommentPhoto;
+window.deleteInvestmentPhoto = deleteInvestmentPhoto;
 
 // Yardımcı fonksiyonlar
 function getStatusLabel(status) {

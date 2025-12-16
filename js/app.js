@@ -373,7 +373,7 @@ function validateImageSize(file, maxSizeMB = 1) {
 }
 
 // Fotoğraf sıkıştırma fonksiyonu
-function compressImage(file, quality = 0.9, maxWidth = 1024, maxHeight = 768) {
+function compressImage(file, quality = 0.95, maxWidth = 2560, maxHeight = 1920) {
     return new Promise((resolve) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -391,6 +391,10 @@ function compressImage(file, quality = 0.9, maxWidth = 1024, maxHeight = 768) {
             // Canvas boyutunu ayarla
             canvas.width = width;
             canvas.height = height;
+            
+            // Yüksek kaliteli çizim için imageSmoothingEnabled ayarları
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             
             // Resmi çiz
             ctx.drawImage(img, 0, 0, width, height);

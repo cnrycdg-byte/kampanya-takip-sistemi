@@ -823,23 +823,17 @@ async function compressImage(file) {
             try {
                 console.log('Resim yüklendi, boyutlar:', img.width, 'x', img.height);
                 
-                // Maksimum boyutları belirle - 1024x768 formatında
-                const maxWidth = 1024;
-                const maxHeight = 768;
+                // Yüksek çözünürlük için maksimum boyutları artırdık
+                const maxWidth = 2560;
+                const maxHeight = 1920;
                 
                 let { width, height } = img;
                 
-                // Oranları koruyarak boyutlandır
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height = (height * maxWidth) / width;
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width = (width * maxHeight) / height;
-                        height = maxHeight;
-                    }
+                // Orijinal boyutları koru, sadece çok büyükse küçült
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = width * ratio;
+                    height = height * ratio;
                 }
                 
                 console.log('Yeni boyutlar:', width, 'x', height);
@@ -847,10 +841,14 @@ async function compressImage(file) {
                 canvas.width = width;
                 canvas.height = height;
                 
+                // Yüksek kaliteli çizim için imageSmoothingEnabled ayarları
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
                 // Fotoğrafı çiz
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // Blob olarak döndür
+                // Kaliteyi 0.95'e yükselttik - daha az sıkıştırma, daha iyi kalite
                 canvas.toBlob((blob) => {
                     if (blob) {
                         console.log('Sıkıştırma tamamlandı, yeni boyut:', blob.size);
@@ -859,7 +857,7 @@ async function compressImage(file) {
                         console.error('Blob oluşturulamadı');
                         reject(new Error('Fotoğraf sıkıştırılamadı'));
                     }
-                }, 'image/jpeg', 0.9);
+                }, 'image/jpeg', 0.95);
                 
             } catch (error) {
                 console.error('Canvas hatası:', error);
