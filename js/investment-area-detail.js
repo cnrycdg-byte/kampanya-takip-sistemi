@@ -1063,7 +1063,7 @@ function createPhotoItem(photo) {
     };
 
     // Admin kontrolü - sadece admin fotoğraf silebilir
-    const userRole = getCurrentUserRole();
+    const userRole = getUserRole();
     const isAdmin = userRole === 'admin';
     const deleteButton = isAdmin ? `
         <button type="button" class="btn btn-danger btn-sm position-absolute" 
@@ -1092,7 +1092,7 @@ function openPhotoModal(photoUrl, note, date, uploader, ticketSubject, photoId =
     const modalBody = document.getElementById('photo-modal-body');
     
     // Admin kontrolü - sadece admin fotoğraf silebilir
-    const userRole = getCurrentUserRole();
+    const userRole = getUserRole();
     const isAdmin = userRole === 'admin';
     const deleteButton = isAdmin && photoId ? `
         <div class="text-center mt-3">
