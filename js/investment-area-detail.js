@@ -1300,13 +1300,13 @@ async function loadUsersForTicketAssignment() {
             .from('users')
             .select('id, name, role')
             .eq('is_active', true)
-            .in('role', ['admin', 'manager', 'field_manager'])
+            .in('role', ['admin', 'manager', 'field_manager', 'marketing'])
             .order('name');
 
         if (error) throw error;
 
         const select = document.getElementById('ticket-assigned-to');
-        select.innerHTML = '<option value="">Atanmamış</option>';
+        select.innerHTML = ''; // Multiple select için boş başlangıç
 
         if (users && users.length > 0) {
             users.forEach(user => {
@@ -1326,7 +1326,8 @@ function getRoleLabel(role) {
     const labels = {
         'admin': 'Admin',
         'manager': 'Yönetici',
-        'field_manager': 'Saha Yöneticisi'
+        'field_manager': 'Saha Yöneticisi',
+        'marketing': 'Pazarlama'
     };
     return labels[role] || role;
 }
@@ -1437,7 +1438,10 @@ async function handleCreateTicket(event) {
         const type = document.getElementById('ticket-type').value;
         const subject = document.getElementById('ticket-subject').value;
         const description = document.getElementById('ticket-description').value;
-        const assignedTo = document.getElementById('ticket-assigned-to').value;
+        const assignedToSelect = document.getElementById('ticket-assigned-to');
+        
+        // Multiple select'ten seçilen değerleri al
+        const assignedToIds = Array.from(assignedToSelect.selectedOptions).map(option => parseInt(option.value));
 
         const userId = getUserId();
         if (!userId) {
@@ -1454,8 +1458,12 @@ async function handleCreateTicket(event) {
             created_by: userId
         };
 
-        if (assignedTo) {
-            ticketData.assigned_to = parseInt(assignedTo);
+        // Eğer tek bir kişi seçildiyse, assigned_to'ya atanır (geriye dönük uyumluluk için)
+        // Birden fazla kişi seçildiyse, assigned_to'ya ilk kişi atanır, diğerleri için alternatif çözüm gerekebilir
+        const assignedUsers = assignedToIds.length > 0 ? assignedToIds : null;
+        
+        if (assignedToIds.length > 0) {
+            ticketData.assigned_to = assignedToIds[0]; // İlk seçilen kişi ana sorumlu
         }
 
         // Ticket'ı oluştur
@@ -1466,6 +1474,14 @@ async function handleCreateTicket(event) {
             .single();
 
         if (error) throw error;
+
+        // Birden fazla kişi seçildiyse, ticket description'a eklenebilir veya ayrı bir tablo kullanılabilir
+        // Şimdilik sadece ilk kişi assigned_to'ya atanıyor
+        if (assignedUsers && assignedUsers.length > 1) {
+            console.log('Birden fazla kişi seçildi:', assignedUsers);
+            // İleride junction table ile çoklu atama yapılabilir
+            // Şimdilik sadece ilk kişi assigned_to'ya atanıyor, diğerleri description'a eklenebilir
+        }
 
         // Fotoğrafları yükle (varsa)
         if (ticketPhotoFiles.length > 0) {
