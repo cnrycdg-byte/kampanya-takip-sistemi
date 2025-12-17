@@ -2,6 +2,106 @@
 
 let reportData = [];
 
+// Hafta numarasından başlangıç ve bitiş tarihlerini hesapla
+function getWeekDateRange(weekNumber, year) {
+    // Yılın ilk gününü al
+    const jan1 = new Date(year, 0, 1);
+    // İlk Pazartesi'yi bul (ISO 8601 standardına göre hafta Pazartesi başlar)
+    const dayOfWeek = jan1.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Pazar = 0, Pazartesi = 1
+    const firstMonday = new Date(jan1);
+    firstMonday.setDate(jan1.getDate() - daysToMonday);
+    
+    // İlk Pazartesi yılın dışındaysa, bir sonraki Pazartesi'yi al
+    if (firstMonday.getFullYear() < year) {
+        firstMonday.setDate(firstMonday.getDate() + 7);
+    }
+    
+    // İstenen haftanın başlangıç tarihini hesapla (Pazartesi)
+    const weekStart = new Date(firstMonday);
+    weekStart.setDate(firstMonday.getDate() + (weekNumber - 1) * 7);
+    
+    // Haftanın bitiş tarihini hesapla (Pazar)
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    
+    return {
+        start: weekStart,
+        end: weekEnd
+    };
+}
+
+// Tarihi formatla (DD.MM.YYYY)
+function formatDate(dateInput) {
+    if (!dateInput) return '-';
+    
+    let date;
+    
+    // Eğer zaten Date objesi ise direkt kullan
+    if (dateInput instanceof Date) {
+        date = dateInput;
+    } 
+    // String ise Date'e çevir
+    else if (typeof dateInput === 'string') {
+        date = new Date(dateInput);
+        // Geçersiz tarih kontrolü
+        if (isNaN(date.getTime())) {
+            return '-';
+        }
+    } 
+    // Sayı ise timestamp olarak kabul et
+    else if (typeof dateInput === 'number') {
+        date = new Date(dateInput);
+        if (isNaN(date.getTime())) {
+            return '-';
+        }
+    }
+    else {
+        return '-';
+    }
+    
+    // Geçerli bir tarih mi kontrol et
+    if (isNaN(date.getTime())) {
+        return '-';
+    }
+    
+    try {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+    } catch (error) {
+        return '-';
+    }
+}
+
+// Hafta dropdown'ını doldur
+function populateWeekDropdown(year) {
+    const weekSelect = document.getElementById('weekly-report-week');
+    if (!weekSelect) return;
+    
+    const selectedWeek = weekSelect.value; // Mevcut seçimi sakla
+    weekSelect.innerHTML = '<option value="">Hafta Seçiniz</option>';
+    
+    for (let week = 1; week <= 53; week++) {
+        const option = document.createElement('option');
+        option.value = week;
+        
+        // Hafta tarih aralığını hesapla
+        const weekRange = getWeekDateRange(week, year);
+        const startDate = formatDate(weekRange.start);
+        const endDate = formatDate(weekRange.end);
+        
+        option.textContent = `${week}. Hafta (${startDate} - ${endDate})`;
+        weekSelect.appendChild(option);
+    }
+    
+    // Önceki seçimi geri yükle (eğer geçerliyse)
+    if (selectedWeek) {
+        weekSelect.value = selectedWeek;
+    }
+}
+
 // Haftalık fotoğraf raporu için filtreleri yükle
 async function loadWeeklyPhotoReportFilters() {
     try {
@@ -11,6 +111,7 @@ async function loadWeeklyPhotoReportFilters() {
         
         // Yıl dropdown'ını doldur (2025 ve 2026)
         if (yearSelect) {
+            yearSelect.innerHTML = '<option value="">Yıl Seçiniz</option>';
             for (let year = 2025; year <= 2026; year++) {
                 const option = document.createElement('option');
                 option.value = year;
@@ -18,17 +119,17 @@ async function loadWeeklyPhotoReportFilters() {
                 if (year === currentYear) option.selected = true;
                 yearSelect.appendChild(option);
             }
+            
+            // Yıl değiştiğinde hafta dropdown'ını güncelle
+            yearSelect.addEventListener('change', function() {
+                const selectedYear = parseInt(this.value) || currentYear;
+                populateWeekDropdown(selectedYear);
+            });
         }
         
-        // Hafta dropdown'ını doldur
-        if (weekSelect) {
-            for (let week = 1; week <= 53; week++) {
-                const option = document.createElement('option');
-                option.value = week;
-                option.textContent = `${week}. Hafta`;
-                weekSelect.appendChild(option);
-            }
-        }
+        // Hafta dropdown'ını doldur (varsayılan yıl ile)
+        const defaultYear = parseInt(yearSelect?.value) || currentYear;
+        populateWeekDropdown(defaultYear);
         
         // Kanalları yükle
         const { data: channels } = await supabase
