@@ -81,7 +81,10 @@ async function loadWeeklyPhotoReport() {
         }
         
         const tbody = document.getElementById('weekly-report-tbody');
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center"><div class="spinner-border text-primary"></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center"><div class="spinner-border text-primary"></div></td></tr>';
+        
+        // Personel durumu filtresini al
+        const personnelFilter = document.getElementById('weekly-report-personnel').value;
         
         // Tüm aktif yatırım alanlarını al
         let areasQuery = supabase
@@ -94,6 +97,7 @@ async function loadWeeklyPhotoReport() {
                     name,
                     channel_id,
                     region_id,
+                    has_personnel,
                     channels(id, name),
                     regions(id, name)
                 )
@@ -111,8 +115,19 @@ async function loadWeeklyPhotoReport() {
         
         if (areasError) throw areasError;
         
+        // Personel durumu filtresini uygula (client-side)
+        let filteredAreas = areas;
+        if (personnelFilter !== '') {
+            const hasPersonnel = personnelFilter === 'true';
+            filteredAreas = areas.filter(area => {
+                // has_personnel undefined veya null ise true (personelli) kabul et
+                const storeHasPersonnel = area.stores?.has_personnel !== false;
+                return hasPersonnel ? storeHasPersonnel : !storeHasPersonnel;
+            });
+        }
+        
         // Haftalık fotoğraf kayıtlarını al
-        const areaIds = areas.map(a => a.id);
+        const areaIds = filteredAreas.map(a => a.id);
         const { data: weeklyPhotos, error: photosError } = await supabase
             .from('investment_weekly_photos')
             .select(`
@@ -142,20 +157,27 @@ async function loadWeeklyPhotoReport() {
         let uploadedCount = 0;
         let notUploadedCount = 0;
         
-        areas.forEach(area => {
+        filteredAreas.forEach(area => {
             const weeklyPhoto = weeklyPhotosMap[area.id];
             const store = area.stores;
             const channel = store?.channels;
             const region = store?.regions;
             
+            // Personel durumu badge'i
+            const hasPersonnel = store?.has_personnel !== false;
+            const personnelBadge = hasPersonnel 
+                ? '<span class="badge bg-success"><i class="fas fa-users me-1"></i>Personelli</span>' 
+                : '<span class="badge bg-warning"><i class="fas fa-user-slash me-1"></i>Personelsiz</span>';
+            
             if (weeklyPhoto) {
                 uploadedCount++;
                 html += `
-                    <tr class="table-success">
+                    <tr class="table-success" style="cursor: pointer;" onclick="window.location.href='investment-area-detail.html?id=${area.id}'">
                         <td>${channel?.name || '-'}</td>
                         <td>${region?.name || '-'}</td>
                         <td>${store?.name || '-'}</td>
                         <td>${area.name}</td>
+                        <td>${personnelBadge}</td>
                         <td><span class="badge bg-success">Evet</span></td>
                         <td>${weeklyPhoto.users?.name || '-'}</td>
                         <td>${formatDateTime(weeklyPhoto.uploaded_at)}</td>
@@ -166,11 +188,12 @@ async function loadWeeklyPhotoReport() {
             } else {
                 notUploadedCount++;
                 html += `
-                    <tr class="table-danger">
+                    <tr class="table-danger" style="cursor: pointer;" onclick="window.location.href='investment-area-detail.html?id=${area.id}'">
                         <td>${channel?.name || '-'}</td>
                         <td>${region?.name || '-'}</td>
                         <td>${store?.name || '-'}</td>
                         <td>${area.name}</td>
+                        <td>${personnelBadge}</td>
                         <td><span class="badge bg-danger">Hayır</span></td>
                         <td>-</td>
                         <td>-</td>
@@ -182,17 +205,17 @@ async function loadWeeklyPhotoReport() {
         });
         
         if (html === '') {
-            html = '<tr><td colspan="9" class="text-center text-muted">Sonuç bulunamadı</td></tr>';
+            html = '<tr><td colspan="10" class="text-center text-muted">Sonuç bulunamadı</td></tr>';
         }
         
         tbody.innerHTML = html;
-        document.getElementById('weekly-report-count').textContent = `${areas.length} kayıt (${uploadedCount} yükleyen, ${notUploadedCount} yüklemeyen)`;
+        document.getElementById('weekly-report-count').textContent = `${filteredAreas.length} kayıt (${uploadedCount} yükleyen, ${notUploadedCount} yüklemeyen)`;
         
     } catch (error) {
         console.error('Haftalık fotoğraf raporu yükleme hatası:', error);
         showAlert('Rapor yüklenirken hata oluştu: ' + (error.message || 'Bilinmeyen hata'), 'danger');
         document.getElementById('weekly-report-tbody').innerHTML = 
-            '<tr><td colspan="9" class="text-center text-danger">Rapor yüklenirken hata oluştu</td></tr>';
+            '<tr><td colspan="10" class="text-center text-danger">Rapor yüklenirken hata oluştu</td></tr>';
     }
 }
 
@@ -216,23 +239,24 @@ async function exportWeeklyPhotoReportToExcel() {
         }
         
         // Excel formatına çevir
-        const headers = ['Kanal', 'Bölge', 'Mağaza', 'Yatırım Alanı', 'Fotoğraf Yüklendi', 'Yükleyen', 'Yükleme Tarihi', 'Fotoğraf Sayısı', 'Not'];
+        const headers = ['Kanal', 'Bölge', 'Mağaza', 'Yatırım Alanı', 'Personel Durumu', 'Fotoğraf Yüklendi', 'Yükleyen', 'Yükleme Tarihi', 'Fotoğraf Sayısı', 'Not'];
         
         const wsData = [headers];
         
         rows.forEach(row => {
             const cells = row.querySelectorAll('td');
-            if (cells.length >= 9) {
+            if (cells.length >= 10) {
                 const rowData = [
                     cells[0].textContent.trim(),
                     cells[1].textContent.trim(),
                     cells[2].textContent.trim(),
                     cells[3].textContent.trim(),
-                    cells[4].textContent.trim(),
+                    cells[4].textContent.trim(), // Personel Durumu
                     cells[5].textContent.trim(),
                     cells[6].textContent.trim(),
                     cells[7].textContent.trim(),
-                    cells[8].textContent.trim()
+                    cells[8].textContent.trim(),
+                    cells[9].textContent.trim()
                 ];
                 wsData.push(rowData);
             }
