@@ -104,6 +104,38 @@ if (supabaseClient && supabaseClient.auth) {
 	supabaseClient.auth.signOut().catch(() => {});
 }
 
+// Tüm uygulamada kullanılacak ortak Supabase client helper'ı
+// Her yerden window.getSupabaseClient('context') ile çağrılabilir.
+window.getSupabaseClient = function (context = 'default') {
+	let client = (typeof window !== 'undefined') ? window.supabase : null;
+
+	// Eğer halihazırda gerçek client varsa (from fonksiyonu olan), direkt kullan
+	if (client && typeof client.from === 'function') {
+		return client;
+	}
+
+	// Eğer elimizde Supabase kütüphanesi (createClient fonksiyonu olan nesne) varsa,
+	// URL ve KEY kullanarak buradan yeni bir client üretelim.
+	if (client && typeof client.createClient === 'function' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+		try {
+			console.warn('Supabase client eksikti, kütüphaneden yeniden oluşturuluyor. Context:', context);
+			const newClient = client.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+				auth: {
+					persistSession: false,
+					autoRefreshToken: false
+				}
+			});
+			window.supabase = newClient;
+			return newClient;
+		} catch (e) {
+			console.error('Supabase client yeniden oluşturulurken hata oluştu (context: ' + context + '):', e);
+		}
+	}
+
+	console.error('Supabase client hazır değil (context: ' + context + '):', client);
+	throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+};
+
 // Supabase client başarıyla oluşturulduysa global olarak kullanılabilir yap
 if (supabaseClient) {
 	window.supabase = supabaseClient;

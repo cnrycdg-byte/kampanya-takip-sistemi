@@ -31,11 +31,9 @@ async function initializeSurveyReports() {
 // Anket filtrelerini yükle
 async function loadSurveyFilters() {
     try {
-        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
-        if (!supabase || typeof supabase.from !== 'function') {
-            console.error('Supabase client (survey-reports-overview loadSurveyFilters) hazır değil:', supabase);
-            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
-        }
+        const supabase = (typeof window !== 'undefined' && typeof window.getSupabaseClient === 'function')
+            ? window.getSupabaseClient('survey-reports-overview:loadSurveyFilters')
+            : ((typeof window !== 'undefined') ? window.supabase : null);
 
         const { data: surveys, error } = await supabase
             .from('surveys')
@@ -99,12 +97,9 @@ async function loadStoreBasedReport() {
     try {
         console.log('📊 Mağaza bazlı rapor yükleniyor...');
         
-        // Anket atamalarını al
-        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
-        if (!supabase || typeof supabase.from !== 'function') {
-            console.error('Supabase client (survey-reports-overview loadStoreBasedReport) hazır değil:', supabase);
-            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
-        }
+        const supabase = (typeof window !== 'undefined' && typeof window.getSupabaseClient === 'function')
+            ? window.getSupabaseClient('survey-reports-overview:loadStoreBasedReport')
+            : ((typeof window !== 'undefined') ? window.supabase : null);
 
         let { data: assignments, error: assignError } = await supabase
             .from('survey_store_assignments')
@@ -445,11 +440,9 @@ async function rejectStoreSurvey(responseId, storeName) {
         
         // 1. Anket cevaplarını sil
         console.log('📝 Anket cevapları siliniyor...');
-        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
-        if (!supabase || typeof supabase.from !== 'function') {
-            console.error('Supabase client (survey-reports-overview rejectStoreSurvey) hazır değil:', supabase);
-            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
-        }
+        const supabase = (typeof window !== 'undefined' && typeof window.getSupabaseClient === 'function')
+            ? window.getSupabaseClient('survey-reports-overview:rejectStoreSurvey')
+            : ((typeof window !== 'undefined') ? window.supabase : null);
 
         const { error: answersError } = await supabase
             .from('survey_answers')

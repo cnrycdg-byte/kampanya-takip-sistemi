@@ -1460,12 +1460,18 @@ async function handleAddStore(event) {
 
 // Supabase client'ını güvenli şekilde alan yardımcı fonksiyon
 function getSupabaseClientAdmin(context = 'admin') {
-    const client = (typeof window !== 'undefined') ? window.supabase : null;
-    if (!client || typeof client.from !== 'function') {
-        console.error(`Supabase client hazır değil (${context}):`, client);
-        throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+    if (typeof window !== 'undefined' && typeof window.getSupabaseClient === 'function') {
+        return window.getSupabaseClient(`admin:${context}`);
     }
-    return client;
+    const client = (typeof window !== 'undefined') ? window.supabase : null;
+    if (client && typeof client.createClient === 'function' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+        console.warn('Supabase client admin içinde yeniden oluşturuluyor. Context:', context);
+        const newClient = client.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+        window.supabase = newClient;
+        return newClient;
+    }
+    console.error(`Supabase client hazır değil (${context}):`, client);
+    throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
 }
 
 // Kullanıcı listesini yükleyen fonksiyon

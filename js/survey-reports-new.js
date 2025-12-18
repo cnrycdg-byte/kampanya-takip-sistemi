@@ -35,11 +35,9 @@ async function loadSurveyList() {
     try {
         console.log('🔍 Anket listesi yükleniyor...');
         
-        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
-        if (!supabase || typeof supabase.from !== 'function') {
-            console.error('Supabase client (survey-reports-new loadSurveyList) hazır değil:', supabase);
-            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
-        }
+        const supabase = (typeof window !== 'undefined' && typeof window.getSupabaseClient === 'function')
+            ? window.getSupabaseClient('survey-reports-new:loadSurveyList')
+            : ((typeof window !== 'undefined') ? window.supabase : null);
 
         const { data: surveys, error } = await supabase
             .from('surveys')
@@ -102,11 +100,9 @@ async function loadFilterOptions() {
     try {
         console.log('🔍 Filtre seçenekleri yükleniyor...');
 
-        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
-        if (!supabase || typeof supabase.from !== 'function') {
-            console.error('Supabase client (survey-reports-new loadFilterOptions) hazır değil:', supabase);
-            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
-        }
+        const supabase = (typeof window !== 'undefined' && typeof window.getSupabaseClient === 'function')
+            ? window.getSupabaseClient('survey-reports-new:loadFilterOptions')
+            : ((typeof window !== 'undefined') ? window.supabase : null);
         
         // Kanalları yükle
         const { data: channels, error: channelError } = await supabase

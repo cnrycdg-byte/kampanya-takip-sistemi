@@ -60,11 +60,9 @@ async function loadInvestmentReportData() {
     console.log('📊 Yatırım Alanı Raporu verileri yükleniyor...');
     
     try {
-        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
-        if (!supabase || typeof supabase.from !== 'function') {
-            console.error('Supabase client (investment-report) hazır değil:', supabase);
-            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip sayfayı yenileyin.');
-        }
+        const supabase = (typeof window !== 'undefined' && typeof window.getSupabaseClient === 'function')
+            ? window.getSupabaseClient('investment-report:loadInvestmentReportData')
+            : ((typeof window !== 'undefined') ? window.supabase : null);
 
         // Paralel olarak tüm verileri yükle
         const [surveysResult, storesResult, regionsResult, channelsResult, brandsResult] = await Promise.all([
@@ -141,11 +139,9 @@ async function loadSurveyAnswersData() {
     console.log('📊 Survey answers verileri yükleniyor...');
     
     try {
-        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
-        if (!supabase || typeof supabase.from !== 'function') {
-            console.error('Supabase client (investment-report answers) hazır değil:', supabase);
-            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip sayfayı yenileyin.');
-        }
+        const supabase = (typeof window !== 'undefined' && typeof window.getSupabaseClient === 'function')
+            ? window.getSupabaseClient('investment-report:loadSurveyAnswersData')
+            : ((typeof window !== 'undefined') ? window.supabase : null);
 
         const { data, error } = await supabase
             .from('survey_answers')
