@@ -25,7 +25,10 @@ try {
 
 // Supabase client oluşturmayı fonksiyon haline getirelim ki
 // CDN yedeği (fallback) yüklendiğinde tekrar çağırabilelim
-let supabase = null;
+// DİKKAT: Burada global `supabase` değişkenini **yeniden tanımlamıyoruz**,
+// sadece varsa okuyoruz. Böylece "Identifier 'supabase' has already been
+// declared" hatasını engelliyoruz.
+let supabaseClient = null;
 
 function initSupabaseClient() {
 	try {
@@ -33,6 +36,7 @@ function initSupabaseClient() {
 		const supabaseLib =
 			(typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function')
 				? window.supabase
+				// Burada globalde zaten tanımlı olabilecek `supabase` objesini yalnızca okuyoruz
 				: (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function'
 					? supabase
 					: null);
@@ -57,11 +61,11 @@ function initSupabaseClient() {
 }
 
 // Önce mevcut (jsDelivr üzerinden gelen) kütüphane ile client oluşturmaya çalış
-supabase = initSupabaseClient();
+supabaseClient = initSupabaseClient();
 
 // Eğer başarısız olursa, alternatif bir CDN'den (unpkg) Supabase kütüphanesini
 // tekrar yükleyip client'ı o şekilde oluşturmaya çalışalım.
-if (!supabase) {
+if (!supabaseClient) {
 	try {
 		console.warn('jsDelivr üzerinden Supabase yüklenemedi. Yedek CDN (unpkg) denenecek...');
 
@@ -75,9 +79,9 @@ if (!supabase) {
 			script.onload = function () {
 				console.log('Yedek Supabase CDN (unpkg) yüklendi, client yeniden oluşturuluyor...');
 				// Yedek CDN yüklendikten sonra tekrar dene
-				supabase = initSupabaseClient();
-				if (supabase) {
-					window.supabase = supabase;
+				supabaseClient = initSupabaseClient();
+				if (supabaseClient) {
+					window.supabase = supabaseClient;
 					console.log('Supabase bağlantısı (fallback CDN) başarıyla kuruldu.');
 				} else {
 					console.error('Fallback CDN yüklendi ama Supabase client yine oluşturulamadı.');
@@ -96,13 +100,13 @@ if (!supabase) {
 }
 
 // Güvenlik: Mevcut bir oturum kalmışsa sonlandır
-if (supabase && supabase.auth) {
-	supabase.auth.signOut().catch(() => {});
+if (supabaseClient && supabaseClient.auth) {
+	supabaseClient.auth.signOut().catch(() => {});
 }
 
 // Supabase client başarıyla oluşturulduysa global olarak kullanılabilir yap
-if (supabase) {
-	window.supabase = supabase;
+if (supabaseClient) {
+	window.supabase = supabaseClient;
 	console.log('Supabase bağlantısı kuruldu (persistSession=false, autoRefreshToken=false)');
 } else {
 	console.error('Supabase client şu anda oluşturulamadı, bazı fonksiyonlar çalışmayabilir!');
