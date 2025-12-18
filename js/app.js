@@ -112,9 +112,17 @@ async function handleLogin(event) {
         const submitBtn = document.querySelector('#loginForm button[type="submit"]');
         const hideLoading = showLoading(submitBtn);
         
+        // Supabase client'ının gerçekten hazır olduğundan emin ol
+        const supabaseClient = (typeof window !== 'undefined') ? window.supabase : null;
+
+        if (!supabaseClient || typeof supabaseClient.from !== 'function') {
+            console.error('Supabase client hazır değil:', supabaseClient);
+            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+        }
+
         // Supabase'den kullanıcı bilgilerini al
         console.log('Giriş denemesi:', { email, role });
-        const { data: user, error: userError } = await supabase
+        const { data: user, error: userError } = await supabaseClient
             .from('users')
             .select(`
                 id,
