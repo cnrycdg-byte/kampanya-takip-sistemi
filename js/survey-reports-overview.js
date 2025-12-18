@@ -31,6 +31,12 @@ async function initializeSurveyReports() {
 // Anket filtrelerini yükle
 async function loadSurveyFilters() {
     try {
+        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
+        if (!supabase || typeof supabase.from !== 'function') {
+            console.error('Supabase client (survey-reports-overview loadSurveyFilters) hazır değil:', supabase);
+            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+        }
+
         const { data: surveys, error } = await supabase
             .from('surveys')
             .select('id, title, month, year, status')
@@ -94,6 +100,12 @@ async function loadStoreBasedReport() {
         console.log('📊 Mağaza bazlı rapor yükleniyor...');
         
         // Anket atamalarını al
+        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
+        if (!supabase || typeof supabase.from !== 'function') {
+            console.error('Supabase client (survey-reports-overview loadStoreBasedReport) hazır değil:', supabase);
+            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+        }
+
         let { data: assignments, error: assignError } = await supabase
             .from('survey_store_assignments')
             .select(`
@@ -433,6 +445,12 @@ async function rejectStoreSurvey(responseId, storeName) {
         
         // 1. Anket cevaplarını sil
         console.log('📝 Anket cevapları siliniyor...');
+        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
+        if (!supabase || typeof supabase.from !== 'function') {
+            console.error('Supabase client (survey-reports-overview rejectStoreSurvey) hazır değil:', supabase);
+            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+        }
+
         const { error: answersError } = await supabase
             .from('survey_answers')
             .delete()

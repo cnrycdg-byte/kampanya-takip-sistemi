@@ -60,6 +60,12 @@ async function loadInvestmentReportData() {
     console.log('📊 Yatırım Alanı Raporu verileri yükleniyor...');
     
     try {
+        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
+        if (!supabase || typeof supabase.from !== 'function') {
+            console.error('Supabase client (investment-report) hazır değil:', supabase);
+            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip sayfayı yenileyin.');
+        }
+
         // Paralel olarak tüm verileri yükle
         const [surveysResult, storesResult, regionsResult, channelsResult, brandsResult] = await Promise.all([
             supabase.from('surveys').select('*').order('created_at', { ascending: false }),
@@ -135,6 +141,12 @@ async function loadSurveyAnswersData() {
     console.log('📊 Survey answers verileri yükleniyor...');
     
     try {
+        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
+        if (!supabase || typeof supabase.from !== 'function') {
+            console.error('Supabase client (investment-report answers) hazır değil:', supabase);
+            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip sayfayı yenileyin.');
+        }
+
         const { data, error } = await supabase
             .from('survey_answers')
             .select('*, survey_responses(survey_id, store_id)')

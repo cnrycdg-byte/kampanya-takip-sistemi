@@ -215,6 +215,8 @@ async function loadDashboardTasks() {
             console.error('Kullanıcı oturumu bulunamadı');
             return [];
         }
+
+        const supabase = getSupabaseClientAdmin('loadDashboardTasks');
         
         const { data: tasks, error } = await supabase
             .from('tasks')
@@ -1456,17 +1458,23 @@ async function handleAddStore(event) {
     }
 }
 
+// Supabase client'ını güvenli şekilde alan yardımcı fonksiyon
+function getSupabaseClientAdmin(context = 'admin') {
+    const client = (typeof window !== 'undefined') ? window.supabase : null;
+    if (!client || typeof client.from !== 'function') {
+        console.error(`Supabase client hazır değil (${context}):`, client);
+        throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+    }
+    return client;
+}
+
 // Kullanıcı listesini yükleyen fonksiyon
 async function loadUsersList() {
     console.log('loadUsersList fonksiyonu çağrıldı!');
     try {
-        // Supabase bağlantısını test et
-        console.log('Supabase client:', supabase);
-        
-        if (!supabase) {
-            console.error('Supabase client bulunamadı!');
-            throw new Error('Supabase client bulunamadı');
-        }
+        // Supabase client'ını güvenli şekilde al
+        const supabase = getSupabaseClientAdmin('loadUsersList');
+        console.log('Supabase client (admin - users):', supabase);
         
         // Supabase'den gerçek verileri çek
         console.log('Supabase\'den kullanıcılar çekiliyor...');
@@ -1626,6 +1634,7 @@ function displayUsersList(users) {
 async function loadStoresList() {
     console.log('loadStoresList fonksiyonu çağrıldı!');
     try {
+        const supabase = getSupabaseClientAdmin('loadStoresList');
         // Önce has_personnel kolonu ile deneyelim
         let query = supabase
             .from('stores')

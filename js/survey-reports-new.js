@@ -35,6 +35,12 @@ async function loadSurveyList() {
     try {
         console.log('🔍 Anket listesi yükleniyor...');
         
+        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
+        if (!supabase || typeof supabase.from !== 'function') {
+            console.error('Supabase client (survey-reports-new loadSurveyList) hazır değil:', supabase);
+            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+        }
+
         const { data: surveys, error } = await supabase
             .from('surveys')
             .select('id, title, created_at')
@@ -95,6 +101,12 @@ async function loadSurveyList() {
 async function loadFilterOptions() {
     try {
         console.log('🔍 Filtre seçenekleri yükleniyor...');
+
+        const supabase = (typeof window !== 'undefined') ? window.supabase : null;
+        if (!supabase || typeof supabase.from !== 'function') {
+            console.error('Supabase client (survey-reports-new loadFilterOptions) hazır değil:', supabase);
+            throw new Error('Veritabanı bağlantısı kurulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+        }
         
         // Kanalları yükle
         const { data: channels, error: channelError } = await supabase
