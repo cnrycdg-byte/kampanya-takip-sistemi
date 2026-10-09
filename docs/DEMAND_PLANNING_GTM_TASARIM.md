@@ -276,6 +276,72 @@ Her bileşen üç parçayla sunulur: rakam → **"Ne söylüyor?"** (tek cümle)
 | Kampanya maliyeti ve mekaniği | Pazarlama, kampanya faturaları | Kampanya bazında | **G** |
 | Pazaryeri trafik, dönüşüm, stoksuz sayfa | Pazaryeri panelleri | Günlük | **İ** |
 
+### M13 — Zincir Çıkış Planı (KAM ekranı)
+
+Kilit müşteri yöneticisi (KAM) kendi zincirinin mağazaları için aylık sevk planını yapar.
+"Çıkış" = depomuzdan zincir mağazalarına sevk edilen ürün.
+
+- **Bu ay çıkması gereken ürünler:** Pazara çıkış planından ve yaşlı stok listesinden gelen
+  ürünler; her biri için ay hedefi, çıkan, planlanan sevk, depomuzda kalacak ve mağazada fazla kalacak adet.
+- **Mağaza bazlı öneri:** Önerilen sevk = ay sonuna kadar beklenen satış + ay sonunda rafta kalması
+  istenen stok − bugünkü mağaza stoku (koliye yuvarlanır). Promotörlü (personelli) mağazalarda
+  ay sonu hedefi 4 haftalık, diğerlerinde 3 haftalık stoktur; satış hızı son 4 haftanın raftan satış ortalamasıdır.
+  KAM öneriyi mağaza bazında değiştirip onaylar.
+- **Mağazalar arası transfer:** Ay sonunda 8 haftadan fazla stokla kalacak mağazadan, 2 haftalık stoğu
+  kalmayacak mağazaya transfer önerisi; tek tıkla iki mağazaya talep gider.
+- **Devreden stok:** Ay sonunda depomuzda kalacak ve mağazada fazla kalacak adet ile değeri.
+  Zincire çıkamayan adet başka kanala (e-ticaret, distribütör, outlet) aktarılır; zincir hedefinden düşer.
+- **Çıkış planı uyum puanı (0–100):**
+  | Bileşen | Puan | Ölçüm |
+  |---|---|---|
+  | Hedefi karşılama | 40 | (çıkan + planlanan sevk) ÷ ay hedefi |
+  | Mağaza dengesi | 30 | Ay sonunda 2–8 haftalık stokla kalan mağaza oranı |
+  | Fazla stok riski | 30 | 1 − (8 haftanın üstündeki stok ÷ ay sonu toplam mağaza stoku) |
+
+  85+ iyi, 70–84 orta, 70 altı zayıf. Hedefi yavaş mağazalara mal yığarak tutturmak puanı düşürür.
+- **Ek veri:** Mağaza bazında raftan satış ve stok (haftalık), mağazada promotör olup olmadığı,
+  mağazalar arası transfer kuralları (minimum adet, taşıma maliyeti).
+
+### M14 — Gümrük Takibi
+
+Limana yaklaşan ve limandaki her konteyner bir **gümrük dosyası** olarak izlenir.
+
+- **Dosya ekranı:** sipariş, liman, konteyner sayısı, limana varış, belge durumu
+  (ticari fatura, konşimento, çeki listesi, menşe belgesi, TSE/CE, TAREKS), hat (yeşil/sarı/kırmızı),
+  ücretsiz bekleme süresinin kaç günü kaldığı, tahmini vergi ve masraf.
+- Akış: belgeler tamamlanır → beyanname verilir → hat atanır → (sarı/kırmızıysa) kontrol →
+  gümrükten çekilir → mal kabul. Çekilen dosya, ithalat ve stok ekranlarını otomatik günceller.
+- **Alarm:** Ücretsiz bekleme süresinin bitmesine 2 gün kala; konteyner limana yaklaşırken belgesi eksikse.
+
+**Performans kriterleri**
+| Kriter | Ne ölçer | Hedef |
+|---|---|---|
+| Gümrükte geçen süre | Limana varıştan gümrükten çekilmeye kadar ortalama gün | ≤ 3 gün |
+| Belgeler varıştan önce tam | Gemi varmadan tüm belgeleri hazır dosya oranı | ≥ %95 |
+| İlk seferde onay | Beyannamenin düzeltme/ret almadan kabul oranı | ≥ %95 |
+| Bekleme cezası (ardiye) | Ücretsiz süre aşılınca ödenen ceza toplamı | ₺0 |
+| Vergi tahmini isabeti | Önceden hesaplanan ile ödenen vergi/masraf yakınlığı | ≥ %97 |
+| Kontrole düşme oranı | Sarı/kırmızı hatta düşen dosya oranı | İzlenir |
+
+Kriterler liman ve gümrük müşaviri bazında da raporlanır (müşavir karnesi).
+**Ek veri:** gümrük müşavirinden dosya durumları, beyanname ve vergi tutarları, liman varış tarihleri,
+konteyner başına günlük bekleme ücreti.
+
+## Terimler (kısa sözlük)
+
+| Terim | Anlamı |
+|---|---|
+| Sell-in | Bizim müşteriye (zincir, bayi, pazaryeri) kestiğimiz fatura |
+| Sell-out (raftan satış) | Mağazanın ürünü tüketiciye satması |
+| Müşterideki stok (hafta) | Müşterinin stoğu, raftan satış hızıyla kaç hafta yeter |
+| Ortak tahmin (konsensüs) | Sistem tahmininin satış bilgisiyle düzeltilip birlikte onaylanmış hali |
+| Olası aralık | Tahminin "büyük ihtimalle bu iki değer arasında" diye verilmesi |
+| Cebe kalan fiyat (net-net) | Liste fiyatından tüm iskonto, prim ve bedeller düşüldükten sonra kalan |
+| Raf alma (listeleme) | Ürünün bir mağazada satışa açılması |
+| Emniyet stoku | Talep artar ya da sipariş gecikirse kullanılacak yedek stok |
+| Tedarik süresi | Siparişten depoya girişe kadar geçen süre |
+| Ardiye | Konteynerin limanda ücretsiz süreden fazla beklemesi için ödenen günlük ücret |
+
 ---
 
 ## 6. Tahmin Metodolojisi (çıtayı yüksek tutan kısım)
