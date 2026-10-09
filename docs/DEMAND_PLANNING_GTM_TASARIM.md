@@ -243,6 +243,39 @@ Bildirim: sistem içi + e-posta (+ Teams entegrasyonu).
 | Tedarikçi zamanında teslim % | |
 | Plan vs gerçekleşen (adet/ciro) | |
 
+### M12 — GTM Panosu (GTM Müdürü için)
+
+Amaç: Kanal kararlarını ciro yerine **kanal sağlığı, net-net kârlılık ve fırsat** üzerinden vermek.
+Her bileşen üç parçayla sunulur: rakam → **"Ne söylüyor?"** (tek cümle) → **"Nasıl hesaplanır?"** (açılır not).
+
+| Bileşen | Ne gösterir | Karar |
+|---|---|---|
+| **Haftalık brif** | Kurallarla üretilen 3–5 öneri, önem sırasıyla | Öneriyi uygula / katılıyorum / katılmıyorum |
+| **Kanal karnesi** | Hedef, gidişat, son 6 ay trendi, sell-out hızı, kanal stoku (hafta), brüt marj, iskonto, listeleme | Hangi kanala yükleme, hangisinde eritme |
+| **Hedef açığı köprüsü** | Hedef − gidişat ve açığı kapatacak aksiyonların tahmini etkisi | Açık nasıl kapanır, kalan açık kime revize edilir |
+| **Fiyat şelalesi** | Liste fiyatı → fatura altı iskonto → kampanya → prim → hizmet bedeli → net-net → maliyet | "Çok satan ama kazandırmayan" kanal, iskonto sızıntısı |
+| **Ürün × kanal fırsat haritası** | Satış hızı endeksi (100 = portföy ortalaması), listelenmemiş hücreler | Yeni listeleme, kanal kaydırma |
+| **Kampanya etkinliği** | Satış artışı, ek adet, kampanya sonrası düşüş, getiri (ek brüt kâr ÷ maliyet) | Tekrarla / tekrarlama |
+| **Lansman takibi** | Yeni ürünün haftalık sell-out'u ile benzer ürünün ilk 12 haftası | İkinci siparişi öne çek / kampanya |
+
+**Kanal stoku kuralı:** müşteri stoğu ÷ son 4 hafta ortalama sell-out. 4–6 hafta sağlıklı; 6+ yeni sell-in gecikir,
+3− rafta boşluk riski. Sell-in'i kanal stoku yüksekken artıran primler (hacim primi) ayrıca işaretlenir.
+
+**Benimsenme (kabul) ilkeleri**
+- Her ekran sade dille "ne söylüyor" cümlesiyle açılır; terimler açılır notta açıklanır.
+- Her öneri bir aksiyon butonuna bağlıdır (ör. "Dağılımı uygula" ilgili ekranı önerilen değerlerle açar); son kararı kullanıcı verir.
+- Kullanıcı her öneriye katıldığını/katılmadığını işaretler; sistem hangi öneri türlerinin işe yaradığını ölçer (öneri isabeti raporu).
+- Her rakamın kaynağı ve tarihi görünür; satışçının kendi raporuyla çelişen bir rakam varsa fark açıklanır.
+
+**Ek veri ihtiyacı (GTM)**
+| Veri | Kaynak | Sıklık | Öncelik |
+|---|---|---|---|
+| Sell-out ve mağaza/depo stoku | Zincir portalları / EDI | Haftalık | **G** |
+| Listeleme (mağaza × ürün) | Müşteri planogramı, saha ekibi | Aylık | **G** |
+| Ticari koşullar (iskonto, prim, vade, listeleme bedeli) | Anlaşma kartları, finans | Değiştikçe | **Z** |
+| Kampanya maliyeti ve mekaniği | Pazarlama, kampanya faturaları | Kampanya bazında | **G** |
+| Pazaryeri trafik, dönüşüm, stoksuz sayfa | Pazaryeri panelleri | Günlük | **İ** |
+
 ---
 
 ## 6. Tahmin Metodolojisi (çıtayı yüksek tutan kısım)
