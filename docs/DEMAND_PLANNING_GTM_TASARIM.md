@@ -299,6 +299,12 @@ Kilit müşteri yöneticisi (KAM) kendi zincirinin mağazaları için aylık sev
   | Fazla stok riski | 30 | 1 − (8 haftanın üstündeki stok ÷ ay sonu toplam mağaza stoku) |
 
   85+ iyi, 70–84 orta, 70 altı zayıf. Hedefi yavaş mağazalara mal yığarak tutturmak puanı düşürür.
+- **Serbest stok havuzu:** KAM, ay sonuna kadar zincirine çıkaramayacağı adedi havuza bırakabilir.
+  Bırakılan adet hedefinden düşmez; **ay hedefinin her %1'i için 1 puan kaybettirir** (ürün başına en çok 20).
+  Havuzdaki ürünü başka bir ekip (başka KAM, e-ticaret, distribütör, teknoloji marketleri) alır; satış gerçekleşince
+  **kendi hedefinin her %1'i için 1 puan kazanır** (en çok 15). Alınan ama satılmayan stoğun puanı "bekliyor" görünür,
+  toplama eklenmez. Pazara Çıkış Müdürü ve Talep Planlama Uzmanı havuzdaki ürünü bir ekip adına atayabilir.
+  Ekip puan tablosu plan puanı, bırakma kaybı ve alıp satma kazancını ayrı sütunlarda gösterir.
 - **Ek veri:** Mağaza bazında raftan satış ve stok (haftalık), mağazada promotör olup olmadığı,
   mağazalar arası transfer kuralları (minimum adet, taşıma maliyeti).
 
