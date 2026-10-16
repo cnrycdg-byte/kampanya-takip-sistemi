@@ -35,9 +35,11 @@ python etl/import_dp_excel.py <Ugreen_Demand_Planning.xlsx> data/dp.json
 - `#N/A`, `#VALUE!`, `#REF!`, `#DIV/0!` hücreleri boş kabul edilir ve sütun bazında sayılır.
 - `-` ve boşluk değerleri 0 kabul edilir.
 - Ana grup yazımları birleştirilir (`Mobil ACC` → `Mobil Acc`, `Kablo&Priz` → `Kablo & Priz`).
-- Birim maliyet = stok değeri ÷ aynı tarihteki stok adedi. Sonuç, ürünün en düşük kanal alış fiyatından
-  yüksekse (stok değeri ile adet uyuşmuyorsa) maliyet, tavsiye satış fiyatına uygulanan medyan
-  maliyet oranıyla tahmin edilir ve "tahmini" olarak işaretlenir.
+- Birim maliyet = stok değeri ÷ aynı tarihteki stok adedi (`birim_maliyet`).
+
+Planlama ekranı bu değeri ayrıca kontrol eder: birim maliyet ürünün en düşük kanal alış fiyatından
+yüksekse (stok değeri ile adet uyuşmuyorsa) ya da hiç yoksa, maliyet tavsiye satış fiyatına uygulanan
+medyan maliyet oranıyla tahmin edilir ve "tahmini maliyet" olarak işaretlenir.
 
 ## Açık sorular (veri sahibinden teyit)
 
