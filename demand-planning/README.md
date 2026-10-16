@@ -1,49 +1,48 @@
-# Demand Planning — Ugreen Excel'inden sisteme geçiş
+# Demand Planning — DP_2026 çalışma kitabından sisteme geçiş
 
-Bu klasör, mevcut **Ugreen Demand Planning** Excel'ini (tek sayfa, ~291 sütun, her ay sağa yeni blok)
-sistemin kullanacağı düzenli tablolara çeviren aktarım betiğini içerir.
+Bu klasör, **DP_2026 Demand Planning** Excel çalışma kitabını planlama ekranının kullandığı
+veri dosyasına çeviren aktarım betiğini içerir.
 
-> Şirket verisi (Excel, JSON çıktısı, ekran dosyası) **repoya eklenmez**; `data/` klasörü `.gitignore` içindedir.
+> Şirket verisi (Excel, JSON çıktısı, ekran dosyası) **repoya eklenmez**; `data/` klasörü ve `*.xlsx` `.gitignore` içindedir.
 
 ## Kullanım
 
 ```bash
 pip install openpyxl
-python etl/import_dp_excel.py <Ugreen_Demand_Planning.xlsx> data/dp.json
+python etl/import_dp2026.py <Demand_Planning.xlsx> data/dp2026.json
 ```
 
-## Excel blokları → sistem tabloları
+Betik dosyayı salt okunur modda okur (dosya ~170 MB XML içerir); değerler Excel'in son kaydedilmiş
+(hesaplanmış) halinden alınır. Tüm ciro değerleri dosyadaki gibi KDV hariçtir.
 
-| Excel bloğu | Sütunlar | Sistem tablosu |
+## Excel sayfaları → sistem tabloları
+
+| Excel sayfası | İçerik | Sistem tablosu |
 |---|---|---|
-| Ürün bilgileri (kod, model, EAN, grup, EOL, HERO, kanal durumu) | A–M | `urun` |
-| Stok sayımları (6 tarih) | N–U | `stok_foto` (tarih × ürün) |
-| Stok değeri, stok yaşı | V–Y | `stok_foto`, `maliyet` |
-| Gümrük stoğu, ITH siparişi | Z–AA | `gumruk_dosya`, `satinalma_siparis` |
-| FOB sipariş planı (ay sonu geliş) | AB–AN | `gelen_plan` (ay × ürün) |
-| Stok dağılım planı | AV–BH | `cikis_plan_toplam` (versiyonlu) |
-| Aylık kanal çıkış planları | BP–BZ, CR–DE, DY–ER, FD–GB, HM–HR, JD–JI | `cikis_plan` (ürün × kanal × ay, versiyonlu) |
-| Satış ekibinin kendi planı | CC–CI, IR–IW | `satis_girdisi` |
-| Gerçekleşen çıkışlar | BI–BO, CJ–CP, DQ–DW, EV–FB, HD–HL, IX–JC | `gerceklesen` (ERP faturasından) |
-| Müşteri satış ve stoğu | CS–CY, DZ–EG, FF–FZ | `kanal_foto` (haftalık) |
-| Kanal marjı, alış fiyatı | GH–HA, HU–IN, JK–KD | `kanal_fiyat` (tarihli) |
-| Yorumlar | J, CA–CB, DG–DH, ET–EU, GC–GE, KE | `urun_yorum` (kim, ne zaman, karar) |
-| Kalan adet hesapları | CQ, DF, DX, ES, FC, GB, HB–HC, HS–HT, IO–IQ, JJ | Hesaplanır, saklanmaz |
+| URUN_DB | Ürün kodu, marka, ana/alt grup, HERO | `urun` |
+| LISTE_FIYATLARI | Aylık liste (TESKF) ve promosyon fiyatı | `fiyat_listesi` (tarihli) |
+| MUSTERI_KOSULLARI | Müşteri × ürün marjı | `musteri_kosul` (tarihçeli) |
+| 1_HEDEFLER | Müşteri × marka × ana grup × ay ciro hedefi | `hedef` |
+| 2_PAZ_PLAN | Pazarlama adet planı, stok, stok yaşı, yoldaki adet | `pazarlama_plan` (versiyonlu), `stok_foto` |
+| 3_SAT_PLAN | Müşteri × ürün × ay satış planı ve alış fiyatı | `satis_plan` (yalnızca dolu satırlar) |
+| 4_SELL_IN | Müşteri × ürün × ay sell-in adet ve ciro | `sell_in` (ERP'den otomatik) |
+| 5_SELL_OUT | Media Markt / Vatan / Teknosa sell-out | `sell_out` (müşteri raporlarından) |
+| ÖZET | Ürün × ay karşılaştırma, stok değeri, kanal, yorumlar | Ürün kartı; yorumlar `urun_yorum` |
+| 6_KARSILASTIRMA, 0_DASHBOARD | Hedef ve yıl sonu raporu | Ekran (hesaplanır, saklanmaz) |
+| METODOLOJI | Formül ve elle yenileme notları | Sistem kuralları |
 
-## Aktarımda yapılan temizlik
+## Aktarımda yapılan dönüşümler
 
-- `#N/A`, `#VALUE!`, `#REF!`, `#DIV/0!` hücreleri boş kabul edilir ve sütun bazında sayılır.
-- `-` ve boşluk değerleri 0 kabul edilir.
-- Ana grup yazımları birleştirilir (`Mobil ACC` → `Mobil Acc`, `Kablo&Priz` → `Kablo & Priz`).
-- Birim maliyet = stok değeri ÷ aynı tarihteki stok adedi (`birim_maliyet`).
-
-Planlama ekranı bu değeri ayrıca kontrol eder: birim maliyet ürünün en düşük kanal alış fiyatından
-yüksekse (stok değeri ile adet uyuşmuyorsa) ya da hiç yoksa, maliyet tavsiye satış fiyatına uygulanan
-medyan maliyet oranıyla tahmin edilir ve "tahmini maliyet" olarak işaretlenir.
+- Sell-in / sell-out'taki ticari unvanlar plan dosyasındaki kısa müşteri adlarına eşlenir
+  (ör. `YENİ MAĞAZACILIK ANONİM ŞİRKETİ` → `A-101`, `NİT-SET …` → `Dist. TV`).
+- Sayısal ürün kodları metne çevrilir (`50903` ve `"50903"` aynı ürün).
+- Hedeflerdeki ara toplam satırları (`UGREEN TOPLAM`, `PHILIPS TOPLAM`, `MÜŞTERİ TOPLAM`) atlanır.
+- Satış planında yalnızca planı ya da satış ortalaması olan müşteri × ürün satırları tutulur.
+- Negatif adetler (iade) olduğu gibi aktarılır ve sayılır.
 
 ## Açık sorular (veri sahibinden teyit)
 
-1. "Gerçekleşen" blokları tüm satışları mı kapsıyor? (TSS, geleneksel/bayi, Genpa, operatör, online B2B)
-2. Gümrük stoğu, FOB sipariş planındaki gelen adetlerin içinde mi?
-3. Nisan çıkış planı neden kısmi girilmiş?
-4. Kanal fiyatlarındaki "Alış FT" kanalın bize ödediği fiyat mı (KDV hariç)?
+1. Sell-out yalnızca Media Markt, Vatan ve Teknosa'nın tüm mağazalarını mı kapsıyor?
+2. Mayıs ve Haziran satış planı neden boş?
+3. Hedefi 0 olan müşteriler (QUAD, A-101, Amazon, Dist. TV…) için hedef var mı?
+4. Stok değeri hangi fiyatla hesaplanıyor (maliyet mi, alış fiyatı mı)?
