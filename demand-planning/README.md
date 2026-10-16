@@ -15,6 +15,13 @@ python etl/import_dp2026.py <Demand_Planning.xlsx> data/dp2026.json
 Betik dosyayı salt okunur modda okur (dosya ~170 MB XML içerir); değerler Excel'in son kaydedilmiş
 (hesaplanmış) halinden alınır. Tüm ciro değerleri dosyadaki gibi KDV hariçtir.
 
+## Diğer kaynaklar
+
+- **Sell-out & Stok Döngüsü raporu** (`etl/import_stok_dongusu.py`): Media Markt, Vatan ve Teknosa için
+  mağaza × ürün × ay raftan satış, mağaza / merkez depo / internet stoku, müşteri siparişi (yolda),
+  mağaza listesi (il, saha yöneticisi, promotör durumu, kadro, rakip personel). Sistemde `kanal_foto`,
+  `magaza`, `magaza_personel` tablolarını besler.
+
 ## Excel sayfaları → sistem tabloları
 
 | Excel sayfası | İçerik | Sistem tablosu |
